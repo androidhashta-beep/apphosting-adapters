@@ -49,7 +49,7 @@ export function KioskClient() {
             >
               <User className="h-8 w-8" />
               <span>Counter Service</span>
-              <p className="text-sm font-normal normal-case text-primary-foreground/80 mt-1 px-2 text-balance">
+              <p className="text-sm font-normal normal-case text-primary-foreground/80 mt-1 px-2 whitespace-normal">
                 For inquiries, enrollment, and payments if cashier is unavailable.
               </p>
             </Button>
@@ -60,7 +60,7 @@ export function KioskClient() {
             >
               <Ticket className="h-8 w-8" />
               <span>Cashier Service</span>
-              <p className="text-sm font-normal normal-case text-accent-foreground/80 mt-1 px-2 text-balance">
+              <p className="text-sm font-normal normal-case text-accent-foreground/80 mt-1 px-2 whitespace-normal">
                 Exclusive for payment services only.
               </p>
             </Button>
@@ -71,7 +71,7 @@ export function KioskClient() {
             >
               <Award className="h-8 w-8" />
               <span>Claim Certificate</span>
-              <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2 text-balance">
+              <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2 whitespace-normal">
                 Exclusive for claiming of certificates.
               </p>
             </Button>
