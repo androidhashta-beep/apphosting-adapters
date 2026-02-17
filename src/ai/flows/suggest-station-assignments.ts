@@ -21,6 +21,11 @@ const SuggestStationAssignmentsInputSchema = z.object({
     .int()
     .min(0)
     .describe('The current number of students waiting for cashier services.'),
+  certificateQueueLength: z
+    .number()
+    .int()
+    .min(0)
+    .describe('The current number of students waiting for certificate claiming.'),
   availableCounters: z
     .number()
     .int()
@@ -41,12 +46,12 @@ const SuggestStationAssignmentsOutputSchema = z.object({
     .array(
       z.object({
         stationType: z
-          .enum(['Counter', 'Cashier', 'Combined'])
+          .enum(['Counter', 'Cashier', 'Combined', 'Certificate'])
           .describe(
-            "The type of station being suggested for assignment (e.g., 'Counter', 'Cashier', 'Combined')."
+            "The type of station being suggested for assignment (e.g., 'Counter', 'Cashier', 'Combined', 'Certificate')."
           ),
         assignment: z
-          .enum(['Regular', 'All-in-one', 'Closed', 'Cashier-only', 'Counter-only'])
+          .enum(['Regular', 'All-in-one', 'Closed', 'Cashier-only', 'Counter-only', 'Certificate-only'])
           .describe(
             "The suggested assignment for the station (e.g., 'Regular', 'All-in-one', 'Closed'). 'All-in-one' means handling both counter and cashier services. 'Cashier-only' or 'Counter-only' is for a combined station that temporarily focuses on one type of service."
           ),
@@ -80,13 +85,14 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert operations manager for a school's seafaring training center, specializing in optimizing student flow through queue management.
 
 Based on the current real-time queue lengths and available staff, suggest optimal station assignments to efficiently manage student flow and reduce waiting times. Consider options such as:
--   Designating specific counters as 'All-in-one' (handling both counter and cashier services).
--   Combining a cashier and a counter role if appropriate.
+-   Designating specific counters as 'All-in-one' (handling counter, cashier, and certificate services).
+-   Combining roles if appropriate.
 -   Closing stations if they are not needed.
 
 Current Queue Status:
 -   Counter Queue Length: {{{counterQueueLength}}}
 -   Cashier Queue Length: {{{cashierQueueLength}}}
+-   Certificate Queue Length: {{{certificateQueueLength}}}
 
 Available Staff/Stations:
 -   Available Counters: {{{availableCounters}}}

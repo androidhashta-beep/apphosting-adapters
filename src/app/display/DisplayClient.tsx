@@ -10,9 +10,12 @@ export function DisplayClient() {
 
   const counterWaiting = getWaitingTickets("counter");
   const cashierWaiting = getWaitingTickets("cashier");
+  const certificateWaiting = getWaitingTickets("certificate");
   
   const counterHistory = getServedTickets("counter").slice(0, 4);
   const cashierHistory = getServedTickets("cashier").slice(0, 4);
+  const certificateHistory = getServedTickets("certificate").slice(0, 4);
+
 
   return (
     <div className="w-full space-y-8">
@@ -27,9 +30,10 @@ export function DisplayClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <QueueInfoColumn title="Counter Queue" waiting={counterWaiting} history={counterHistory} />
         <QueueInfoColumn title="Cashier Queue" waiting={cashierWaiting} history={cashierHistory} />
+        <QueueInfoColumn title="Certificate Queue" waiting={certificateWaiting} history={certificateHistory} />
       </div>
     </div>
   );

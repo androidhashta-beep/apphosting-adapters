@@ -17,24 +17,26 @@ type Action =
   | { type: 'COMPLETE_TICKET'; payload: { stationId: string } }
   | { type: 'SKIP_TICKET'; payload: { stationId: string } };
 
-const initialState: State = {
-  tickets: [],
-  stations: initialStations,
-};
-
-const QueueContext = createContext<{
+type QueueContextType = {
   state: State;
   dispatch: React.Dispatch<Action>;
   getWaitingTickets: (type: TicketType) => Ticket[];
   getServedTickets: (type: TicketType) => Ticket[];
   getTicketByStation: (stationId: string) => Ticket | undefined;
-} | undefined>(undefined);
+};
+
+const QueueContext = createContext<QueueContextType | undefined>(undefined);
+
+const initialState: State = {
+  tickets: [],
+  stations: initialStations,
+};
 
 const queueReducer = (state: State, action: Action): State => {
   switch (action.type) {
     case 'ADD_TICKET': {
       const { type } = action.payload;
-      const prefix = type === 'counter' ? 'C' : 'S';
+      const prefix = type === 'counter' ? 'C' : type === 'cashier' ? 'S' : 'R';
       const lastTicketOfType = state.tickets
         .filter((t) => t.type === type)
         .sort((a, b) => b.createdAt - a.createdAt)[0];

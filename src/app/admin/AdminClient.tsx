@@ -17,6 +17,7 @@ export function AdminClient() {
 
   const counterQueueLength = getWaitingTickets('counter').length;
   const cashierQueueLength = getWaitingTickets('cashier').length;
+  const certificateQueueLength = getWaitingTickets('certificate').length;
   const availableCounters = state.stations.filter(s => s.type === 'counter' && s.status === 'open').length;
   const availableCashiers = state.stations.filter(s => s.type === 'cashier' && s.status === 'open').length;
 
@@ -27,6 +28,7 @@ export function AdminClient() {
       const result = await suggestStationAssignments({
         counterQueueLength,
         cashierQueueLength,
+        certificateQueueLength,
         availableCounters,
         availableCashiers,
       });
@@ -56,9 +58,10 @@ export function AdminClient() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
               <div><p className="font-bold text-2xl">{counterQueueLength}</p><p className="text-sm text-muted-foreground">Counter Queue</p></div>
               <div><p className="font-bold text-2xl">{cashierQueueLength}</p><p className="text-sm text-muted-foreground">Cashier Queue</p></div>
+              <div><p className="font-bold text-2xl">{certificateQueueLength}</p><p className="text-sm text-muted-foreground">Certificate Queue</p></div>
               <div><p className="font-bold text-2xl">{availableCounters}</p><p className="text-sm text-muted-foreground">Open Counters</p></div>
               <div><p className="font-bold text-2xl">{availableCashiers}</p><p className="text-sm text-muted-foreground">Open Cashiers</p></div>
             </div>

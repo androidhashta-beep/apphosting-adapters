@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Volume2, Check, SkipForward, Ban, Loader2 } from "lucide-react";
+import { Volume2, Check, SkipForward, Ban, Loader2, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
@@ -107,6 +107,9 @@ export function StationControlCard({ station }: { station: Station }) {
                 </Button>
                 <Button onClick={() => callNext('cashier')} className="w-full" disabled={isClosed || isCalling} variant="secondary">
                  {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Cashier
+                </Button>
+                <Button onClick={() => callNext('certificate')} className="w-full" disabled={isClosed || isCalling} variant="outline">
+                 {isCalling ? <Loader2 className="animate-spin" /> : <Award />} Call Certificate
                 </Button>
               </>
             ) : (

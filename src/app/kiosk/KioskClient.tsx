@@ -4,16 +4,17 @@ import { useQueue } from "@/contexts/QueueProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket, User } from "lucide-react";
+import { Ticket, User, Award } from "lucide-react";
+import type { TicketType } from "@/lib/types";
 
 export function KioskClient() {
   const { state, dispatch } = useQueue();
   const { toast } = useToast();
 
-  const handleGetTicket = (type: "counter" | "cashier") => {
+  const handleGetTicket = (type: TicketType) => {
     // We need to calculate the next ticket number here to show it in the toast.
     // This duplicates logic from the reducer, but it's for UI feedback only.
-    const prefix = type === 'counter' ? 'C' : 'S';
+    const prefix = type === 'counter' ? 'C' : type === 'cashier' ? 'S' : 'R';
     const lastTicketOfType = state.tickets
       .filter((t) => t.type === type)
       .sort((a, b) => b.createdAt - a.createdAt)[0];
@@ -32,7 +33,7 @@ export function KioskClient() {
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-4xl">
         <CardContent className="p-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-foreground">Get Your Ticket</h2>
@@ -40,7 +41,7 @@ export function KioskClient() {
               Please select the service you need.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Button
               variant="default"
               className="h-32 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105"
@@ -56,6 +57,14 @@ export function KioskClient() {
             >
               <Ticket className="h-8 w-8" />
               <span>Cashier Service</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-32 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5"
+              onClick={() => handleGetTicket("certificate")}
+            >
+              <Award className="h-8 w-8" />
+              <span>Claim Certificate</span>
             </Button>
           </div>
         </CardContent>
