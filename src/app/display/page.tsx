@@ -1,10 +1,9 @@
 import { DisplayClient } from './DisplayClient';
-import { PageWrapper } from '@/components/PageWrapper';
 
 export default function DisplayPage() {
   return (
-    <PageWrapper title="Public Display">
+    <div className="p-6 bg-background h-screen w-screen overflow-hidden">
       <DisplayClient />
-    </PageWrapper>
+    </div>
   );
 }

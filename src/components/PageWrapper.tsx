@@ -14,20 +14,11 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
               </Link>
             )}
           </div>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center w-1/3">
             <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           </div>
           <div className="w-1/3 flex justify-end">
-            <div
-              style={{
-                width: '3rem',
-                height: '3rem',
-                backgroundImage: `url('/logo%20(2).png')`,
-                backgroundSize: 'contain',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-              }}
-            />
+            
           </div>
         </div>
       </header>

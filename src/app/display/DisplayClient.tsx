@@ -1,73 +1,91 @@
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
-import { NowServingCard } from "./NowServingCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Ticket } from "@/lib/types";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { AdCarousel } from "./AdCarousel";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export function DisplayClient() {
-  const { state, getWaitingTickets, getServedTickets } = useQueue();
+  const { state } = useQueue();
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const counterWaiting = getWaitingTickets("counter");
-  const cashierWaiting = getWaitingTickets("cashier");
-  const certificateWaiting = getWaitingTickets("certificate");
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const recentlyCalledTickets = state.tickets
+    .filter(t => t.status === 'serving' || t.status === 'served')
+    .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0))
+    .slice(0, 10);
+
+  const getStationName = (stationId: string | undefined) => {
+    if (!stationId) return '-';
+    const name = state.stations.find(s => s.id === stationId)?.name || '-';
+    return name.split(' ').pop() || name;
+  }
   
-  const counterHistory = getServedTickets("counter").slice(0, 4);
-  const cashierHistory = getServedTickets("cashier").slice(0, 4);
-  const certificateHistory = getServedTickets("certificate").slice(0, 4);
-
+  const getServiceLabel = (type: string) => {
+      switch(type) {
+          case 'counter': return 'COUNTER';
+          case 'cashier': return 'PAYMENT';
+          case 'certificate': return 'CERTIFICATE';
+          default: return 'SERVICE';
+      }
+  }
 
   return (
-    <div className="w-full space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold text-center text-primary mb-6">
-          Now Serving
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {state.stations.map((station) => (
-            <NowServingCard key={station.id} station={station} />
-          ))}
-        </div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+      {/* Left Column: Queue List */}
+      <div className="lg:col-span-1">
+        <Card className="h-full flex flex-col">
+          <CardHeader className="p-4 border-b">
+            <div className="grid grid-cols-3 text-center font-bold text-muted-foreground uppercase">
+              <div>Services</div>
+              <div>Queue No.</div>
+              <div>Counter</div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4 flex-grow overflow-y-auto">
+            <div className="flex flex-col gap-3">
+              {recentlyCalledTickets.map((ticket, index) => (
+                <div 
+                  key={ticket.id} 
+                  className={cn(
+                    "grid grid-cols-3 items-center text-center p-3 rounded-lg text-2xl font-bold",
+                    index === 0 ? "bg-primary text-primary-foreground animate-pulse" : "bg-card border"
+                  )}
+                >
+                  <div className="text-xl">{getServiceLabel(ticket.type)}</div>
+                  <div>{ticket.ticketNumber}</div>
+                  <div>{getStationName(ticket.servedBy)}</div>
+                </div>
+              ))}
+              {recentlyCalledTickets.length === 0 && (
+                 <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">Waiting for next ticket...</p>
+                 </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <QueueInfoColumn title="Counter Queue" waiting={counterWaiting} history={counterHistory} />
-        <QueueInfoColumn title="Cashier Queue" waiting={cashierWaiting} history={cashierHistory} />
-        <QueueInfoColumn title="Certificate Queue" waiting={certificateWaiting} history={certificateHistory} />
+      {/* Right Column: Ads and Info */}
+      <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="flex-grow min-h-0">
+            <AdCarousel />
+        </div>
+        <Card>
+            <CardContent className="p-4 flex justify-between items-center">
+                <p className="font-semibold text-muted-foreground">{currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="text-2xl font-bold font-mono text-foreground">
+                    {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                </p>
+            </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
-
-const QueueInfoColumn = ({ title, waiting, history }: { title: string, waiting: Ticket[], history: Ticket[] }) => (
-  <Card className="h-full">
-    <CardHeader>
-      <CardTitle className="text-2xl text-center">{title}</CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-6">
-      <QueueList title="Waiting" tickets={waiting} emptyMessage="No one is waiting." />
-      <QueueList title="Recently Called" tickets={history} emptyMessage="No recent calls." />
-    </CardContent>
-  </Card>
-);
-
-const QueueList = ({ title, tickets, emptyMessage }: { title: string, tickets: Ticket[], emptyMessage: string }) => (
-  <div>
-    <h3 className="text-lg font-semibold mb-3 text-muted-foreground">{title}</h3>
-    <Card className="bg-background/50">
-      <CardContent className="p-4 min-h-[120px]">
-        {tickets.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {tickets.map(ticket => (
-              <div key={ticket.id} className="bg-card border rounded-md p-2 text-center font-semibold text-lg animate-in fade-in-50">
-                {ticket.ticketNumber}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-muted-foreground pt-8">{emptyMessage}</p>
-        )}
-      </CardContent>
-    </Card>
-  </div>
-);
