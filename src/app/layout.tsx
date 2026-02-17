@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Renaissance Training Center Inc.',
   description: 'A smart queueing system for Renaissance Training Center Inc.',
   icons: {
-    icon: '/logo.png',
+    icon: 'https://irp.cdn-website.com/39392137/dms3rep/multi/opt/logo-6f4e825a-396w.png',
   },
 };
 
