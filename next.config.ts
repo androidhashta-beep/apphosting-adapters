@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'irp.cdn-website.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
