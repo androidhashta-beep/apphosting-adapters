@@ -16,7 +16,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
             )}
           </div>
           <div className="flex items-center justify-center gap-3">
-            <Image src="/logo.png" alt="Renaissance Training Center Inc. Logo" width={40} height={40} />
+            <Image src="/logo.png" alt="Renaissance Training Center Inc. Logo" width={40} height={40} className="rounded-full" />
             <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           </div>
           <div className="w-1/3"></div>
