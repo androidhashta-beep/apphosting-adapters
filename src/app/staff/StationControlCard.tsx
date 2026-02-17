@@ -1,28 +1,58 @@
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
-import type { Station, StationStatus } from "@/lib/types";
+import type { Station, StationStatus, TicketType } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Play, Check, SkipForward, Ban } from "lucide-react";
+import { Volume2, Check, SkipForward, Ban, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, useRef, useEffect } from "react";
+import { textToSpeech } from "@/ai/flows/text-to-speech";
 
 export function StationControlCard({ station }: { station: Station }) {
-  const { dispatch, getTicketByStation } = useQueue();
+  const { dispatch, getTicketByStation, getWaitingTickets } = useQueue();
   const ticket = getTicketByStation(station.id);
   const isClosed = station.status === 'closed';
+
+  const [isCalling, setIsCalling] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleStatusChange = (checked: boolean) => {
     const newStatus: StationStatus = checked ? 'open' : 'closed';
     dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId: station.id, status: newStatus } });
   };
 
-  const callNext = (ticketType: 'counter' | 'cashier') => {
-    dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+  const callNext = async (ticketType: TicketType) => {
+    const waitingTickets = getWaitingTickets(ticketType);
+    const nextTicket = waitingTickets[0];
+    if (!nextTicket) {
+      dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+      return;
+    }
+      
+    setIsCalling(true);
+    try {
+        const textToSay = `Ticket ${nextTicket.ticketNumber.replace('-', ' ')}, please proceed to ${station.name}.`;
+        const { media } = await textToSpeech(textToSay);
+        setAudioUrl(media);
+    } catch (error) {
+        console.error("Error generating TTS:", error);
+    } finally {
+        dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+        setIsCalling(false);
+    }
   };
+
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+    }
+  }, [audioUrl]);
+
 
   const completeTicket = () => {
     dispatch({ type: 'COMPLETE_TICKET', payload: { stationId: station.id } });
@@ -72,16 +102,16 @@ export function StationControlCard({ station }: { station: Station }) {
           <>
             {station.mode === 'all-in-one' ? (
               <>
-                <Button onClick={() => callNext('counter')} className="w-full" disabled={isClosed}>
-                  <Play /> Call Counter
+                <Button onClick={() => callNext('counter')} className="w-full" disabled={isClosed || isCalling}>
+                  {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Counter
                 </Button>
-                <Button onClick={() => callNext('cashier')} className="w-full" disabled={isClosed} variant="secondary">
-                  <Play /> Call Cashier
+                <Button onClick={() => callNext('cashier')} className="w-full" disabled={isClosed || isCalling} variant="secondary">
+                 {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Cashier
                 </Button>
               </>
             ) : (
-              <Button onClick={() => callNext(station.type)} className="w-full" disabled={isClosed}>
-                <Play /> Call Next
+              <Button onClick={() => callNext(station.type)} className="w-full" disabled={isClosed || isCalling}>
+                {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Next
               </Button>
             )}
             {!isClosed && (
@@ -92,6 +122,7 @@ export function StationControlCard({ station }: { station: Station }) {
           </>
         )}
       </CardFooter>
+      {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setAudioUrl(null)}/>}
     </Card>
   );
 }
