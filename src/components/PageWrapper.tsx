@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, Rocket } from "lucide-react";
+import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 
 export function PageWrapper({ children, title, showBackButton = true }: { children: React.ReactNode, title: string, showBackButton?: boolean }) {
   return (
@@ -14,8 +15,8 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
               </Link>
             )}
           </div>
-          <div className="flex items-center justify-center gap-2 w-1/3">
-            <Rocket className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-center gap-3">
+            <Image src="/logo.png" alt="Renaissance Training Center Inc. Logo" width={40} height={40} />
             <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           </div>
           <div className="w-1/3"></div>

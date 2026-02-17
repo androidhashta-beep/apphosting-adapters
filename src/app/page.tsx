@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Card,
   CardHeader,
@@ -7,7 +8,6 @@ import {
   CardContent,
 } from '@/components/ui/card';
 import {
-  Rocket,
   Ticket,
   MonitorPlay,
   UsersRound,
@@ -47,10 +47,10 @@ export default function Home() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="bg-primary shadow-lg">
         <div className="container mx-auto flex h-20 items-center justify-center px-4 md:h-24 md:justify-start">
-          <div className="flex items-center gap-3">
-            <Rocket className="h-10 w-10 text-accent" />
-            <h1 className="text-3xl font-bold text-primary-foreground tracking-tight md:text-4xl">
-              NaviQueue Pro
+          <div className="flex items-center gap-4">
+            <Image src="/logo.png" alt="Renaissance Training Center Inc. Logo" width={64} height={64} />
+            <h1 className="text-2xl font-bold text-primary-foreground tracking-tight md:text-3xl">
+              Renaissance Training Center Inc.
             </h1>
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function Home() {
         <div className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-semibold text-foreground md:text-3xl">
-              Welcome to the Seafarers' Hub
+              Welcome to Renaissance Training Center
             </h2>
             <p className="mt-2 text-muted-foreground">
               Select an option to get started.
@@ -94,7 +94,7 @@ export default function Home() {
       </main>
       <footer className="py-4">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} NaviQueue Pro. All rights reserved.
+          &copy; {new Date().getFullYear()} Renaissance Training Center Inc. All rights reserved.
         </div>
       </footer>
     </div>
