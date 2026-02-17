@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function PageWrapper({ children, title, showBackButton = true }: { children: React.ReactNode, title: string, showBackButton?: boolean }) {
   return (
@@ -18,7 +19,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
             <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           </div>
           <div className="w-1/3 flex justify-end">
-            
+            <ThemeSwitcher />
           </div>
         </div>
       </header>

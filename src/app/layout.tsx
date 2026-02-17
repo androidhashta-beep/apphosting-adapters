@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { QueueProvider } from '@/contexts/QueueProvider';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'Renaissance Training Center Inc.',
@@ -28,10 +29,17 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
-        <QueueProvider>
-          {children}
-          <Toaster />
-        </QueueProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueueProvider>
+            {children}
+            <Toaster />
+          </QueueProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
