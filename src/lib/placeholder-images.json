@@ -11,6 +11,12 @@
       "description": "A checklist of requirements for a service",
       "imageUrl": "https://images.unsplash.com/photo-1586282023692-6bfbd629e85d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxyZXF1aXJlbWVudHMlMjBjaGVja2xpc3R8ZW58MHx8fHwxNzcxMzY2ODgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "requirements checklist"
+    },
+    {
+      "id": "ad-display-3",
+      "description": "A video of a sailing ship",
+      "imageUrl": "https://videos.pexels.com/video-files/853829/853829-hd_1280_720_30fps.mp4",
+      "imageHint": "sailing ship"
     }
   ]
 }

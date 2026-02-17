@@ -12,12 +12,14 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.ogg'];
+
 export function AdCarousel() {
   const plugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: true })
   );
 
-  const adImages = PlaceHolderImages.filter(p => p.id.startsWith('ad-display-'));
+  const adItems = PlaceHolderImages.filter(p => p.id.startsWith('ad-display-'));
 
   return (
     <Carousel
@@ -27,22 +29,40 @@ export function AdCarousel() {
       onMouseLeave={plugin.current.reset}
     >
       <CarouselContent className="h-full">
-        {adImages.length > 0 ? adImages.map((image) => (
-          <CarouselItem key={image.id} className="h-full">
-            <Card className="h-full overflow-hidden">
-              <CardContent className="relative h-full p-0">
-                <Image
-                  src={image.imageUrl}
-                  alt={image.description}
-                  fill
-                  sizes="100%"
-                  className="object-cover"
-                  data-ai-hint={image.imageHint}
-                />
-              </CardContent>
-            </Card>
-          </CarouselItem>
-        )) : (
+        {adItems.length > 0 ? adItems.map((item) => {
+          const isVideo = VIDEO_EXTENSIONS.some(ext => item.imageUrl.endsWith(ext));
+
+          return (
+            <CarouselItem key={item.id} className="h-full">
+              <Card className="h-full overflow-hidden">
+                <CardContent className="relative h-full p-0">
+                  {isVideo ? (
+                    <video
+                      src={item.imageUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover"
+                      data-ai-hint={item.imageHint}
+                    >
+                        Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <Image
+                      src={item.imageUrl}
+                      alt={item.description}
+                      fill
+                      sizes="100%"
+                      className="object-cover"
+                      data-ai-hint={item.imageHint}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </CarouselItem>
+          )
+        }) : (
             <CarouselItem>
                 <Card className="h-full flex items-center justify-center bg-muted">
                     <CardContent className="p-0">
