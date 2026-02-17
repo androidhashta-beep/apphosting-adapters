@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useMemo, useEffect, useState } from 'react';
 import type { Station, Ticket, TicketType, StationStatus, StationMode, StationType as IStationType } from '@/lib/types';
 import { initialStations } from '@/lib/data';
 
@@ -17,7 +17,10 @@ type Action =
   | { type: 'COMPLETE_TICKET'; payload: { stationId: string } }
   | { type: 'SKIP_TICKET'; payload: { stationId: string } }
   | { type: 'ADD_STATION'; payload: { name: string; type: IStationType } }
-  | { type: 'REMOVE_STATION'; payload: { stationId: string } };
+  | { type: 'REMOVE_STATION'; payload: { stationId: string } }
+  | { type: 'HYDRATE_STATE', payload: State }
+  | { type: 'RESET_STATE' };
+
 
 type QueueContextType = {
   state: State;
@@ -138,6 +141,15 @@ const queueReducer = (state: State, action: Action): State => {
             stations: state.stations.filter(s => s.id !== action.payload.stationId),
         };
     }
+    case 'HYDRATE_STATE':
+        return action.payload;
+
+    case 'RESET_STATE': {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('queueState');
+      }
+      return { tickets: [], stations: initialStations };
+    }
     default:
       return state;
   }
@@ -145,6 +157,37 @@ const queueReducer = (state: State, action: Action): State => {
 
 export const QueueProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(queueReducer, initialState);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Load state from localStorage on initial client-side render
+  useEffect(() => {
+    try {
+      const savedState = localStorage.getItem('queueState');
+      if (savedState) {
+        const parsedState = JSON.parse(savedState);
+        if (parsedState.tickets && parsedState.stations) {
+          dispatch({ type: 'HYDRATE_STATE', payload: parsedState });
+        }
+      }
+    } catch (error) {
+      console.error("Could not load state from localStorage", error);
+    } finally {
+        setIsHydrated(true);
+    }
+  }, []);
+
+  // Save state to localStorage on every change, but only after hydration
+  useEffect(() => {
+    if (!isHydrated) {
+        return;
+    }
+    try {
+      localStorage.setItem('queueState', JSON.stringify(state));
+    } catch (error) {
+      console.error("Could not save state to localStorage", error);
+    }
+  }, [state, isHydrated]);
+
 
   const getWaitingTickets = (type: TicketType) => {
     return state.tickets

@@ -4,14 +4,15 @@ import { useState } from "react";
 import { useQueue } from "@/contexts/QueueProvider";
 import { suggestStationAssignments, SuggestStationAssignmentsOutput } from "@/ai/flows/suggest-station-assignments";
 import type { StationMode, StationType } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrainCircuit, Bot, Loader2, Trash2 } from "lucide-react";
+import { BrainCircuit, Bot, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { SuggestionCard } from "./SuggestionCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { CarouselSettings } from "./CarouselSettings";
 
 export function AdminClient() {
   const { state, dispatch, getWaitingTickets, getTicketByStation } = useQueue();
@@ -65,6 +66,12 @@ export function AdminClient() {
         setStationToDelete(null);
     }
   }
+
+  const handleRestoreDefaults = () => {
+    if (confirm('Are you sure you want to restore default stations? All current station settings and tickets will be lost.')) {
+      dispatch({ type: 'RESET_STATE' });
+    }
+  };
 
   return (
     <>
@@ -157,7 +164,7 @@ export function AdminClient() {
           <Card>
             <CardHeader>
               <CardTitle>Station Management</CardTitle>
-              <CardDescription>Manually configure station operational modes.</CardDescription>
+              <CardDescription>Manually configure station operational modes. Changes are saved automatically.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {state.stations.map((station) => {
@@ -197,7 +204,15 @@ export function AdminClient() {
                 );
             })}
             </CardContent>
+            <CardFooter className="flex-col items-start gap-2 border-t px-6 py-4">
+              <Button variant="outline" onClick={handleRestoreDefaults}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Restore Default Stations
+              </Button>
+              <p className="text-xs text-muted-foreground">Restoring will clear all current tickets and reset stations to their initial configuration.</p>
+            </CardFooter>
           </Card>
+          <CarouselSettings />
         </div>
       </div>
       <AlertDialog open={!!stationToDelete} onOpenChange={(open) => !open && setStationToDelete(null)}>
