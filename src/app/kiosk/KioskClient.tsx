@@ -44,27 +44,36 @@ export function KioskClient() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Button
               variant="default"
-              className="h-32 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105"
+              className="h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105"
               onClick={() => handleGetTicket("counter")}
             >
               <User className="h-8 w-8" />
               <span>Counter Service</span>
+              <p className="text-sm font-normal normal-case text-primary-foreground/80 mt-1 px-2">
+                For inquiries, enrollment, and payments if cashier is unavailable.
+              </p>
             </Button>
             <Button
               variant="secondary"
-              className="h-32 text-xl flex-col gap-2 rounded-lg shadow-lg bg-accent text-accent-foreground hover:bg-accent/90 transform transition-transform hover:scale-105"
+              className="h-40 text-xl flex-col gap-2 rounded-lg shadow-lg bg-accent text-accent-foreground hover:bg-accent/90 transform transition-transform hover:scale-105"
               onClick={() => handleGetTicket("cashier")}
             >
               <Ticket className="h-8 w-8" />
               <span>Cashier Service</span>
+              <p className="text-sm font-normal normal-case text-accent-foreground/80 mt-1 px-2">
+                Exclusive for payment services only.
+              </p>
             </Button>
             <Button
               variant="outline"
-              className="h-32 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5"
+              className="h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5"
               onClick={() => handleGetTicket("certificate")}
             >
               <Award className="h-8 w-8" />
               <span>Claim Certificate</span>
+              <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
+                Exclusive for claiming of certificates.
+              </p>
             </Button>
           </div>
         </CardContent>
