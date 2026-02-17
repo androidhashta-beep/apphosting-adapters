@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, ReactNode, useMemo } from 'react';
-import type { Station, Ticket, TicketType, StationStatus, StationMode } from '@/lib/types';
+import type { Station, Ticket, TicketType, StationStatus, StationMode, StationType as IStationType } from '@/lib/types';
 import { initialStations } from '@/lib/data';
 
 type State = {
@@ -15,7 +15,9 @@ type Action =
   | { type: 'UPDATE_STATION_MODE'; payload: { stationId: string; mode: StationMode } }
   | { type: 'CALL_NEXT_TICKET'; payload: { stationId: string; ticketType: TicketType } }
   | { type: 'COMPLETE_TICKET'; payload: { stationId: string } }
-  | { type: 'SKIP_TICKET'; payload: { stationId: string } };
+  | { type: 'SKIP_TICKET'; payload: { stationId: string } }
+  | { type: 'ADD_STATION'; payload: { name: string; type: IStationType } }
+  | { type: 'REMOVE_STATION'; payload: { stationId: string } };
 
 type QueueContextType = {
   state: State;
@@ -117,6 +119,24 @@ const queueReducer = (state: State, action: Action): State => {
       );
 
       return { ...state, tickets: updatedTickets, stations: updatedStations };
+    }
+    case 'ADD_STATION': {
+      const { name, type } = action.payload;
+      const newStation: Station = {
+        id: `station-${Date.now()}`,
+        name,
+        type,
+        status: 'closed',
+        mode: 'regular',
+        currentTicketId: null,
+      };
+      return { ...state, stations: [...state.stations, newStation] };
+    }
+    case 'REMOVE_STATION': {
+        return {
+            ...state,
+            stations: state.stations.filter(s => s.id !== action.payload.stationId),
+        };
     }
     default:
       return state;
