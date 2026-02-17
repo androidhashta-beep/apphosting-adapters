@@ -56,9 +56,6 @@ export default function Home() {
       <main className="flex-1">
         <div className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-semibold text-foreground md:text-3xl">
-              Welcome to Renaissance Training Center
-            </h2>
             <p className="mt-2 text-muted-foreground">
               Select an option to get started.
             </p>
