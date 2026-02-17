@@ -6,6 +6,9 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'Renaissance Training Center Inc.',
   description: 'A smart queueing system for Renaissance Training Center Inc.',
+  icons: {
+    icon: '/logo.png',
+  },
 };
 
 export default function RootLayout({
