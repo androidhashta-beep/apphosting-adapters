@@ -47,7 +47,7 @@ export default function Home() {
       <header className="bg-primary shadow-lg">
         <div className="container mx-auto flex h-20 items-center justify-center px-4 md:h-24 md:justify-start">
           <div className="flex items-center gap-4">
-            <img src="/logo (2).png" alt="Renaissance Training Center Inc. Logo" width={64} height={64} className="object-cover" />
+            <img src="/logo (2).jpg" alt="Renaissance Training Center Inc. Logo" width={64} height={64} className="object-cover" />
             <h1 className="text-2xl font-bold text-primary-foreground tracking-tight md:text-3xl">
               Renaissance Training Center Inc.
             </h1>
