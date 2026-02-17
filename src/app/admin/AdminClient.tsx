@@ -221,7 +221,7 @@ export function AdminClient() {
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                     This will permanently delete the station. This action cannot be undone.
-                </"AlertDialogDescription>
+                </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setStationToDelete(null)}>Cancel</AlertDialogCancel>
