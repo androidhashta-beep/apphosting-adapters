@@ -3,10 +3,11 @@
 import * as React from "react";
 import Image from "next/image";
 import Autoplay from "embla-carousel-autoplay";
-import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react'
+import { type EmblaCarouselType } from 'embla-carousel-react'
 
 import {
   Carousel,
+  type CarouselApi,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
@@ -17,69 +18,61 @@ export function AdCarousel() {
   const adItems = PlaceHolderImages.filter(p => p.id.startsWith('ad-display-'));
   const canAutoplay = adItems.length > 1;
 
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: canAutoplay },
-    canAutoplay ? [Autoplay({ delay: 5000, stopOnInteraction: true })] : []
-  );
-  
+  const [api, setApi] = React.useState<CarouselApi>();
   const [bgMusicIndex, setBgMusicIndex] = React.useState(0);
   const bgAudioRef = React.useRef<HTMLAudioElement>(null);
 
-  const handleSelect = React.useCallback((api: EmblaCarouselType) => {
-    if (!api || !bgAudioRef.current || adItems.length === 0) return;
+  const autoplayPlugin = React.useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })
+  );
 
-    const selectedIndex = api.selectedScrollSnap();
+  const handleAudioForSlide = React.useCallback((currentApi: EmblaCarouselType) => {
+    if (!currentApi || !bgAudioRef.current) return;
+
+    const selectedIndex = currentApi.selectedScrollSnap();
     const selectedItem = adItems[selectedIndex];
 
     if (selectedItem?.type === 'video' && selectedItem.useOwnAudio) {
-        bgAudioRef.current.pause();
+      bgAudioRef.current.pause();
     } else {
-        if (bgAudioRef.current.paused) {
-            bgAudioRef.current.play().catch(e => console.error("Error playing background audio:", e));
-        }
+      if (bgAudioRef.current.paused) {
+        bgAudioRef.current.play().catch(e => console.error("Error playing background audio:", e));
+      }
     }
   }, [adItems]);
 
   React.useEffect(() => {
-    if (!emblaApi) return;
-    handleSelect(emblaApi);
-    emblaApi.on('select', handleSelect);
-    emblaApi.on('destroy', () => emblaApi.off('select', handleSelect));
-  }, [emblaApi, handleSelect]);
+    if (!api) return;
+
+    handleAudioForSlide(api); // On init
+    api.on('select', handleAudioForSlide); // On slide change
+
+    return () => {
+      api.off('select', handleAudioForSlide);
+    };
+  }, [api, handleAudioForSlide]);
 
   const handleBgMusicEnded = () => {
     if (BackgroundMusic.length > 0) {
       setBgMusicIndex(prevIndex => (prevIndex + 1) % BackgroundMusic.length);
     }
   };
-  
+
+  // Start playing audio when the component mounts or the track changes
   React.useEffect(() => {
-      if (bgAudioRef.current && BackgroundMusic.length > 0) {
-          bgAudioRef.current.play().catch(e => console.error("Error playing background audio:", e));
-      }
-  }, [bgMusicIndex])
-
-
-  const onMouseEnter = React.useCallback(() => {
-    if (canAutoplay) {
-      emblaApi?.plugins()?.autoplay?.stop();
+    if (bgAudioRef.current && api) {
+        handleAudioForSlide(api);
     }
-  }, [emblaApi, canAutoplay]);
-
-  const onMouseLeave = React.useCallback(() => {
-    if (canAutoplay) {
-      emblaApi?.plugins()?.autoplay?.play();
-    }
-  }, [emblaApi, canAutoplay]);
+  }, [bgMusicIndex, api, handleAudioForSlide]);
 
 
   return (
     <>
       <Carousel
-        ref={emblaRef}
+        setApi={setApi}
+        plugins={canAutoplay ? [autoplayPlugin.current] : []}
+        opts={{ loop: canAutoplay }}
         className="w-full h-full"
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
       >
         <CarouselContent className="h-full">
           {adItems.length > 0 ? (adItems as ImagePlaceholder[]).map((item) => {
