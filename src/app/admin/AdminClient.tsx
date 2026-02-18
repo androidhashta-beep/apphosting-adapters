@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQueue } from "@/contexts/QueueProvider";
-import type { StationMode, StationType } from "@/lib/types";
+import type { StationMode, StationType, StationStatus } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 
 
 export function AdminClient() {
@@ -30,6 +31,11 @@ export function AdminClient() {
 
   const handleModeChange = (stationId: string, mode: StationMode) => {
     dispatch({ type: 'UPDATE_STATION_MODE', payload: { stationId, mode } });
+  };
+
+  const handleStatusChange = (stationId: string, checked: boolean) => {
+    const newStatus: StationStatus = checked ? 'open' : 'closed';
+    dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId, status: newStatus } });
   };
 
   const handleAddStation = (e: React.FormEvent) => {
@@ -119,18 +125,29 @@ export function AdminClient() {
             <Card>
                 <CardHeader>
                   <CardTitle>Station Management</CardTitle>
-                  <CardDescription>Manually configure station operational modes. Changes are saved automatically.</CardDescription>
+                  <CardDescription>Configure station status and operational modes.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {!isHydrated && [...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center justify-between p-2 rounded-md border h-[118px]">
+                      <div key={i} className="flex items-center justify-between p-2 rounded-md border h-[180px]">
                           <Skeleton className="h-full w-full" />
                       </div>
                   ))}
                   {isHydrated && state.stations.map((station) => {
                     const isServing = !!getTicketByStation(station.id);
+                    const isClosed = station.status === 'closed';
+                    const isLastStation = state.stations.length <= 1;
+                    const isDeleteDisabled = (isServing && !isClosed) || isLastStation;
+
+                    let deleteTooltip = "Delete station";
+                    if (isLastStation) {
+                      deleteTooltip = "Cannot delete the last station.";
+                    } else if (isServing && !isClosed) {
+                      deleteTooltip = "Station is busy. Close it first to enable deletion.";
+                    }
+
                     return (
-                      <div key={station.id} className="space-y-3 rounded-md border p-3">
+                      <div key={station.id} className="space-y-3 rounded-md border p-4">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className="font-semibold">{station.name}</p>
@@ -140,26 +157,46 @@ export function AdminClient() {
                             variant="ghost"
                             size="icon"
                             onClick={() => setStationToDelete(station.id)}
-                            className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed -mr-1 -mt-1 shrink-0"
-                            disabled={isServing || state.stations.length <= 1}
-                            title={ isServing ? "Cannot delete station while it is serving." : state.stations.length <= 1 ? "Cannot delete the last station." : "Delete station" }
+                            className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed -mr-2 -mt-2 shrink-0"
+                            disabled={isDeleteDisabled}
+                            title={deleteTooltip}
                           >
                             <Trash2 className="h-4 w-4" />
                             <span className="sr-only">Delete</span>
                           </Button>
                         </div>
-                        <Select
-                          value={station.mode}
-                          onValueChange={(value: StationMode) => handleModeChange(station.id, value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select mode" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="regular">Regular</SelectItem>
-                            <SelectItem value="all-in-one">All-in-One</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                            <Label>Operational Mode</Label>
+                            <Select
+                                value={station.mode}
+                                onValueChange={(value: StationMode) => handleModeChange(station.id, value)}
+                                disabled={isClosed}
+                            >
+                                <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select mode" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                <SelectItem value="regular">Regular</SelectItem>
+                                <SelectItem value="all-in-one">All-in-One</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                                <Label htmlFor={`status-switch-${station.id}`} className="cursor-pointer">
+                                    Station Status
+                                </Label>
+                                <p className="text-xs text-muted-foreground">
+                                    {isClosed ? "Station is offline." : "Station is open for service."}
+                                </p>
+                            </div>
+                            <Switch
+                              id={`status-switch-${station.id}`}
+                              checked={!isClosed}
+                              onCheckedChange={(checked) => handleStatusChange(station.id, checked)}
+                            />
+                        </div>
                       </div>
                     );
                 })}
