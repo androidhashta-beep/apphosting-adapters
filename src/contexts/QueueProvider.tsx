@@ -229,25 +229,31 @@ export const QueueProvider = ({ children }: { children: ReactNode }) => {
       if (savedStateJSON) {
         const savedState = JSON.parse(savedStateJSON);
         
-        // Check if the loaded tickets have the old, prefixed format (e.g., "E-1").
-        const needsMigration = savedState.tickets && savedState.tickets.some((t: Ticket) => isNaN(parseInt(t.ticketNumber, 10)));
+        // Ensure we have a valid object before proceeding
+        if (savedState && typeof savedState === 'object') {
+            // Check if the loaded tickets have the old, prefixed format (e.g., "E-1").
+            const needsMigration = Array.isArray(savedState.tickets) && savedState.tickets.some((t: Ticket) => t.ticketNumber && isNaN(parseInt(t.ticketNumber, 10)));
 
-        if (needsMigration) {
-          // If the format is old, clear the tickets and timestamp to start fresh,
-          // but preserve the user's station configuration.
-          const migratedState = {
-            ...savedState,
-            tickets: [],
-            lastTicketTimestamp: null,
-          };
-          dispatch({ type: 'HYDRATE_STATE', payload: migratedState });
-        } else if (savedState.tickets && savedState.stations) {
-          // If state is in the correct format, hydrate normally.
-          dispatch({ type: 'HYDRATE_STATE', payload: savedState });
+            if (needsMigration) {
+              // If the format is old, clear the tickets and timestamp to start fresh,
+              // but preserve the user's station configuration.
+              const migratedState = {
+                ...savedState,
+                tickets: [],
+                lastTicketTimestamp: null,
+              };
+              dispatch({ type: 'HYDRATE_STATE', payload: migratedState });
+            } else {
+              // If no migration is needed, just load the state.
+              // The reducer will merge it with initialState to prevent missing properties.
+              dispatch({ type: 'HYDRATE_STATE', payload: savedState });
+            }
         }
       }
     } catch (error) {
       console.error("Could not load state from localStorage", error);
+      // In case of parsing error, it's safer to reset.
+      localStorage.removeItem('queueState');
     } finally {
         setIsHydrated(true);
     }
