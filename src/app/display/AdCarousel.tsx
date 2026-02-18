@@ -23,7 +23,7 @@ export function AdCarousel() {
   const bgAudioRef = React.useRef<HTMLAudioElement>(null);
 
   const autoplayPlugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })
+    Autoplay({ delay: 12000, stopOnInteraction: false, stopOnMouseEnter: true })
   );
 
   const handleAudioForSlide = React.useCallback((currentApi: EmblaCarouselType) => {
@@ -72,7 +72,9 @@ export function AdCarousel() {
 
   const handleMediaError = (e: React.SyntheticEvent<HTMLAudioElement | HTMLVideoElement | HTMLImageElement>) => {
       console.warn(`A media element failed to load and has been hidden. Source: ${'src' in e.currentTarget ? e.currentTarget.src : 'unknown'}`);
-      e.currentTarget.style.display = 'none';
+      if (e.currentTarget.parentElement) {
+        e.currentTarget.parentElement.style.display = 'none';
+      }
   };
 
 

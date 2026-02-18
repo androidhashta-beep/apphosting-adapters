@@ -8,6 +8,14 @@
       "imageHint": "training seminar"
     },
     {
+      "id": "ad-display-video-1",
+      "type": "video",
+      "description": "Sample Video Infomercial",
+      "imageUrl": "https://www.w3schools.com/html/mov_bbb.mp4",
+      "imageHint": "animated movie",
+      "useOwnAudio": true
+    },
+    {
       "id": "ad-display-2",
       "type": "image",
       "description": "Advertisement 2 - Maritime School",
@@ -27,7 +35,20 @@
       "description": "Advertisement 4 - Ship at Sea",
       "imageUrl": "https://images.unsplash.com/photo-1605638884895-1ef856cbe7b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzaGlwJTIwc2VhfGVufDB8fHx8MTc3MTQwODUxNnww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "ship sea"
+    },
+    {
+      "id": "ad-display-new-sample",
+      "type": "image",
+      "description": "A new sample advertisement",
+      "imageUrl": "https://images.unsplash.com/photo-1707910393339-b7f4035514bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c2FtcGxlJTIwYWR8ZW58MHx8fHwxNzcxNDA4NzkyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sample ad"
     }
   ],
-  "backgroundMusic": []
+  "backgroundMusic": [
+    {
+      "id": "music-1",
+      "description": "Sample background track",
+      "url": "https://www.w3schools.com/html/horse.mp3"
+    }
+  ]
 }
