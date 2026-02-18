@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Volume2, Check, SkipForward, Ban, Loader2, Award } from "lucide-react";
+import { Volume2, Check, SkipForward, Ban, Loader2, Award, User, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
@@ -58,7 +58,7 @@ export function StationControlCard({ station }: { station: Station }) {
     try {
         const ticketNumber = nextTicket.ticketNumber.split('-')[1];
         const serviceDescription = getServiceDescriptionForSpeech(nextTicket.type);
-        const textToSay = `Customer number ${ticketNumber} for ${serviceDescription}, please go to ${station.name}.`;
+        const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${station.name}.`;
         const { media } = await textToSpeech(textToSay);
         setAudioUrl(media);
     } catch (error) {
@@ -66,7 +66,7 @@ export function StationControlCard({ station }: { station: Station }) {
         toast({
             variant: "destructive",
             title: "Audio Callout Failed",
-            description: "Could not fetch AI suggestions. Please check your internet connection.",
+            description: "Could not generate audio for the announcement.",
         });
     } finally {
         dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
@@ -88,6 +88,19 @@ export function StationControlCard({ station }: { station: Station }) {
   const skipTicket = () => {
     dispatch({ type: 'SKIP_TICKET', payload: { stationId: station.id } });
   };
+
+  const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
+    const waitingCount = getWaitingTickets(type).length;
+    return (
+        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isClosed || isCalling || waitingCount === 0}>
+            <div className="flex items-center gap-2">
+                {isCalling ? <Loader2 className="animate-spin" /> : icon}
+                <span>{label}</span>
+            </div>
+            <span className="bg-primary-foreground/20 text-primary-foreground rounded-full px-2 text-xs">{waitingCount}</span>
+        </Button>
+    )
+  }
 
   return (
     <Card className={cn("flex flex-col", isClosed && "bg-muted/50")}>
@@ -128,21 +141,13 @@ export function StationControlCard({ station }: { station: Station }) {
         ) : (
           <>
             {station.mode === 'all-in-one' ? (
-              <>
-                <Button onClick={() => callNext('enrollment')} className="w-full" disabled={isClosed || isCalling}>
-                  {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Enrollment
-                </Button>
-                <Button onClick={() => callNext('payment')} className="w-full" disabled={isClosed || isCalling} variant="secondary">
-                 {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Payment
-                </Button>
-                <Button onClick={() => callNext('certificate')} className="w-full" disabled={isClosed || isCalling} variant="outline">
-                 {isCalling ? <Loader2 className="animate-spin" /> : <Award />} Call Certificate
-                </Button>
-              </>
+              <div className="w-full space-y-2">
+                {getCallButton('enrollment', 'Call Enrollment', <User />)}
+                {getCallButton('payment', 'Call Payment', <Ticket />)}
+                {getCallButton('certificate', 'Call Certificate', <Award />)}
+              </div>
             ) : (
-              <Button onClick={() => callNext(station.type)} className="w-full" disabled={isClosed || isCalling}>
-                {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Next
-              </Button>
+                 getCallButton(station.type, `Call Next ${station.type}`, <Volume2 />)
             )}
             {!isClosed && (
               <Button variant="ghost" className="w-full text-muted-foreground" disabled>
