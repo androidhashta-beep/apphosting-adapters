@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CarouselSettings } from "./CarouselSettings";
+import { useToast } from "@/hooks/use-toast";
 
 export function AdminClient() {
   const { state, dispatch, getWaitingTickets, getTicketByStation } = useQueue();
@@ -23,6 +24,7 @@ export function AdminClient() {
   const [newStationType, setNewStationType] = useState<StationType>("counter");
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
   const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
+  const { toast } = useToast();
 
   const counterQueueLength = getWaitingTickets('counter').length;
   const cashierQueueLength = getWaitingTickets('cashier').length;
@@ -46,6 +48,11 @@ export function AdminClient() {
       setSuggestion(result);
     } catch (error) {
       console.error("Error getting AI suggestion:", error);
+      toast({
+        variant: "destructive",
+        title: "AI Suggestion Failed",
+        description: "Could not fetch AI suggestions. Please check your internet connection.",
+      });
     } finally {
       setLoading(false);
     }

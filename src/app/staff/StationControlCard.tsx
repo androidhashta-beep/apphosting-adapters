@@ -11,6 +11,7 @@ import { Volume2, Check, SkipForward, Ban, Loader2, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
+import { useToast } from "@/hooks/use-toast";
 
 export function StationControlCard({ station }: { station: Station }) {
   const { dispatch, getTicketByStation, getWaitingTickets } = useQueue();
@@ -20,6 +21,7 @@ export function StationControlCard({ station }: { station: Station }) {
   const [isCalling, setIsCalling] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const { toast } = useToast();
 
   const handleStatusChange = (checked: boolean) => {
     const newStatus: StationStatus = checked ? 'open' : 'closed';
@@ -41,6 +43,11 @@ export function StationControlCard({ station }: { station: Station }) {
         setAudioUrl(media);
     } catch (error) {
         console.error("Error generating TTS:", error);
+        toast({
+            variant: "destructive",
+            title: "Audio Callout Failed",
+            description: "The text-to-speech service requires an internet connection.",
+        });
     } finally {
         dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
         setIsCalling(false);
