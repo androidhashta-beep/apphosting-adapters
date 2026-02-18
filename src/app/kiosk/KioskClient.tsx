@@ -14,13 +14,20 @@ export function KioskClient() {
   const handleGetTicket = (type: TicketType) => {
     // We need to calculate the next ticket number here to show it in the toast.
     // This duplicates logic from the reducer, but it's for UI feedback only.
+    const now = Date.now();
+    const isNewDay = state.lastTicketTimestamp
+        ? new Date(state.lastTicketTimestamp).toDateString() !== new Date(now).toDateString()
+        : true;
+
+    const ticketsForNumbering = isNewDay ? [] : state.tickets;
+    
     const prefix = type === 'counter' ? 'C' : type === 'cashier' ? 'S' : 'R';
-    const lastTicketOfType = state.tickets
+    const lastTicketOfType = ticketsForNumbering
       .filter((t) => t.type === type)
       .sort((a, b) => b.createdAt - a.createdAt)[0];
     const newNumber = lastTicketOfType
       ? parseInt(lastTicketOfType.ticketNumber.split('-')[1]) + 1
-      : 101;
+      : 1;
     const ticketNumber = `${prefix}-${newNumber}`;
 
     dispatch({ type: "ADD_TICKET", payload: { type } });

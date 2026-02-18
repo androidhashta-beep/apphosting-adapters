@@ -7,6 +7,7 @@ import { initialStations } from '@/lib/data';
 type State = {
   tickets: Ticket[];
   stations: Station[];
+  lastTicketTimestamp: number | null;
 };
 
 type Action =
@@ -18,7 +19,7 @@ type Action =
   | { type: 'SKIP_TICKET'; payload: { stationId: string } }
   | { type: 'ADD_STATION'; payload: { name: string; type: IStationType } }
   | { type: 'REMOVE_STATION'; payload: { stationId: string } }
-  | { type: 'HYDRATE_STATE', payload: State }
+  | { type: 'HYDRATE_STATE', payload: Partial<State> }
   | { type: 'RESET_STATE' };
 
 
@@ -35,28 +36,44 @@ const QueueContext = createContext<QueueContextType | undefined>(undefined);
 const initialState: State = {
   tickets: [],
   stations: initialStations,
+  lastTicketTimestamp: null,
 };
 
 const queueReducer = (state: State, action: Action): State => {
   switch (action.type) {
     case 'ADD_TICKET': {
       const { type } = action.payload;
+      const now = Date.now();
+      const isNewDay = state.lastTicketTimestamp
+        ? new Date(state.lastTicketTimestamp).toDateString() !== new Date(now).toDateString()
+        : true;
+      
+      const ticketsForNumbering = isNewDay ? [] : state.tickets;
+
       const prefix = type === 'counter' ? 'C' : type === 'cashier' ? 'S' : 'R';
-      const lastTicketOfType = state.tickets
+      const lastTicketOfType = ticketsForNumbering
         .filter((t) => t.type === type)
         .sort((a, b) => b.createdAt - a.createdAt)[0];
+        
       const newNumber = lastTicketOfType
         ? parseInt(lastTicketOfType.ticketNumber.split('-')[1]) + 1
-        : 101;
+        : 1;
 
       const newTicket: Ticket = {
-        id: `${type}-${newNumber}-${Date.now()}`,
+        id: `${type}-${newNumber}-${now}`,
         ticketNumber: `${prefix}-${newNumber}`,
         type,
         status: 'waiting',
-        createdAt: Date.now(),
+        createdAt: now,
       };
-      return { ...state, tickets: [...state.tickets, newTicket] };
+      
+      const newTickets = isNewDay ? [newTicket] : [...state.tickets, newTicket];
+
+      return { 
+          ...state, 
+          tickets: newTickets,
+          lastTicketTimestamp: now,
+      };
     }
     case 'UPDATE_STATION_STATUS': {
       return {
@@ -142,13 +159,16 @@ const queueReducer = (state: State, action: Action): State => {
         };
     }
     case 'HYDRATE_STATE':
-        return action.payload;
+        return {
+            ...initialState,
+            ...action.payload,
+        };
 
     case 'RESET_STATE': {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('queueState');
       }
-      return { tickets: [], stations: initialStations };
+      return initialState;
     }
     default:
       return state;
