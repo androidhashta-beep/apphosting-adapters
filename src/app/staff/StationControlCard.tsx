@@ -62,7 +62,6 @@ export function StationControlCard({ station }: { station: Station }) {
         const { media, error } = await textToSpeech(textToSay);
 
         if (error) {
-            console.error("Error generating TTS:", error);
             const isRateLimitError = error.includes('RESOURCE_EXHAUSTED') || error.includes('429');
 
             toast({
