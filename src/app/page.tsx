@@ -13,7 +13,6 @@ import {
   BrainCircuit,
   ArrowRight,
 } from 'lucide-react';
-import { BottomCarousel } from './BottomCarousel';
 
 const menuItems = [
   {
@@ -86,7 +85,6 @@ export default function Home() {
               </Link>
             ))}
           </div>
-          <BottomCarousel />
         </div>
       </main>
       <footer className="py-4">

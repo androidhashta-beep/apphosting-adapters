@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ImagePlaceholder, PlaceHolderImages, BackgroundMusic } from "@/lib/placeholder-images";
 
 export function AdCarousel() {
-  const adItems = PlaceHolderImages.filter(p => p.id.startsWith('ad-display-'));
+  const adItems = PlaceHolderImages;
   const canAutoplay = adItems.length > 1;
 
   const [api, setApi] = React.useState<CarouselApi>();
