@@ -22,6 +22,7 @@ export function AdminClient() {
   const [newStationName, setNewStationName] = useState("");
   const [newStationType, setNewStationType] = useState<StationType>("counter");
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
+  const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
 
   const counterQueueLength = getWaitingTickets('counter').length;
   const cashierQueueLength = getWaitingTickets('cashier').length;
@@ -67,10 +68,9 @@ export function AdminClient() {
     }
   }
 
-  const handleRestoreDefaults = () => {
-    if (confirm('Are you sure you want to restore default stations? All current station settings and tickets will be lost.')) {
-      dispatch({ type: 'RESET_STATE' });
-    }
+  const handleConfirmRestore = () => {
+    dispatch({ type: 'RESET_STATE' });
+    setIsRestoreConfirmOpen(false);
   };
 
   return (
@@ -205,7 +205,7 @@ export function AdminClient() {
             })}
             </CardContent>
             <CardFooter className="flex-col items-start gap-2 border-t px-6 py-4">
-              <Button variant="outline" onClick={handleRestoreDefaults}>
+              <Button variant="outline" onClick={() => setIsRestoreConfirmOpen(true)}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Restore Default Stations
               </Button>
@@ -226,6 +226,20 @@ export function AdminClient() {
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setStationToDelete(null)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDeleteStation} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={isRestoreConfirmOpen} onOpenChange={setIsRestoreConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will reset all stations to their default configuration and clear all tickets. This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmRestore} className="bg-destructive hover:bg-destructive/90">Restore</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
