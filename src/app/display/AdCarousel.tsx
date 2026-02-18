@@ -36,7 +36,12 @@ export function AdCarousel() {
       bgAudioRef.current.pause();
     } else {
       if (bgAudioRef.current.paused) {
-        bgAudioRef.current.play().catch(e => console.error("Error playing background audio:", e));
+        const playPromise = bgAudioRef.current.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.warn("Background audio playback failed. This may be due to browser policy or a loading error.", error);
+            });
+        }
       }
     }
   }, [adItems]);
@@ -65,6 +70,11 @@ export function AdCarousel() {
     }
   }, [bgMusicIndex, api, handleAudioForSlide]);
 
+  const handleMediaError = (e: React.SyntheticEvent<HTMLAudioElement | HTMLVideoElement | HTMLImageElement>) => {
+      console.warn(`A media element failed to load and has been hidden. Source: ${'src' in e.currentTarget ? e.currentTarget.src : 'unknown'}`);
+      e.currentTarget.style.display = 'none';
+  };
+
 
   return (
     <>
@@ -91,6 +101,7 @@ export function AdCarousel() {
                         playsInline
                         className="w-full h-full object-cover"
                         data-ai-hint={item.imageHint}
+                        onError={handleMediaError}
                       >
                           Your browser does not support the video tag.
                       </video>
@@ -102,6 +113,7 @@ export function AdCarousel() {
                         sizes="100%"
                         className="object-cover"
                         data-ai-hint={item.imageHint}
+                        onError={handleMediaError}
                       />
                     )}
                   </CardContent>
@@ -124,8 +136,8 @@ export function AdCarousel() {
             ref={bgAudioRef} 
             src={BackgroundMusic[bgMusicIndex]?.url}
             onEnded={handleBgMusicEnded}
-            autoPlay
             loop={BackgroundMusic.length === 1}
+            onError={handleMediaError}
             />
       )}
     </>
