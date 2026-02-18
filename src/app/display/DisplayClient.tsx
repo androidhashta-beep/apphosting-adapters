@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { AdCarousel } from "./AdCarousel";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function DisplayClient() {
-  const { state } = useQueue();
+  const { state, isHydrated } = useQueue();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -50,7 +51,8 @@ export function DisplayClient() {
           </CardHeader>
           <CardContent className="p-4 flex-grow overflow-y-auto">
             <div className="flex flex-col gap-3">
-              {recentlyCalledTickets.map((ticket, index) => (
+              {!isHydrated && [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+              {isHydrated && recentlyCalledTickets.map((ticket, index) => (
                 <div 
                   key={ticket.id} 
                   className={cn(
@@ -66,7 +68,7 @@ export function DisplayClient() {
                   <div>{getStationName(ticket.servedBy)}</div>
                 </div>
               ))}
-              {recentlyCalledTickets.length === 0 && (
+              {isHydrated && recentlyCalledTickets.length === 0 && (
                  <div className="flex items-center justify-center h-full py-10">
                     <p className="text-muted-foreground">Waiting for next ticket...</p>
                  </div>

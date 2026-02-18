@@ -17,9 +17,10 @@ import { CarouselSettings } from "./CarouselSettings";
 import { useToast } from "@/hooks/use-toast";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function AdminClient() {
-  const { state, dispatch, getWaitingTickets, getTicketByStation } = useQueue();
+  const { state, dispatch, getWaitingTickets, getTicketByStation, isHydrated } = useQueue();
   const [loading, setLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<SuggestStationAssignmentsOutput | null>(null);
 
@@ -29,24 +30,18 @@ export function AdminClient() {
   const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
   const { toast } = useToast();
 
-  const enrollmentQueueLength = getWaitingTickets('enrollment').length;
-  const paymentQueueLength = getWaitingTickets('payment').length;
-  const certificateQueueLength = getWaitingTickets('certificate').length;
-  const availableEnrollmentStations = state.stations.filter(s => s.type === 'enrollment' && s.status === 'open').length;
-  const availablePaymentStations = state.stations.filter(s => s.type === 'payment' && s.status === 'open').length;
-  const availableCertificateStations = state.stations.filter(s => s.type === 'certificate' && s.status === 'open').length;
-
   const handleGetSuggestion = async () => {
+    if (!isHydrated) return;
     setLoading(true);
     setSuggestion(null);
     try {
       const result = await suggestStationAssignments({
-        enrollmentQueueLength,
-        paymentQueueLength,
-        certificateQueueLength,
-        availableEnrollmentStations,
-        availablePaymentStations,
-        availableCertificateStations,
+        enrollmentQueueLength: getWaitingTickets('enrollment').length,
+        paymentQueueLength: getWaitingTickets('payment').length,
+        certificateQueueLength: getWaitingTickets('certificate').length,
+        availableEnrollmentStations: state.stations.filter(s => s.type === 'enrollment' && s.status === 'open').length,
+        availablePaymentStations: state.stations.filter(s => s.type === 'payment' && s.status === 'open').length,
+        availableCertificateStations: state.stations.filter(s => s.type === 'certificate' && s.status === 'open').length,
       });
       setSuggestion(result);
     } catch (error) {
@@ -86,6 +81,25 @@ export function AdminClient() {
   };
 
     const mainContent = (
+      !isHydrated ? (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i}>
+                            <Skeleton className="h-7 w-12 mx-auto" />
+                            <Skeleton className="h-4 w-24 mx-auto mt-2" />
+                        </div>
+                    ))}
+                </div>
+                <Skeleton className="h-10 w-[180px]" />
+            </CardContent>
+        </Card>
+    ) : (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center justify-between gap-2">
@@ -103,12 +117,12 @@ export function AdminClient() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
-                <div><p className="font-bold text-2xl">{enrollmentQueueLength}</p><p className="text-sm text-muted-foreground">Enrollment Queue</p></div>
-                <div><p className="font-bold text-2xl">{paymentQueueLength}</p><p className="text-sm text-muted-foreground">Payment Queue</p></div>
-                <div><p className="font-bold text-2xl">{certificateQueueLength}</p><p className="text-sm text-muted-foreground">Certificate Queue</p></div>
-                <div><p className="font-bold text-2xl">{availableEnrollmentStations}</p><p className="text-sm text-muted-foreground">Open Enrollment</p></div>
-                <div><p className="font-bold text-2xl">{availablePaymentStations}</p><p className="text-sm text-muted-foreground">Open Payment</p></div>
-                <div><p className="font-bold text-2xl">{availableCertificateStations}</p><p className="text-sm text-muted-foreground">Open Certificate</p></div>
+                <div><p className="font-bold text-2xl">{getWaitingTickets('enrollment').length}</p><p className="text-sm text-muted-foreground">Enrollment Queue</p></div>
+                <div><p className="font-bold text-2xl">{getWaitingTickets('payment').length}</p><p className="text-sm text-muted-foreground">Payment Queue</p></div>
+                <div><p className="font-bold text-2xl">{getWaitingTickets('certificate').length}</p><p className="text-sm text-muted-foreground">Certificate Queue</p></div>
+                <div><p className="font-bold text-2xl">{state.stations.filter(s => s.type === 'enrollment' && s.status === 'open').length}</p><p className="text-sm text-muted-foreground">Open Enrollment</p></div>
+                <div><p className="font-bold text-2xl">{state.stations.filter(s => s.type === 'payment' && s.status === 'open').length}</p><p className="text-sm text-muted-foreground">Open Payment</p></div>
+                <div><p className="font-bold text-2xl">{state.stations.filter(s => s.type === 'certificate' && s.status === 'open').length}</p><p className="text-sm text-muted-foreground">Open Certificate</p></div>
               </div>
               <Button onClick={handleGetSuggestion} disabled={loading} className="w-full md:w-auto">
                 {loading ? (
@@ -137,6 +151,7 @@ export function AdminClient() {
               )}
             </CardContent>
         </Card>
+      )
     );
 
     const sidebarContent = (
@@ -156,6 +171,7 @@ export function AdminClient() {
                         onChange={(e) => setNewStationName(e.target.value)}
                         placeholder="e.g. Certificate Claim"
                         required
+                        disabled={!isHydrated}
                       />
                     </div>
                     <div className="space-y-2">
@@ -163,6 +179,7 @@ export function AdminClient() {
                       <Select
                         value={newStationType}
                         onValueChange={(value: StationType) => setNewStationType(value)}
+                        disabled={!isHydrated}
                       >
                         <SelectTrigger id="new-station-type">
                           <SelectValue placeholder="Select type" />
@@ -174,7 +191,7 @@ export function AdminClient() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button type="submit" className="w-full">Add Station</Button>
+                    <Button type="submit" className="w-full" disabled={!isHydrated}>Add Station</Button>
                   </form>
                 </CardContent>
             </Card>
@@ -184,7 +201,15 @@ export function AdminClient() {
                   <CardDescription>Manually configure station operational modes. Changes are saved automatically.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {state.stations.map((station) => {
+                  {!isHydrated && [...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center justify-between p-2 rounded-md border h-[72px]">
+                          <div className="w-full">
+                              <Skeleton className="h-5 w-32 mb-1" />
+                              <Skeleton className="h-4 w-20" />
+                          </div>
+                      </div>
+                  ))}
+                  {isHydrated && state.stations.map((station) => {
                     const isServing = !!getTicketByStation(station.id);
                     return (
                     <div key={station.id} className="flex items-center justify-between p-2 rounded-md border">
@@ -222,7 +247,7 @@ export function AdminClient() {
                 })}
                 </CardContent>
                 <CardFooter className="flex-col items-start gap-2 border-t px-6 py-4">
-                  <Button variant="outline" onClick={() => setIsRestoreConfirmOpen(true)}>
+                  <Button variant="outline" onClick={() => setIsRestoreConfirmOpen(true)} disabled={!isHydrated}>
                       <RefreshCw className="mr-2 h-4 w-4" />
                       Restore Default Stations
                   </Button>

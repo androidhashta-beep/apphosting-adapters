@@ -29,6 +29,7 @@ type QueueContextType = {
   getWaitingTickets: (type: TicketType) => Ticket[];
   getServedTickets: (type: TicketType) => Ticket[];
   getTicketByStation: (stationId: string) => Ticket | undefined;
+  isHydrated: boolean;
 };
 
 const QueueContext = createContext<QueueContextType | undefined>(undefined);
@@ -208,7 +209,7 @@ export const QueueProvider = ({ children }: { children: ReactNode }) => {
       return state.tickets.find(t => t.id === station.currentTicketId);
   }
 
-  const value = useMemo(() => ({ state, dispatch, getWaitingTickets, getServedTickets, getTicketByStation }), [state]);
+  const value = useMemo(() => ({ state, dispatch, getWaitingTickets, getServedTickets, getTicketByStation, isHydrated }), [state, isHydrated]);
 
   return (
     <QueueContext.Provider value={value}>

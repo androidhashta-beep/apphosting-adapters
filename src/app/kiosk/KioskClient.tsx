@@ -10,7 +10,7 @@ import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 
 export function KioskClient() {
-  const { dispatch, state } = useQueue();
+  const { dispatch, state, isHydrated } = useQueue();
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
@@ -75,6 +75,7 @@ export function KioskClient() {
                 variant="default"
                 className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 whitespace-normal py-4"
                 onClick={() => handleGetTicket("enrollment")}
+                disabled={!isHydrated}
               >
                 <User className="h-8 w-8" />
                 <span>Enrollment</span>
@@ -86,6 +87,7 @@ export function KioskClient() {
                 variant="secondary"
                 className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg bg-accent text-accent-foreground hover:bg-accent/90 transform transition-transform hover:scale-105 whitespace-normal py-4"
                 onClick={() => handleGetTicket("payment")}
+                disabled={!isHydrated}
               >
                 <TicketIcon className="h-8 w-8" />
                 <span>Payment</span>
@@ -97,6 +99,7 @@ export function KioskClient() {
                 variant="outline"
                 className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
                 onClick={() => handleGetTicket("certificate")}
+                disabled={!isHydrated}
               >
                 <Award className="h-8 w-8" />
                 <span>Claim Certificate</span>
