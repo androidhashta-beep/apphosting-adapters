@@ -53,8 +53,8 @@ export function KioskClient() {
     setTicketToPrint(newTicket);
 
     toast({
-      title: "Ticket Generated!",
-      description: `Your ticket ${newTicket.ticketNumber} is being sent to the printer.`,
+      title: "Printing Ticket...",
+      description: `Now printing ticket ${newTicket.ticketNumber}. Please take it from the printer.`,
       duration: 5000,
     });
   };
