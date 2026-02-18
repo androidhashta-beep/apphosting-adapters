@@ -13,6 +13,20 @@ import { useState, useRef, useEffect } from "react";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
 import { useToast } from "@/hooks/use-toast";
 
+const getServiceDescriptionForSpeech = (type: TicketType) => {
+  switch (type) {
+    case 'counter':
+      return 'counter service';
+    case 'cashier':
+      return 'payment';
+    case 'certificate':
+      return 'certificate claiming';
+    default:
+      return 'service';
+  }
+};
+
+
 export function StationControlCard({ station }: { station: Station }) {
   const { dispatch, getTicketByStation, getWaitingTickets } = useQueue();
   const ticket = getTicketByStation(station.id);
@@ -38,7 +52,9 @@ export function StationControlCard({ station }: { station: Station }) {
       
     setIsCalling(true);
     try {
-        const textToSay = `Ticket ${nextTicket.ticketNumber.replace('-', ' ')}, please proceed to ${station.name}.`;
+        const ticketNumber = nextTicket.ticketNumber.split('-')[1];
+        const serviceDescription = getServiceDescriptionForSpeech(nextTicket.type);
+        const textToSay = `Customer number ${ticketNumber} for ${serviceDescription}, please go to ${station.name}.`;
         const { media } = await textToSpeech(textToSay);
         setAudioUrl(media);
     } catch (error) {
