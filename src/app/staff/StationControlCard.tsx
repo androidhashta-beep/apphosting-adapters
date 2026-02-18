@@ -61,12 +61,17 @@ export function StationControlCard({ station }: { station: Station }) {
         const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription}, go to ${station.name}.`;
         const { media } = await textToSpeech(textToSay);
         setAudioUrl(media);
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating TTS:", error);
+        
+        const isRateLimitError = error.message && (error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('429'));
+
         toast({
             variant: "destructive",
             title: "Audio Callout Failed",
-            description: "Could not generate audio. Please check internet connection or run in offline mode.",
+            description: isRateLimitError
+                ? "Audio announcement quota has been reached. Please wait a minute before trying again. The queue will continue without audio."
+                : "Could not generate audio. The queue will continue without audio.",
         });
     } finally {
         dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
