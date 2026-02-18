@@ -93,8 +93,8 @@ export function AdminClient() {
                         <BrainCircuit className="text-primary" />
                         <span>AI-Powered Suggestions</span>
                     </div>
-                    <SidebarTrigger asChild className="flex lg:hidden">
-                        <Button variant="ghost" size="icon"><Settings /></Button>
+                    <SidebarTrigger className="flex lg:hidden">
+                        <Settings />
                     </SidebarTrigger>
                 </CardTitle>
                 <CardDescription>
