@@ -218,3 +218,61 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Print styles for POS receipt */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-area, .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .ticket-content {
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    color: #000;
+    width: 80mm; /* Standard POS receipt width */
+    padding-top: 10px;
+    font-size: 14px;
+  }
+  .company-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+  }
+  .ticket-label {
+    margin-bottom: 0.25rem;
+  }
+  .ticket-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    letter-spacing: 2px;
+  }
+  .service-type {
+    font-weight: bold;
+    text-transform: capitalize;
+  }
+  .separator {
+    border-top: 1px dashed #000;
+    margin: 1rem 0;
+  }
+  .timestamp {
+    font-size: 0.8rem;
+  }
+  .footer-message {
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+  }
+}
