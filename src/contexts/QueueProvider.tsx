@@ -51,16 +51,14 @@ const queueReducer = (state: State, action: Action): State => {
         ? new Date(state.lastTicketTimestamp).toDateString() !== new Date(now).toDateString()
         : true;
       
-      // If it's a new day, we start numbering from 1. Otherwise, we continue from the last ticket.
-      const ticketsForNumbering = isNewDay ? [] : state.tickets;
-      const newNumber = ticketsForNumbering.length + 1;
+      const todaysTickets = isNewDay ? [] : state.tickets;
+      const newNumber = todaysTickets.length + 1;
       
-      // Ensure the ticketNumber is ALWAYS just the number.
       const ticketNumber = `${newNumber}`;
       
       const newTicket: Ticket = {
         id: `${type}-${newNumber}-${now}`,
-        ticketNumber: ticketNumber, // This is the fix.
+        ticketNumber: ticketNumber,
         type,
         status: 'waiting',
         createdAt: now,
