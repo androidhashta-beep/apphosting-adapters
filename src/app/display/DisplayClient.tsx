@@ -37,10 +37,10 @@ export function DisplayClient() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-      {/* Left Column: Queue List */}
-      <div className="lg:col-span-1">
-        <Card className="h-full flex flex-col">
+    <div className="flex flex-col gap-6 h-full">
+      {/* Top Section: Queue List */}
+      <div>
+        <Card className="flex flex-col">
           <CardHeader className="p-4 border-b">
             <div className="grid grid-cols-3 text-center font-bold text-muted-foreground uppercase">
               <div>Services</div>
@@ -67,7 +67,7 @@ export function DisplayClient() {
                 </div>
               ))}
               {recentlyCalledTickets.length === 0 && (
-                 <div className="flex items-center justify-center h-full">
+                 <div className="flex items-center justify-center h-full py-10">
                     <p className="text-muted-foreground">Waiting for next ticket...</p>
                  </div>
               )}
@@ -76,8 +76,8 @@ export function DisplayClient() {
         </Card>
       </div>
 
-      {/* Right Column: Ads and Info */}
-      <div className="lg:col-span-2 flex flex-col gap-6">
+      {/* Bottom Section: Ads and Info */}
+      <div className="flex flex-col gap-6 flex-grow min-h-0">
         <div className="flex-grow min-h-0">
             <AdCarousel />
         </div>
