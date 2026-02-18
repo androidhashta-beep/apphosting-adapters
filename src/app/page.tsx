@@ -45,7 +45,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="bg-primary shadow-lg">
-        <div className="container mx-auto flex h-20 items-center justify-center px-4 md:h-24 md:justify-start">
+        <div className="container mx-auto flex h-20 items-center justify-center px-4 md:h-24">
           <div className="flex items-center gap-4">
             <h1 className="text-2xl font-bold text-primary-foreground tracking-tight md:text-3xl">
               Renaissance Training Center Inc.
