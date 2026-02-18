@@ -2,18 +2,21 @@
   "placeholderImages": [
     {
       "id": "ad-display-1",
+      "type": "image",
       "description": "Advertisement 1 - Image",
       "imageUrl": "/carousel/ad-image-1.jpg",
       "imageHint": "advertisement"
     },
     {
       "id": "ad-display-2",
+      "type": "image",
       "description": "Advertisement 2 - Image",
       "imageUrl": "/carousel/ad-image-2.png",
       "imageHint": "promo"
     },
     {
       "id": "ad-display-3",
+      "type": "video",
       "description": "Advertisement 3 - Video",
       "imageUrl": "/carousel/ad-video-1.mp4",
       "imageHint": "sailing ship"

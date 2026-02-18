@@ -10,9 +10,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
-
-const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.ogg'];
+import { ImagePlaceholder, PlaceHolderImages } from "@/lib/placeholder-images";
 
 export function AdCarousel() {
   const plugin = React.useRef(
@@ -29,8 +27,8 @@ export function AdCarousel() {
       onMouseLeave={plugin.current.reset}
     >
       <CarouselContent className="h-full">
-        {adItems.length > 0 ? adItems.map((item) => {
-          const isVideo = VIDEO_EXTENSIONS.some(ext => item.imageUrl.endsWith(ext));
+        {adItems.length > 0 ? (adItems as ImagePlaceholder[]).map((item) => {
+          const isVideo = item.type === 'video';
 
           return (
             <CarouselItem key={item.id} className="h-full">
