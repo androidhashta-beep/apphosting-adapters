@@ -14,16 +14,10 @@ import { textToSpeech } from "@/ai/flows/text-to-speech";
 import { useToast } from "@/hooks/use-toast";
 
 const getServiceDescriptionForSpeech = (type: TicketType) => {
-  switch (type) {
-    case 'enrollment':
-      return 'enrollment';
-    case 'payment':
-      return 'payment';
-    case 'certificate':
-      return 'certificate claiming';
-    default:
-      return 'service';
+  if (type === 'certificate') {
+    return 'certificate claiming';
   }
+  return type;
 };
 
 
@@ -76,7 +70,6 @@ export function StationControlCard({ station }: { station: Station }) {
         }
     } catch (error: any) {
         // Fallback for network errors or other unexpected issues
-        console.error("Error calling textToSpeech flow:", error);
         toast({
             variant: "destructive",
             title: "Audio Callout Failed",
