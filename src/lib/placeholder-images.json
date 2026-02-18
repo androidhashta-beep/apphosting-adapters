@@ -17,9 +17,30 @@
     {
       "id": "ad-display-3",
       "type": "video",
-      "description": "Advertisement 3 - Video",
+      "description": "Advertisement 3 - Video with own sound",
       "imageUrl": "/carousel/ad-video-1.mp4",
-      "imageHint": "sailing ship"
+      "imageHint": "sailing ship",
+      "useOwnAudio": true
+    },
+    {
+      "id": "ad-display-4",
+      "type": "video",
+      "description": "Advertisement 4 - Muted video",
+      "imageUrl": "/carousel/ad-video-2.mp4",
+      "imageHint": "ocean waves",
+      "useOwnAudio": false
+    }
+  ],
+  "backgroundMusic": [
+    {
+      "id": "music-1",
+      "description": "Uplifting Corporate Music",
+      "url": "/carousel/background-music-1.mp3"
+    },
+    {
+      "id": "music-2",
+      "description": "Calm Ambient Track",
+      "url": "/carousel/background-music-2.wav"
     }
   ]
 }
