@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -104,7 +105,7 @@ export function CarouselSettings() {
                      const isVideo = item.type === 'video';
                      return (
                         <div key={item.id} className="flex items-center justify-between gap-3 p-2 border rounded-md bg-card">
-                            <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="flex min-w-0 items-center gap-3 overflow-hidden">
                                 {isVideo ? <Film className="h-5 w-5 text-muted-foreground flex-shrink-0" /> : <ImageIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />}
                                 <div className="overflow-hidden">
                                     <p className="font-semibold truncate" title={item.description}>{item.description}</p>
@@ -128,7 +129,7 @@ export function CarouselSettings() {
                 )}
             </div>
           </CardContent>
-           <CardFooter className="flex gap-2 border-t pt-4">
+           <CardFooter className="flex flex-col sm:flex-row gap-2 border-t pt-4">
                <Button variant="outline" className="w-full" onClick={() => setOpenDialog('image')}>
                    <PlusCircle className="mr-2" />
                    Add Image
@@ -180,3 +181,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    

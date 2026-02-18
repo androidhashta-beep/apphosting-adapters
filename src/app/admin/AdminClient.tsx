@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -201,27 +202,36 @@ export function AdminClient() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {!isHydrated && [...Array(3)].map((_, i) => (
-                      <div key={i} className="flex items-center justify-between p-2 rounded-md border h-[72px]">
-                          <div className="w-full">
-                              <Skeleton className="h-5 w-32 mb-1" />
-                              <Skeleton className="h-4 w-20" />
-                          </div>
+                      <div key={i} className="flex items-center justify-between p-2 rounded-md border h-[118px]">
+                          <Skeleton className="h-full w-full" />
                       </div>
                   ))}
                   {isHydrated && state.stations.map((station) => {
                     const isServing = !!getTicketByStation(station.id);
                     return (
-                    <div key={station.id} className="flex items-center justify-between p-2 rounded-md border">
-                      <div>
-                        <p className="font-semibold">{station.name}</p>
-                        <p className="text-sm text-muted-foreground capitalize">{station.type}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
+                      <div key={station.id} className="space-y-3 rounded-md border p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">{station.name}</p>
+                            <p className="text-sm text-muted-foreground capitalize">{station.type}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setStationToDelete(station.id)}
+                            className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed -mr-1 -mt-1 shrink-0"
+                            disabled={isServing || state.stations.length <= 1}
+                            title={ isServing ? "Cannot delete station while it is serving." : state.stations.length <= 1 ? "Cannot delete the last station." : "Delete station" }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                          </Button>
+                        </div>
                         <Select
                           value={station.mode}
                           onValueChange={(value: StationMode) => handleModeChange(station.id, value)}
                         >
-                          <SelectTrigger className="w-[150px]">
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select mode" />
                           </SelectTrigger>
                           <SelectContent>
@@ -229,19 +239,7 @@ export function AdminClient() {
                             <SelectItem value="all-in-one">All-in-One</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setStationToDelete(station.id)}
-                            className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={isServing || state.stations.length <= 1}
-                            title={isServing ? "Cannot delete station while it is serving." : state.stations.length <= 1 ? "Cannot delete the last station." : "Delete station"}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete</span>
-                        </Button>
                       </div>
-                    </div>
                     );
                 })}
                 </CardContent>
@@ -326,3 +324,5 @@ export function AdminClient() {
     </div>
   );
 }
+
+    
