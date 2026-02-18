@@ -51,8 +51,8 @@ const queueReducer = (state: State, action: Action): State => {
         ? new Date(state.lastTicketTimestamp).toDateString() !== new Date(now).toDateString()
         : true;
       
-      const todaysTickets = isNewDay ? [] : state.tickets;
-      const newNumber = todaysTickets.length + 1;
+      const ticketsToCount = isNewDay ? [] : state.tickets;
+      const newNumber = ticketsToCount.length + 1;
       
       const ticketNumber = `${newNumber}`;
       
@@ -225,11 +225,25 @@ export const QueueProvider = ({ children }: { children: ReactNode }) => {
   // Load state from localStorage on initial client-side render
   useEffect(() => {
     try {
-      const savedState = localStorage.getItem('queueState');
-      if (savedState) {
-        const parsedState = JSON.parse(savedState);
-        if (parsedState.tickets && parsedState.stations) {
-          dispatch({ type: 'HYDRATE_STATE', payload: parsedState });
+      const savedStateJSON = localStorage.getItem('queueState');
+      if (savedStateJSON) {
+        const savedState = JSON.parse(savedStateJSON);
+        
+        // Check if the loaded tickets have the old, prefixed format (e.g., "E-1").
+        const needsMigration = savedState.tickets && savedState.tickets.some((t: Ticket) => isNaN(parseInt(t.ticketNumber, 10)));
+
+        if (needsMigration) {
+          // If the format is old, clear the tickets and timestamp to start fresh,
+          // but preserve the user's station configuration.
+          const migratedState = {
+            ...savedState,
+            tickets: [],
+            lastTicketTimestamp: null,
+          };
+          dispatch({ type: 'HYDRATE_STATE', payload: migratedState });
+        } else if (savedState.tickets && savedState.stations) {
+          // If state is in the correct format, hydrate normally.
+          dispatch({ type: 'HYDRATE_STATE', payload: savedState });
         }
       }
     } catch (error) {
