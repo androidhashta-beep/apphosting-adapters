@@ -4,14 +4,13 @@ import { useQueue } from "@/contexts/QueueProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import { Ticket as TicketIcon, User, Award, Printer } from "lucide-react";
 import type { TicketType, Ticket } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 
 export function KioskClient() {
-  const { state, dispatch } = useQueue();
+  const { dispatch, state } = useQueue();
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
@@ -49,17 +48,14 @@ export function KioskClient() {
     };
 
     dispatch({ type: "ADD_TICKET", payload: { ticket: newTicket } });
+    
+    // Immediately trigger the print dialog
+    setTicketToPrint(newTicket);
 
     toast({
       title: "Ticket Generated!",
-      description: `Your ticket number is ${newTicket.ticketNumber}.`,
-      duration: 10000,
-      action: (
-        <ToastAction altText="Print Ticket" onClick={() => setTicketToPrint(newTicket)}>
-          <Printer className="mr-2" />
-          Print
-        </ToastAction>
-      )
+      description: `Your ticket ${newTicket.ticketNumber} is being sent to the printer.`,
+      duration: 5000,
     });
   };
 
@@ -71,7 +67,7 @@ export function KioskClient() {
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-foreground">Get Your Ticket</h2>
               <p className="text-muted-foreground mt-2">
-                Please select the service you need.
+                Please select the service you need. Your ticket will be printed automatically.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
