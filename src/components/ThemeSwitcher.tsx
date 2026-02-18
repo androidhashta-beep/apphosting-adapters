@@ -30,16 +30,16 @@ export function ThemeSwitcher() {
         <DropdownMenuItem onClick={() => setTheme("dark")}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("orange-and-black")}>
+        <DropdownMenuItem onClick={() => setTheme("theme-orange-and-black")}>
           Orange &amp; Black
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("yellow-and-blue")}>
+        <DropdownMenuItem onClick={() => setTheme("theme-yellow-and-blue")}>
           Yellow &amp; Blue
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("gold-and-black")}>
+        <DropdownMenuItem onClick={() => setTheme("theme-gold-and-black")}>
           Gold &amp; Black
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("pastel")}>
+        <DropdownMenuItem onClick={() => setTheme("theme-pastel")}>
           Pastel
         </DropdownMenuItem>
       </DropdownMenuContent>
