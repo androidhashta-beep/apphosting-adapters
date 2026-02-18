@@ -24,8 +24,7 @@ export function DisplayClient() {
 
   const getStationName = (stationId: string | undefined) => {
     if (!stationId) return '-';
-    const name = state.stations.find(s => s.id === stationId)?.name || '-';
-    return name.split(' ').pop() || name;
+    return state.stations.find(s => s.id === stationId)?.name || '-';
   }
   
   const getServiceLabel = (type: string) => {

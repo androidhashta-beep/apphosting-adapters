@@ -36,6 +36,13 @@ const SuggestStationAssignmentsInputSchema = z.object({
     .int()
     .min(0)
     .describe('The number of available staff/stations for cashier services.'),
+  availableCertificateStations: z
+    .number()
+    .int()
+    .min(0)
+    .describe(
+      'The number of available staff/stations for certificate claiming.'
+    ),
 });
 export type SuggestStationAssignmentsInput = z.infer<
   typeof SuggestStationAssignmentsInputSchema
@@ -97,6 +104,7 @@ Current Queue Status:
 Available Staff/Stations:
 -   Available Counters: {{{availableCounters}}}
 -   Available Cashiers: {{{availableCashiers}}}
+-   Available Certificate Stations: {{{availableCertificateStations}}}
 
 Provide actionable suggestions, including a reason and specific actions to take. Ensure the output strictly adheres to the provided JSON schema.
 `,

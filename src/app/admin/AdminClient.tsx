@@ -29,6 +29,7 @@ export function AdminClient() {
   const certificateQueueLength = getWaitingTickets('certificate').length;
   const availableCounters = state.stations.filter(s => s.type === 'counter' && s.status === 'open').length;
   const availableCashiers = state.stations.filter(s => s.type === 'cashier' && s.status === 'open').length;
+  const availableCertificateStations = state.stations.filter(s => s.type === 'certificate' && s.status === 'open').length;
 
   const handleGetSuggestion = async () => {
     setLoading(true);
@@ -40,6 +41,7 @@ export function AdminClient() {
         certificateQueueLength,
         availableCounters,
         availableCashiers,
+        availableCertificateStations,
       });
       setSuggestion(result);
     } catch (error) {
@@ -94,6 +96,7 @@ export function AdminClient() {
                 <div><p className="font-bold text-2xl">{certificateQueueLength}</p><p className="text-sm text-muted-foreground">Certificate Queue</p></div>
                 <div><p className="font-bold text-2xl">{availableCounters}</p><p className="text-sm text-muted-foreground">Open Counters</p></div>
                 <div><p className="font-bold text-2xl">{availableCashiers}</p><p className="text-sm text-muted-foreground">Open Cashiers</p></div>
+                <div><p className="font-bold text-2xl">{availableCertificateStations}</p><p className="text-sm text-muted-foreground">Open Certificate</p></div>
               </div>
               <Button onClick={handleGetSuggestion} disabled={loading} className="w-full md:w-auto">
                 {loading ? (
