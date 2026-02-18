@@ -47,7 +47,8 @@ export function StationControlCard({ station }: { station: Station }) {
     try {
         const ticketNumber = nextTicket.ticketNumber.split('-')[1];
         const serviceDescription = nextTicket.type === 'certificate' ? 'certificate claiming' : nextTicket.type;
-        const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${station.name}.`;
+        const destination = nextTicket.type === 'payment' ? 'cashier window' : station.name;
+        const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${destination}.`;
         const { media, error } = await textToSpeech(textToSay);
 
         if (error) {
@@ -84,7 +85,8 @@ export function StationControlCard({ station }: { station: Station }) {
     try {
       const ticketNumber = ticket.ticketNumber.split('-')[1];
       const serviceDescription = ticket.type === 'certificate' ? 'certificate claiming' : ticket.type;
-      const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${station.name}.`;
+      const destination = ticket.type === 'payment' ? 'cashier window' : station.name;
+      const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${destination}.`;
       const { media, error } = await textToSpeech(textToSay);
 
       if (error) {
