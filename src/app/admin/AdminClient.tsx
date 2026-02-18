@@ -8,16 +8,18 @@ import type { StationMode, StationType } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrainCircuit, Bot, Loader2, Trash2, RefreshCw, ArrowLeft, Settings, PanelRightClose } from "lucide-react";
+import { BrainCircuit, Bot, Loader2, Trash2, RefreshCw, ArrowLeft } from "lucide-react";
 import { SuggestionCard } from "./SuggestionCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CarouselSettings } from "./CarouselSettings";
 import { useToast } from "@/hooks/use-toast";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 export function AdminClient() {
   const { state, dispatch, getWaitingTickets, getTicketByStation, isHydrated } = useQueue();
@@ -107,9 +109,6 @@ export function AdminClient() {
                         <BrainCircuit className="text-primary" />
                         <span>AI-Powered Suggestions</span>
                     </div>
-                    <SidebarTrigger className="flex lg:hidden">
-                        <Settings />
-                    </SidebarTrigger>
                 </CardTitle>
                 <CardDescription>
                     Get optimal station assignments to efficiently manage student flow based on real-time data.
@@ -260,46 +259,41 @@ export function AdminClient() {
 
 
   return (
-    <>
-      <Sidebar side="right" collapsible="icon" className="border-l">
-          <SidebarHeader className="h-16 flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
-                  Settings & Management
-              </h2>
-              <SidebarTrigger>
-                  <PanelRightClose />
-              </SidebarTrigger>
-          </SidebarHeader>
-          <SidebarContent>
-              <div className="p-4">
-                  {sidebarContent}
+    <div className="flex flex-col h-screen">
+       <header className="border-b">
+          <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
+              <div className="flex items-center gap-4 w-1/3">
+                  <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      <ArrowLeft className="h-4 w-4" />
+                      Home
+                  </Link>
               </div>
-          </SidebarContent>
-      </Sidebar>
-      
-      <SidebarInset>
-          <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur-sm">
-              <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
-                  <div className="flex items-center gap-4 w-1/3">
-                      <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                          <ArrowLeft className="h-4 w-4" />
-                          Home
-                      </Link>
-                  </div>
-                  <div className="flex items-center justify-center w-1/3">
-                      <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
-                  </div>
-                  <div className="w-1/3 flex justify-end">
-                      <ThemeSwitcher />
-                  </div>
+              <div className="flex items-center justify-center w-1/3">
+                  <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
               </div>
-          </header>
-          <main className="flex-1">
-              <div className="container mx-auto px-4 py-8 md:px-6">
-                  {mainContent}
+              <div className="w-1/3 flex justify-end">
+                  <ThemeSwitcher />
               </div>
-          </main>
-      </SidebarInset>
+          </div>
+      </header>
+
+      <ResizablePanelGroup direction="horizontal" className="flex-grow">
+        <ResizablePanel defaultSize={60} minSize={40}>
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              {mainContent}
+            </div>
+          </ScrollArea>
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={40} minSize={30}>
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              {sidebarContent}
+            </div>
+          </ScrollArea>
+        </ResizablePanel>
+      </ResizablePanelGroup>
       
       <AlertDialog open={!!stationToDelete} onOpenChange={(open) => !open && setStationToDelete(null)}>
         <AlertDialogContent>
@@ -329,6 +323,6 @@ export function AdminClient() {
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }
