@@ -46,7 +46,11 @@ export function StationControlCard({ station }: { station: Station }) {
     const waitingTickets = getWaitingTickets(ticketType);
     const nextTicket = waitingTickets[0];
     if (!nextTicket) {
-      dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+      toast({
+        variant: "destructive",
+        title: "No Tickets Waiting",
+        description: `There are no students in the ${ticketType} queue.`,
+      });
       return;
     }
       

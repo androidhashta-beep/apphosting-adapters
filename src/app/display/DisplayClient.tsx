@@ -18,7 +18,7 @@ export function DisplayClient() {
   }, []);
 
   const recentlyCalledTickets = state.tickets
-    .filter(t => t.status === 'serving' || t.status === 'served')
+    .filter(t => t.status === 'serving' || t.status === 'served' || t.status === 'skipped')
     .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0))
     .slice(0, 10);
 
@@ -54,8 +54,11 @@ export function DisplayClient() {
                 <div 
                   key={ticket.id} 
                   className={cn(
-                    "grid grid-cols-3 items-center text-center p-3 rounded-lg text-2xl font-bold",
-                    index === 0 ? "bg-primary text-primary-foreground animate-pulse" : "bg-card border"
+                    "grid grid-cols-3 items-center text-center p-3 rounded-lg text-2xl font-bold transition-all",
+                    index === 0 && ticket.status !== 'skipped'
+                        ? "bg-primary text-primary-foreground animate-pulse" 
+                        : "bg-card border",
+                    ticket.status === 'skipped' && "bg-muted text-muted-foreground opacity-60 line-through"
                   )}
                 >
                   <div className="text-xl">{getServiceLabel(ticket.type)}</div>
