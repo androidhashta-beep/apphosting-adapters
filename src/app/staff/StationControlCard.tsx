@@ -58,7 +58,7 @@ export function StationControlCard({ station }: { station: Station }) {
     try {
         const ticketNumber = nextTicket.ticketNumber.split('-')[1];
         const serviceDescription = getServiceDescriptionForSpeech(nextTicket.type);
-        const textToSay = `Customer number ${ticketNumber}, ${serviceDescription}, go to ${station.name}.`;
+        const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription}, go to ${station.name}.`;
         const { media } = await textToSpeech(textToSay);
         setAudioUrl(media);
     } catch (error) {
@@ -66,7 +66,7 @@ export function StationControlCard({ station }: { station: Station }) {
         toast({
             variant: "destructive",
             title: "Audio Callout Failed",
-            description: "Could not generate audio for the announcement. Please check your internet connection.",
+            description: "Could not generate audio. Please check internet connection or run in offline mode.",
         });
     } finally {
         dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
