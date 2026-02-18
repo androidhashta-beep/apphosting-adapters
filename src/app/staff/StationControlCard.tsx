@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -46,9 +47,8 @@ export function StationControlCard({ station }: { station: Station }) {
     setIsCalling(true);
     try {
         const ticketNumber = nextTicket.ticketNumber;
-        const serviceDescription = nextTicket.type === 'certificate' ? 'certificate claiming' : nextTicket.type;
-        const destination = nextTicket.type === 'payment' ? 'cashier window' : station.name;
-        const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${destination}.`;
+        const destination = station.name;
+        const textToSay = `Ticket number ${ticketNumber}, please go to ${destination}.`;
         const { media, error } = await textToSpeech(textToSay);
 
         if (error) {
@@ -84,9 +84,8 @@ export function StationControlCard({ station }: { station: Station }) {
     setIsRecalling(true);
     try {
       const ticketNumber = ticket.ticketNumber;
-      const serviceDescription = ticket.type === 'certificate' ? 'certificate claiming' : ticket.type;
-      const destination = ticket.type === 'payment' ? 'cashier window' : station.name;
-      const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${destination}.`;
+      const destination = station.name;
+      const textToSay = `Ticket number ${ticketNumber}, please go to ${destination}.`;
       const { media, error } = await textToSpeech(textToSay);
 
       if (error) {
