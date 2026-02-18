@@ -48,7 +48,9 @@ export function AdCarousel() {
   }, [emblaApi, handleSelect]);
 
   const handleBgMusicEnded = () => {
-    setBgMusicIndex(prevIndex => (prevIndex + 1) % BackgroundMusic.length);
+    if (BackgroundMusic.length > 0) {
+      setBgMusicIndex(prevIndex => (prevIndex + 1) % BackgroundMusic.length);
+    }
   };
   
   React.useEffect(() => {
@@ -59,12 +61,16 @@ export function AdCarousel() {
 
 
   const onMouseEnter = React.useCallback(() => {
-    emblaApi?.plugins()?.autoplay?.stop();
-  }, [emblaApi]);
+    if (canAutoplay) {
+      emblaApi?.plugins()?.autoplay?.stop();
+    }
+  }, [emblaApi, canAutoplay]);
 
   const onMouseLeave = React.useCallback(() => {
-    emblaApi?.plugins()?.autoplay?.play();
-  }, [emblaApi]);
+    if (canAutoplay) {
+      emblaApi?.plugins()?.autoplay?.play();
+    }
+  }, [emblaApi, canAutoplay]);
 
 
   return (
