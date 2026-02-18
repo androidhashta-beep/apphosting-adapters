@@ -14,17 +14,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ImagePlaceholder, PlaceHolderImages, BackgroundMusic } from "@/lib/placeholder-images";
 
 export function AdCarousel() {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
-    Autoplay({ delay: 5000, stopOnInteraction: true })
-  ]);
+  const adItems = PlaceHolderImages.filter(p => p.id.startsWith('ad-display-'));
+  const canAutoplay = adItems.length > 1;
+
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: canAutoplay },
+    canAutoplay ? [Autoplay({ delay: 5000, stopOnInteraction: true })] : []
+  );
   
   const [bgMusicIndex, setBgMusicIndex] = React.useState(0);
   const bgAudioRef = React.useRef<HTMLAudioElement>(null);
 
-  const adItems = PlaceHolderImages.filter(p => p.id.startsWith('ad-display-'));
-
   const handleSelect = React.useCallback((api: EmblaCarouselType) => {
-    if (!api || !bgAudioRef.current) return;
+    if (!api || !bgAudioRef.current || adItems.length === 0) return;
 
     const selectedIndex = api.selectedScrollSnap();
     const selectedItem = adItems[selectedIndex];
@@ -56,13 +58,22 @@ export function AdCarousel() {
   }, [bgMusicIndex])
 
 
+  const onMouseEnter = React.useCallback(() => {
+    emblaApi?.plugins()?.autoplay?.stop();
+  }, [emblaApi]);
+
+  const onMouseLeave = React.useCallback(() => {
+    emblaApi?.plugins()?.autoplay?.play();
+  }, [emblaApi]);
+
+
   return (
     <>
       <Carousel
         ref={emblaRef}
         className="w-full h-full"
-        onMouseEnter={() => emblaApi?.plugins().autoplay.stop()}
-        onMouseLeave={() => emblaApi?.plugins().autoplay.play()}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
       >
         <CarouselContent className="h-full">
           {adItems.length > 0 ? (adItems as ImagePlaceholder[]).map((item) => {
