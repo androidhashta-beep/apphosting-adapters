@@ -1,19 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useQueue } from "@/contexts/QueueProvider";
 import { suggestStationAssignments, SuggestStationAssignmentsOutput } from "@/ai/flows/suggest-station-assignments";
 import type { StationMode, StationType } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrainCircuit, Bot, Loader2, Trash2, RefreshCw } from "lucide-react";
+import { BrainCircuit, Bot, Loader2, Trash2, RefreshCw, ArrowLeft, Settings, PanelRightClose } from "lucide-react";
 import { SuggestionCard } from "./SuggestionCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { CarouselSettings } from "./CarouselSettings";
 import { useToast } from "@/hooks/use-toast";
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 export function AdminClient() {
   const { state, dispatch, getWaitingTickets, getTicketByStation } = useQueue();
@@ -82,19 +85,21 @@ export function AdminClient() {
     setIsRestoreConfirmOpen(false);
   };
 
-  return (
-    <>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          <Card>
+    const mainContent = (
+        <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BrainCircuit className="text-primary" />
-                <span>AI-Powered Suggestions</span>
-              </CardTitle>
-              <CardDescription>
-                Get optimal station assignments to efficiently manage student flow based on real-time data.
-              </CardDescription>
+                <CardTitle className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <BrainCircuit className="text-primary" />
+                        <span>AI-Powered Suggestions</span>
+                    </div>
+                    <SidebarTrigger asChild className="flex lg:hidden">
+                        <Button variant="ghost" size="icon"><Settings /></Button>
+                    </SidebarTrigger>
+                </CardTitle>
+                <CardDescription>
+                    Get optimal station assignments to efficiently manage student flow based on real-time data.
+                </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
@@ -131,100 +136,146 @@ export function AdminClient() {
                 </div>
               )}
             </CardContent>
-          </Card>
-        </div>
+        </Card>
+    );
+
+    const sidebarContent = (
         <div className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Station</CardTitle>
-              <CardDescription>Create a new service station.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddStation} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-station-name">Station Name</Label>
-                  <Input
-                    id="new-station-name"
-                    value={newStationName}
-                    onChange={(e) => setNewStationName(e.target.value)}
-                    placeholder="e.g. Certificate Claim"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-station-type">Station Type</Label>
-                  <Select
-                    value={newStationType}
-                    onValueChange={(value: StationType) => setNewStationType(value)}
-                  >
-                    <SelectTrigger id="new-station-type">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="enrollment">Enrollment</SelectItem>
-                      <SelectItem value="payment">Payment</SelectItem>
-                      <SelectItem value="certificate">Certificate</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full">Add Station</Button>
-              </form>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Station Management</CardTitle>
-              <CardDescription>Manually configure station operational modes. Changes are saved automatically.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {state.stations.map((station) => {
-                const isServing = !!getTicketByStation(station.id);
-                return (
-                <div key={station.id} className="flex items-center justify-between p-2 rounded-md border">
-                  <div>
-                    <p className="font-semibold">{station.name}</p>
-                    <p className="text-sm text-muted-foreground capitalize">{station.type}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={station.mode}
-                      onValueChange={(value: StationMode) => handleModeChange(station.id, value)}
-                    >
-                      <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Select mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="regular">Regular</SelectItem>
-                        <SelectItem value="all-in-one">All-in-One</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setStationToDelete(station.id)}
-                        className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={isServing || state.stations.length <= 1}
-                        title={isServing ? "Cannot delete station while it is serving." : state.stations.length <= 1 ? "Cannot delete the last station." : "Delete station"}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                    </Button>
-                  </div>
-                </div>
-                );
-            })}
-            </CardContent>
-            <CardFooter className="flex-col items-start gap-2 border-t px-6 py-4">
-              <Button variant="outline" onClick={() => setIsRestoreConfirmOpen(true)}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Restore Default Stations
-              </Button>
-              <p className="text-xs text-muted-foreground">Restoring will clear all current tickets and reset stations to their initial configuration.</p>
-            </CardFooter>
-          </Card>
-          <CarouselSettings />
+            <Card>
+                <CardHeader>
+                  <CardTitle>Add Station</CardTitle>
+                  <CardDescription>Create a new service station.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleAddStation} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-station-name">Station Name</Label>
+                      <Input
+                        id="new-station-name"
+                        value={newStationName}
+                        onChange={(e) => setNewStationName(e.target.value)}
+                        placeholder="e.g. Certificate Claim"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-station-type">Station Type</Label>
+                      <Select
+                        value={newStationType}
+                        onValueChange={(value: StationType) => setNewStationType(value)}
+                      >
+                        <SelectTrigger id="new-station-type">
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="enrollment">Enrollment</SelectItem>
+                          <SelectItem value="payment">Payment</SelectItem>
+                          <SelectItem value="certificate">Certificate</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button type="submit" className="w-full">Add Station</Button>
+                  </form>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                  <CardTitle>Station Management</CardTitle>
+                  <CardDescription>Manually configure station operational modes. Changes are saved automatically.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {state.stations.map((station) => {
+                    const isServing = !!getTicketByStation(station.id);
+                    return (
+                    <div key={station.id} className="flex items-center justify-between p-2 rounded-md border">
+                      <div>
+                        <p className="font-semibold">{station.name}</p>
+                        <p className="text-sm text-muted-foreground capitalize">{station.type}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={station.mode}
+                          onValueChange={(value: StationMode) => handleModeChange(station.id, value)}
+                        >
+                          <SelectTrigger className="w-[150px]">
+                            <SelectValue placeholder="Select mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="regular">Regular</SelectItem>
+                            <SelectItem value="all-in-one">All-in-One</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setStationToDelete(station.id)}
+                            className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isServing || state.stations.length <= 1}
+                            title={isServing ? "Cannot delete station while it is serving." : state.stations.length <= 1 ? "Cannot delete the last station." : "Delete station"}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
+                    </div>
+                    );
+                })}
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 border-t px-6 py-4">
+                  <Button variant="outline" onClick={() => setIsRestoreConfirmOpen(true)}>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Restore Default Stations
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Restoring will clear all current tickets and reset stations to their initial configuration.</p>
+                </CardFooter>
+            </Card>
+            <CarouselSettings />
         </div>
-      </div>
+    );
+
+
+  return (
+    <>
+      <Sidebar side="right" collapsible="icon" className="border-l">
+          <SidebarHeader className="h-16 flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+                  Settings & Management
+              </h2>
+              <SidebarTrigger>
+                  <PanelRightClose />
+              </SidebarTrigger>
+          </SidebarHeader>
+          <SidebarContent>
+              <div className="p-4">
+                  {sidebarContent}
+              </div>
+          </SidebarContent>
+      </Sidebar>
+      
+      <SidebarInset>
+          <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur-sm">
+              <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
+                  <div className="flex items-center gap-4 w-1/3">
+                      <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                          <ArrowLeft className="h-4 w-4" />
+                          Home
+                      </Link>
+                  </div>
+                  <div className="flex items-center justify-center w-1/3">
+                      <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
+                  </div>
+                  <div className="w-1/3 flex justify-end">
+                      <ThemeSwitcher />
+                  </div>
+              </div>
+          </header>
+          <main className="flex-1">
+              <div className="container mx-auto px-4 py-8 md:px-6">
+                  {mainContent}
+              </div>
+          </main>
+      </SidebarInset>
+      
       <AlertDialog open={!!stationToDelete} onOpenChange={(open) => !open && setStationToDelete(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>

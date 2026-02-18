@@ -1,10 +1,10 @@
 import { AdminClient } from './AdminClient';
-import { PageWrapper } from '@/components/PageWrapper';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 export default function AdminPage() {
   return (
-    <PageWrapper title="Admin Panel">
+    <SidebarProvider defaultOpen>
       <AdminClient />
-    </PageWrapper>
+    </SidebarProvider>
   );
 }
