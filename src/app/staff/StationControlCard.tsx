@@ -27,6 +27,7 @@ export function StationControlCard({ station }: { station: Station }) {
   const isClosed = station.status === 'closed';
 
   const [isCalling, setIsCalling] = useState(false);
+  const [isRecalling, setIsRecalling] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
@@ -78,6 +79,42 @@ export function StationControlCard({ station }: { station: Station }) {
     } finally {
         dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
         setIsCalling(false);
+    }
+  };
+
+  const handleCallAgain = async () => {
+    if (!ticket) return;
+
+    setIsRecalling(true);
+    try {
+      const ticketNumber = ticket.ticketNumber.split('-')[1];
+      const serviceDescription = getServiceDescriptionForSpeech(ticket.type);
+      const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${station.name}.`;
+      const { media, error } = await textToSpeech(textToSay);
+
+      if (error) {
+        const isRateLimitError =
+          error.includes('RESOURCE_EXHAUSTED') || error.includes('429');
+
+        toast({
+          variant: 'destructive',
+          title: 'Audio Callout Failed',
+          description: isRateLimitError
+            ? 'Audio announcement quota has been reached. Please wait a minute before trying again.'
+            : 'Could not generate audio.',
+        });
+      } else if (media) {
+        setAudioUrl(media);
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Audio Callout Failed',
+        description:
+          'An unexpected error occurred while trying to call the customer again.',
+      });
+    } finally {
+      setIsRecalling(false);
     }
   };
 
@@ -140,6 +177,10 @@ export function StationControlCard({ station }: { station: Station }) {
           <>
             <Button onClick={completeTicket} className="w-full bg-green-600 hover:bg-green-700">
               <Check /> Complete Service
+            </Button>
+            <Button onClick={handleCallAgain} variant="outline" className="w-full" disabled={isRecalling}>
+                {isRecalling ? <Loader2 className="animate-spin" /> : <Volume2 />}
+                Call Again
             </Button>
             <Button onClick={skipTicket} variant="outline" className="w-full">
               <SkipForward /> Skip Ticket
