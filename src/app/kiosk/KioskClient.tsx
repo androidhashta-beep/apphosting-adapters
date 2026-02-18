@@ -28,18 +28,15 @@ export function KioskClient() {
         ? new Date(state.lastTicketTimestamp).toDateString() !== new Date(now).toDateString()
         : true;
 
+    // Use all tickets for numbering, not just by type.
     const ticketsForNumbering = isNewDay ? [] : state.tickets;
     
-    const prefix = type === 'enrollment' ? 'E' : type === 'payment' ? 'P' : 'R';
-    const lastTicketOfType = ticketsForNumbering
-      .filter((t) => t.type === type)
-      .sort((a, b) => b.createdAt - a.createdAt)[0];
-    const newNumber = lastTicketOfType
-      ? parseInt(lastTicketOfType.ticketNumber.split('-')[1]) + 1
-      : 1;
-    const ticketNumber = `${prefix}-${newNumber}`;
+    // The new number is simply the next in sequence for the day.
+    const newNumber = ticketsForNumbering.length + 1;
+    const ticketNumber = `${newNumber}`;
 
     const newTicket: Ticket = {
+        // ID can still be descriptive for debugging, but the user-facing number is simplified.
         id: `${type}-${newNumber}-${now}`,
         ticketNumber: ticketNumber,
         type,

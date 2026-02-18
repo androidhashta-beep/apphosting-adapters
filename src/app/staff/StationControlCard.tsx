@@ -45,7 +45,7 @@ export function StationControlCard({ station }: { station: Station }) {
       
     setIsCalling(true);
     try {
-        const ticketNumber = nextTicket.ticketNumber.split('-')[1];
+        const ticketNumber = nextTicket.ticketNumber;
         const serviceDescription = nextTicket.type === 'certificate' ? 'certificate claiming' : nextTicket.type;
         const destination = nextTicket.type === 'payment' ? 'cashier window' : station.name;
         const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${destination}.`;
@@ -83,7 +83,7 @@ export function StationControlCard({ station }: { station: Station }) {
 
     setIsRecalling(true);
     try {
-      const ticketNumber = ticket.ticketNumber.split('-')[1];
+      const ticketNumber = ticket.ticketNumber;
       const serviceDescription = ticket.type === 'certificate' ? 'certificate claiming' : ticket.type;
       const destination = ticket.type === 'payment' ? 'cashier window' : station.name;
       const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${destination}.`;
