@@ -4,13 +4,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQueue } from "@/contexts/QueueProvider";
-import { suggestStationAssignments, SuggestStationAssignmentsOutput } from "@/ai/flows/suggest-station-assignments";
 import type { StationMode, StationType } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrainCircuit, Bot, Loader2, Trash2, RefreshCw, ArrowLeft } from "lucide-react";
-import { SuggestionCard } from "./SuggestionCard";
+import { Trash2, RefreshCw, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -18,46 +16,17 @@ import { CarouselSettings } from "./CarouselSettings";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 export function AdminClient() {
-  const { state, dispatch, getWaitingTickets, getTicketByStation, isHydrated } = useQueue();
-  const [loading, setLoading] = useState(false);
-  const [suggestion, setSuggestion] = useState<SuggestStationAssignmentsOutput | null>(null);
+  const { state, dispatch, getTicketByStation, isHydrated } = useQueue();
 
   const [newStationName, setNewStationName] = useState("");
   const [newStationType, setNewStationType] = useState<StationType>("enrollment");
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
   const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
   const { toast } = useToast();
-
-  const handleGetSuggestion = async () => {
-    if (!isHydrated) return;
-    setLoading(true);
-    setSuggestion(null);
-    try {
-      const result = await suggestStationAssignments({
-        enrollmentQueueLength: getWaitingTickets('enrollment').length,
-        paymentQueueLength: getWaitingTickets('payment').length,
-        certificateQueueLength: getWaitingTickets('certificate').length,
-        availableEnrollmentStations: state.stations.filter(s => s.type === 'enrollment' && s.status === 'open').length,
-        availablePaymentStations: state.stations.filter(s => s.type === 'payment' && s.status === 'open').length,
-        availableCertificateStations: state.stations.filter(s => s.type === 'certificate' && s.status === 'open').length,
-      });
-      setSuggestion(result);
-    } catch (error) {
-      console.error("Error getting AI suggestion:", error);
-      toast({
-        variant: "destructive",
-        title: "AI Suggestion Failed",
-        description: "Could not fetch AI suggestions. Please check your internet connection.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleModeChange = (stationId: string, mode: StationMode) => {
     dispatch({ type: 'UPDATE_STATION_MODE', payload: { stationId, mode } });
@@ -83,118 +52,70 @@ export function AdminClient() {
     setIsRestoreConfirmOpen(false);
   };
 
-    const mainContent = (
-      !isHydrated ? (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
-                    {[...Array(6)].map((_, i) => (
-                        <div key={i}>
-                            <Skeleton className="h-7 w-12 mx-auto" />
-                            <Skeleton className="h-4 w-24 mx-auto mt-2" />
-                        </div>
-                    ))}
-                </div>
-                <Skeleton className="h-10 w-[180px]" />
-            </CardContent>
-        </Card>
-    ) : (
-        <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                        <BrainCircuit className="text-primary" />
-                        <span>AI-Powered Suggestions</span>
-                    </div>
-                </CardTitle>
-                <CardDescription>
-                    Get optimal station assignments to efficiently manage student flow based on real-time data.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
-                <div><p className="font-bold text-2xl">{getWaitingTickets('enrollment').length}</p><p className="text-sm text-muted-foreground">Enrollment Queue</p></div>
-                <div><p className="font-bold text-2xl">{getWaitingTickets('payment').length}</p><p className="text-sm text-muted-foreground">Payment Queue</p></div>
-                <div><p className="font-bold text-2xl">{getWaitingTickets('certificate').length}</p><p className="text-sm text-muted-foreground">Certificate Queue</p></div>
-                <div><p className="font-bold text-2xl">{state.stations.filter(s => s.type === 'enrollment' && s.status === 'open').length}</p><p className="text-sm text-muted-foreground">Open Enrollment</p></div>
-                <div><p className="font-bold text-2xl">{state.stations.filter(s => s.type === 'payment' && s.status === 'open').length}</p><p className="text-sm text-muted-foreground">Open Payment</p></div>
-                <div><p className="font-bold text-2xl">{state.stations.filter(s => s.type === 'certificate' && s.status === 'open').length}</p><p className="text-sm text-muted-foreground">Open Certificate</p></div>
-              </div>
-              <Button onClick={handleGetSuggestion} disabled={loading} className="w-full md:w-auto">
-                {loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Bot className="mr-2 h-4 w-4" />
-                )}
-                {loading ? "Analyzing..." : "Get Suggestions"}
-              </Button>
-              {suggestion && (
-                <div className="mt-6 space-y-4">
-                  <Card className="bg-primary/5">
-                      <CardHeader>
-                          <CardTitle className="text-lg">Overall Summary</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                          <p>{suggestion.overallSummary}</p>
-                      </CardContent>
-                  </Card>
-                  <div className="space-y-4">
-                    {suggestion.suggestions.map((s, i) => (
-                      <SuggestionCard key={i} suggestion={s} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-        </Card>
-      )
-    );
 
-    const sidebarContent = (
-        <div className="space-y-8">
-            <Card>
-                <CardHeader>
-                  <CardTitle>Add Station</CardTitle>
-                  <CardDescription>Create a new service station.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleAddStation} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="new-station-name">Station Name</Label>
-                      <Input
-                        id="new-station-name"
-                        value={newStationName}
-                        onChange={(e) => setNewStationName(e.target.value)}
-                        placeholder="e.g. Certificate Claim"
-                        required
-                        disabled={!isHydrated}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="new-station-type">Station Type</Label>
-                      <Select
-                        value={newStationType}
-                        onValueChange={(value: StationType) => setNewStationType(value)}
-                        disabled={!isHydrated}
-                      >
-                        <SelectTrigger id="new-station-type">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="enrollment">Enrollment</SelectItem>
-                          <SelectItem value="payment">Payment</SelectItem>
-                          <SelectItem value="certificate">Certificate</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button type="submit" className="w-full" disabled={!isHydrated}>Add Station</Button>
-                  </form>
-                </CardContent>
-            </Card>
+  return (
+    <div className="flex flex-col h-screen">
+       <header className="border-b">
+          <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
+              <div className="flex items-center gap-4 w-1/3">
+                  <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      <ArrowLeft className="h-4 w-4" />
+                      Home
+                  </Link>
+              </div>
+              <div className="flex items-center justify-center w-1/3">
+                  <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
+              </div>
+              <div className="w-1/3 flex justify-end">
+                  <ThemeSwitcher />
+              </div>
+          </div>
+      </header>
+
+      <ScrollArea className="flex-grow">
+        <div className="grid grid-cols-1 items-start gap-8 p-6 lg:grid-cols-2">
+            <div className="space-y-8">
+                <Card>
+                    <CardHeader>
+                      <CardTitle>Add Station</CardTitle>
+                      <CardDescription>Create a new service station.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleAddStation} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="new-station-name">Station Name</Label>
+                          <Input
+                            id="new-station-name"
+                            value={newStationName}
+                            onChange={(e) => setNewStationName(e.target.value)}
+                            placeholder="e.g. Certificate Claim"
+                            required
+                            disabled={!isHydrated}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="new-station-type">Station Type</Label>
+                          <Select
+                            value={newStationType}
+                            onValueChange={(value: StationType) => setNewStationType(value)}
+                            disabled={!isHydrated}
+                          >
+                            <SelectTrigger id="new-station-type">
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="enrollment">Enrollment</SelectItem>
+                              <SelectItem value="payment">Payment</SelectItem>
+                              <SelectItem value="certificate">Certificate</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button type="submit" className="w-full" disabled={!isHydrated}>Add Station</Button>
+                      </form>
+                    </CardContent>
+                </Card>
+                <CarouselSettings />
+            </div>
             <Card>
                 <CardHeader>
                   <CardTitle>Station Management</CardTitle>
@@ -251,47 +172,8 @@ export function AdminClient() {
                   <p className="text-xs text-muted-foreground">Restoring will clear all current tickets and reset stations to their initial configuration.</p>
                 </CardFooter>
             </Card>
-            <CarouselSettings />
         </div>
-    );
-
-
-  return (
-    <div className="flex flex-col h-screen">
-       <header className="border-b">
-          <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
-              <div className="flex items-center gap-4 w-1/3">
-                  <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                      <ArrowLeft className="h-4 w-4" />
-                      Home
-                  </Link>
-              </div>
-              <div className="flex items-center justify-center w-1/3">
-                  <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
-              </div>
-              <div className="w-1/3 flex justify-end">
-                  <ThemeSwitcher />
-              </div>
-          </div>
-      </header>
-
-      <ResizablePanelGroup direction="horizontal" className="flex-grow">
-        <ResizablePanel defaultSize={60} minSize={40}>
-          <ScrollArea className="h-full">
-            <div className="p-6">
-              {mainContent}
-            </div>
-          </ScrollArea>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={40} minSize={30}>
-          <ScrollArea className="h-full">
-            <div className="p-6">
-              {sidebarContent}
-            </div>
-          </ScrollArea>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+      </ScrollArea>
       
       <AlertDialog open={!!stationToDelete} onOpenChange={(open) => !open && setStationToDelete(null)}>
         <AlertDialogContent>
@@ -324,5 +206,3 @@ export function AdminClient() {
     </div>
   );
 }
-
-    
