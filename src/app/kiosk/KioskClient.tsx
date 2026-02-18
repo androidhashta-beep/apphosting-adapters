@@ -48,11 +48,11 @@ export function KioskClient() {
         createdAt: now,
     };
 
-    dispatch({ type: "ADD_TICKET", payload: { type } });
+    dispatch({ type: "ADD_TICKET", payload: { ticket: newTicket } });
 
     toast({
       title: "Ticket Generated!",
-      description: `Your ticket number is ${ticketNumber}.`,
+      description: `Your ticket number is ${newTicket.ticketNumber}.`,
       duration: 10000,
       action: (
         <ToastAction altText="Print Ticket" onClick={() => setTicketToPrint(newTicket)}>

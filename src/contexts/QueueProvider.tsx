@@ -11,7 +11,7 @@ type State = {
 };
 
 type Action =
-  | { type: 'ADD_TICKET'; payload: { type: TicketType } }
+  | { type: 'ADD_TICKET'; payload: { ticket: Ticket } }
   | { type: 'UPDATE_STATION_STATUS'; payload: { stationId: string; status: StationStatus } }
   | { type: 'UPDATE_STATION_MODE'; payload: { stationId: string; mode: StationMode } }
   | { type: 'CALL_NEXT_TICKET'; payload: { stationId: string; ticketType: TicketType } }
@@ -42,32 +42,13 @@ const initialState: State = {
 const queueReducer = (state: State, action: Action): State => {
   switch (action.type) {
     case 'ADD_TICKET': {
-      const { type } = action.payload;
-      const now = Date.now();
+      const { ticket } = action.payload;
+      const now = ticket.createdAt;
       const isNewDay = state.lastTicketTimestamp
         ? new Date(state.lastTicketTimestamp).toDateString() !== new Date(now).toDateString()
         : true;
       
-      const ticketsForNumbering = isNewDay ? [] : state.tickets;
-
-      const prefix = type === 'counter' ? 'C' : type === 'cashier' ? 'S' : 'R';
-      const lastTicketOfType = ticketsForNumbering
-        .filter((t) => t.type === type)
-        .sort((a, b) => b.createdAt - a.createdAt)[0];
-        
-      const newNumber = lastTicketOfType
-        ? parseInt(lastTicketOfType.ticketNumber.split('-')[1]) + 1
-        : 1;
-
-      const newTicket: Ticket = {
-        id: `${type}-${newNumber}-${now}`,
-        ticketNumber: `${prefix}-${newNumber}`,
-        type,
-        status: 'waiting',
-        createdAt: now,
-      };
-      
-      const newTickets = isNewDay ? [newTicket] : [...state.tickets, newTicket];
+      const newTickets = isNewDay ? [ticket] : [...state.tickets, ticket];
 
       return { 
           ...state, 
