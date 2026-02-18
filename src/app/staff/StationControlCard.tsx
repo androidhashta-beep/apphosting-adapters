@@ -13,13 +13,6 @@ import { useState, useRef, useEffect } from "react";
 import { textToSpeech } from "@/ai/flows/text-to-speech";
 import { useToast } from "@/hooks/use-toast";
 
-const getServiceDescriptionForSpeech = (type: TicketType) => {
-  if (type === 'certificate') {
-    return 'certificate claiming';
-  }
-  return type;
-};
-
 
 export function StationControlCard({ station }: { station: Station }) {
   const { dispatch, getTicketByStation, getWaitingTickets } = useQueue();
@@ -29,6 +22,7 @@ export function StationControlCard({ station }: { station: Station }) {
   const [isCalling, setIsCalling] = useState(false);
   const [isRecalling, setIsRecalling] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [playCount, setPlayCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
 
@@ -52,7 +46,7 @@ export function StationControlCard({ station }: { station: Station }) {
     setIsCalling(true);
     try {
         const ticketNumber = nextTicket.ticketNumber.split('-')[1];
-        const serviceDescription = getServiceDescriptionForSpeech(nextTicket.type);
+        const serviceDescription = nextTicket.type === 'certificate' ? 'certificate claiming' : nextTicket.type;
         const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${station.name}.`;
         const { media, error } = await textToSpeech(textToSay);
 
@@ -67,6 +61,7 @@ export function StationControlCard({ station }: { station: Station }) {
                     : "Could not generate audio. The queue will continue without audio.",
             });
         } else if (media) {
+            setPlayCount(1);
             setAudioUrl(media);
         }
     } catch (error: any) {
@@ -88,7 +83,7 @@ export function StationControlCard({ station }: { station: Station }) {
     setIsRecalling(true);
     try {
       const ticketNumber = ticket.ticketNumber.split('-')[1];
-      const serviceDescription = getServiceDescriptionForSpeech(ticket.type);
+      const serviceDescription = ticket.type === 'certificate' ? 'certificate claiming' : ticket.type;
       const textToSay = `Customer number ${ticketNumber}, for ${serviceDescription} go to ${station.name}.`;
       const { media, error } = await textToSpeech(textToSay);
 
@@ -104,6 +99,7 @@ export function StationControlCard({ station }: { station: Station }) {
             : 'Could not generate audio.',
         });
       } else if (media) {
+        setPlayCount(1);
         setAudioUrl(media);
       }
     } catch (error: any) {
@@ -120,9 +116,21 @@ export function StationControlCard({ station }: { station: Station }) {
 
   useEffect(() => {
     if (audioUrl && audioRef.current) {
-        audioRef.current.play().catch(e => console.error("Error playing audio:", e));
+        audioRef.current.play().catch(e => console.warn("Error playing audio:", e));
     }
   }, [audioUrl]);
+
+  const handleAudioEnded = () => {
+    if (playCount < 2) {
+      setPlayCount(prev => prev + 1);
+      if (audioRef.current) {
+        audioRef.current.play().catch(e => console.warn("Error re-playing audio:", e));
+      }
+    } else {
+      setAudioUrl(null);
+      setPlayCount(0);
+    }
+  };
 
 
   const completeTicket = () => {
@@ -205,7 +213,7 @@ export function StationControlCard({ station }: { station: Station }) {
           </>
         )}
       </CardFooter>
-      {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setAudioUrl(null)}/>}
+      {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={handleAudioEnded}/>}
     </Card>
   );
 }
