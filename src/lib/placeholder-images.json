@@ -3,51 +3,31 @@
     {
       "id": "ad-display-1",
       "type": "image",
-      "description": "Advertisement 1 - Image",
-      "imageUrl": "/carousel/ad-image-1.jpg",
-      "imageHint": "advertisement"
+      "description": "Advertisement 1 - Training Seminar",
+      "imageUrl": "https://images.unsplash.com/photo-1728933102332-a4f1a281a621?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx0cmFpbmluZyUyMHNlbWluYXJ8ZW58MHx8fHwxNzcxNDA4NTE2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "training seminar"
     },
     {
       "id": "ad-display-2",
       "type": "image",
-      "description": "Advertisement 2 - Image",
-      "imageUrl": "/carousel/ad-image-2.png",
-      "imageHint": "promo"
+      "description": "Advertisement 2 - Maritime School",
+      "imageUrl": "https://images.unsplash.com/photo-1655019185482-d6bf01d50d70?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYXJpdGltZSUyMHNjaG9vbHxlbnwwfHx8fDE3NzE0MDg1MTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "maritime school"
     },
     {
       "id": "ad-display-3",
-      "type": "video",
-      "description": "Advertisement 3 - Video with own sound",
-      "imageUrl": "/carousel/ad-video-1.mp4",
-      "imageHint": "sailing ship",
-      "useOwnAudio": true
+      "type": "image",
+      "description": "Advertisement 3 - Students Learning",
+      "imageUrl": "https://images.unsplash.com/photo-1610500796385-3ffc1ae2f046?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzdHVkZW50cyUyMGxlYXJuaW5nfGVufDB8fHx8MTc3MTMyMjU1OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "students learning"
     },
     {
       "id": "ad-display-4",
-      "type": "video",
-      "description": "Advertisement 4 - Muted video",
-      "imageUrl": "/carousel/ad-video-2.mp4",
-      "imageHint": "ocean waves",
-      "useOwnAudio": false
-    },
-    {
-      "id": "ad-display-5",
       "type": "image",
-      "description": "Sample Training Center Image",
-      "imageUrl": "https://images.unsplash.com/photo-1758270703878-de80505b6714?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx0cmFpbmluZyUyMHN0dWRlbnRzfGVufDB8fHx8MTc3MTQwNDIxNXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "training students"
+      "description": "Advertisement 4 - Ship at Sea",
+      "imageUrl": "https://images.unsplash.com/photo-1605638884895-1ef856cbe7b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzaGlwJTIwc2VhfGVufDB8fHx8MTc3MTQwODUxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ship sea"
     }
   ],
-  "backgroundMusic": [
-    {
-      "id": "music-1",
-      "description": "Uplifting Corporate Music",
-      "url": "/carousel/background-music-1.mp3"
-    },
-    {
-      "id": "music-2",
-      "description": "Calm Ambient Track",
-      "url": "/carousel/background-music-2.wav"
-    }
-  ]
+  "backgroundMusic": []
 }
