@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useEffect, useState } from 'react';
@@ -58,11 +59,38 @@ const queueReducer = (state: State, action: Action): State => {
       };
     }
     case 'UPDATE_STATION_STATUS': {
+      const { stationId, status } = action.payload;
+      const stationToUpdate = state.stations.find(s => s.id === stationId);
+      let updatedTickets = state.tickets;
+      let updatedStations = state.stations;
+
+      // If closing a station that is serving a ticket, return ticket to queue
+      if (status === 'closed' && stationToUpdate && stationToUpdate.currentTicketId) {
+        updatedTickets = state.tickets.map(ticket => {
+          if (ticket.id === stationToUpdate.currentTicketId) {
+            return {
+              ...ticket,
+              status: 'waiting',
+              servedBy: undefined,
+              calledAt: undefined,
+            };
+          }
+          return ticket;
+        });
+
+        updatedStations = state.stations.map((s) =>
+          s.id === stationId ? { ...s, status: status, currentTicketId: null } : s
+        );
+      } else {
+        updatedStations = state.stations.map((s) =>
+          s.id === stationId ? { ...s, status: status } : s
+        );
+      }
+      
       return {
         ...state,
-        stations: state.stations.map((s) =>
-          s.id === action.payload.stationId ? { ...s, status: action.payload.status } : s
-        ),
+        stations: updatedStations,
+        tickets: updatedTickets,
       };
     }
     case 'UPDATE_STATION_MODE': {
@@ -135,9 +163,28 @@ const queueReducer = (state: State, action: Action): State => {
       return { ...state, stations: [...state.stations, newStation] };
     }
     case 'REMOVE_STATION': {
+        const { stationId } = action.payload;
+        const stationToRemove = state.stations.find(s => s.id === stationId);
+        let updatedTickets = state.tickets;
+
+        if (stationToRemove && stationToRemove.currentTicketId) {
+            updatedTickets = state.tickets.map(ticket => {
+                if (ticket.id === stationToRemove.currentTicketId) {
+                    return { 
+                        ...ticket, 
+                        status: 'waiting', 
+                        servedBy: undefined, 
+                        calledAt: undefined 
+                    };
+                }
+                return ticket;
+            });
+        }
+
         return {
             ...state,
-            stations: state.stations.filter(s => s.id !== action.payload.stationId),
+            stations: state.stations.filter(s => s.id !== stationId),
+            tickets: updatedTickets,
         };
     }
     case 'HYDRATE_STATE':
