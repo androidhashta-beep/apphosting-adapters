@@ -4,7 +4,7 @@ import { useQueue } from "@/contexts/QueueProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket as TicketIcon, User, Award, Printer } from "lucide-react";
+import { Ticket as TicketIcon, User, Award } from "lucide-react";
 import type { TicketType, Ticket } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
@@ -14,6 +14,7 @@ export function KioskClient() {
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
+  const lastTicketCount = useRef(state.tickets.length);
 
   useEffect(() => {
     if (ticketToPrint) {
@@ -22,38 +23,27 @@ export function KioskClient() {
     }
   }, [ticketToPrint]);
 
+  useEffect(() => {
+    // If a new ticket was added
+    if (isHydrated && state.tickets.length > lastTicketCount.current) {
+        const newTicket = state.tickets[state.tickets.length - 1];
+        // Only trigger print if it was just created (e.g., within the last 5 seconds)
+        // to avoid re-printing on page reloads.
+        if (Date.now() - newTicket.createdAt < 5000) {
+             setTicketToPrint(newTicket);
+             toast({
+                title: "Printing Ticket...",
+                description: `Now printing ticket ${newTicket.ticketNumber}. Please take it from the printer.`,
+                duration: 5000,
+             });
+        }
+    }
+    lastTicketCount.current = state.tickets.length;
+  }, [state.tickets, isHydrated, toast]);
+
+
   const handleGetTicket = (type: TicketType) => {
-    const now = Date.now();
-    const isNewDay = state.lastTicketTimestamp
-        ? new Date(state.lastTicketTimestamp).toDateString() !== new Date(now).toDateString()
-        : true;
-
-    // Use all tickets for numbering, not just by type.
-    const ticketsForNumbering = isNewDay ? [] : state.tickets;
-    
-    // The new number is simply the next in sequence for the day.
-    const newNumber = ticketsForNumbering.length + 1;
-    const ticketNumber = `${newNumber}`;
-
-    const newTicket: Ticket = {
-        // ID can still be descriptive for debugging, but the user-facing number is simplified.
-        id: `${type}-${newNumber}-${now}`,
-        ticketNumber: ticketNumber,
-        type,
-        status: 'waiting',
-        createdAt: now,
-    };
-
-    dispatch({ type: "ADD_TICKET", payload: { ticket: newTicket } });
-    
-    // Immediately trigger the print dialog
-    setTicketToPrint(newTicket);
-
-    toast({
-      title: "Printing Ticket...",
-      description: `Now printing ticket ${newTicket.ticketNumber}. Please take it from the printer.`,
-      duration: 5000,
-    });
+    dispatch({ type: "ADD_TICKET", payload: { type } });
   };
 
   return (
