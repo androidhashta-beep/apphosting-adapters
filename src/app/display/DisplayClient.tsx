@@ -38,10 +38,10 @@ export function DisplayClient() {
   }
 
   return (
-    <div className="flex flex-col gap-6 h-full">
-      {/* Top Section: Queue List */}
-      <div>
-        <Card className="flex flex-col">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+      {/* Left Section: Queue List */}
+      <div className="lg:col-span-1 h-full">
+        <Card className="flex flex-col h-full">
           <CardHeader className="p-4 border-b">
             <div className="grid grid-cols-3 text-center font-bold text-muted-foreground uppercase">
               <div>Services</div>
@@ -51,7 +51,7 @@ export function DisplayClient() {
           </CardHeader>
           <CardContent className="p-4 flex-grow overflow-y-auto">
             <div className="flex flex-col gap-3">
-              {!isHydrated && [...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+              {!isHydrated && [...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
               {isHydrated && recentlyCalledTickets.map((ticket, index) => (
                 <div 
                   key={ticket.id} 
@@ -78,8 +78,8 @@ export function DisplayClient() {
         </Card>
       </div>
 
-      {/* Bottom Section: Ads and Info */}
-      <div className="flex flex-col gap-6 flex-grow min-h-0">
+      {/* Right Section: Ads and Info */}
+      <div className="lg:col-span-2 flex flex-col gap-6 min-h-0">
         <div className="flex-grow min-h-0">
             <AdCarousel />
         </div>
