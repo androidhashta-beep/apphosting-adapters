@@ -100,7 +100,7 @@ export function CarouselSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <h4 className="font-medium">Current Items</h4>
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 border rounded-lg p-2 bg-muted/20">
+            <div className="space-y-3 pr-2 border rounded-lg p-2 bg-muted/20">
                 {(PlaceHolderImages as ImagePlaceholder[]).length > 0 ? (PlaceHolderImages as ImagePlaceholder[]).map(item => {
                      const isVideo = item.type === 'video';
                      return (
@@ -147,7 +147,7 @@ export function CarouselSettings() {
                 <CardDescription>Manage music for the public display carousel.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="space-y-3 max-h-48 overflow-y-auto pr-2 border rounded-lg p-2 bg-muted/20">
+                <div className="space-y-3 pr-2 border rounded-lg p-2 bg-muted/20">
                     {BackgroundMusic.length > 0 ? BackgroundMusic.map(track => (
                         <div key={track.id} className="flex items-center gap-3 p-2 border rounded-md bg-card">
                             <Music className="h-5 w-5 text-muted-foreground flex-shrink-0" />
@@ -181,5 +181,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
