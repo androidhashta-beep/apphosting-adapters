@@ -15,9 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 
 const getServiceDescriptionForSpeech = (type: TicketType) => {
   switch (type) {
-    case 'counter':
-      return 'counter service';
-    case 'cashier':
+    case 'enrollment':
+      return 'enrollment';
+    case 'payment':
       return 'payment';
     case 'certificate':
       return 'certificate claiming';
@@ -66,7 +66,7 @@ export function StationControlCard({ station }: { station: Station }) {
         toast({
             variant: "destructive",
             title: "Audio Callout Failed",
-            description: "The text-to-speech service requires an internet connection.",
+            description: "Could not fetch AI suggestions. Please check your internet connection.",
         });
     } finally {
         dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
@@ -129,11 +129,11 @@ export function StationControlCard({ station }: { station: Station }) {
           <>
             {station.mode === 'all-in-one' ? (
               <>
-                <Button onClick={() => callNext('counter')} className="w-full" disabled={isClosed || isCalling}>
-                  {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Counter
+                <Button onClick={() => callNext('enrollment')} className="w-full" disabled={isClosed || isCalling}>
+                  {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Enrollment
                 </Button>
-                <Button onClick={() => callNext('cashier')} className="w-full" disabled={isClosed || isCalling} variant="secondary">
-                 {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Cashier
+                <Button onClick={() => callNext('payment')} className="w-full" disabled={isClosed || isCalling} variant="secondary">
+                 {isCalling ? <Loader2 className="animate-spin" /> : <Volume2 />} Call Payment
                 </Button>
                 <Button onClick={() => callNext('certificate')} className="w-full" disabled={isClosed || isCalling} variant="outline">
                  {isCalling ? <Loader2 className="animate-spin" /> : <Award />} Call Certificate

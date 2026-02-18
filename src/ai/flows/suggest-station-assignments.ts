@@ -11,31 +11,31 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SuggestStationAssignmentsInputSchema = z.object({
-  counterQueueLength: z
+  enrollmentQueueLength: z
     .number()
     .int()
     .min(0)
-    .describe('The current number of students waiting for counter services.'),
-  cashierQueueLength: z
+    .describe('The current number of students waiting for enrollment services.'),
+  paymentQueueLength: z
     .number()
     .int()
     .min(0)
-    .describe('The current number of students waiting for cashier services.'),
+    .describe('The current number of students waiting for payment services.'),
   certificateQueueLength: z
     .number()
     .int()
     .min(0)
     .describe('The current number of students waiting for certificate claiming.'),
-  availableCounters: z
+  availableEnrollmentStations: z
     .number()
     .int()
     .min(0)
-    .describe('The number of available staff/stations for counter services.'),
-  availableCashiers: z
+    .describe('The number of available staff/stations for enrollment services.'),
+  availablePaymentStations: z
     .number()
     .int()
     .min(0)
-    .describe('The number of available staff/stations for cashier services.'),
+    .describe('The number of available staff/stations for payment services.'),
   availableCertificateStations: z
     .number()
     .int()
@@ -53,14 +53,14 @@ const SuggestStationAssignmentsOutputSchema = z.object({
     .array(
       z.object({
         stationType: z
-          .enum(['Counter', 'Cashier', 'Combined', 'Certificate'])
+          .enum(['Enrollment', 'Payment', 'Combined', 'Certificate'])
           .describe(
-            "The type of station being suggested for assignment (e.g., 'Counter', 'Cashier', 'Combined', 'Certificate')."
+            "The type of station being suggested for assignment (e.g., 'Enrollment', 'Payment', 'Combined', 'Certificate')."
           ),
         assignment: z
-          .enum(['Regular', 'All-in-one', 'Closed', 'Cashier-only', 'Counter-only', 'Certificate-only'])
+          .enum(['Regular', 'All-in-one', 'Closed', 'Payment-only', 'Enrollment-only', 'Certificate-only'])
           .describe(
-            "The suggested assignment for the station (e.g., 'Regular', 'All-in-one', 'Closed'). 'All-in-one' means handling both counter and cashier services. 'Cashier-only' or 'Counter-only' is for a combined station that temporarily focuses on one type of service."
+            "The suggested assignment for the station (e.g., 'Regular', 'All-in-one', 'Closed'). 'All-in-one' means handling enrollment, payment, and certificate services. 'Payment-only' or 'Enrollment-only' is for a combined station that temporarily focuses on one type of service."
           ),
         reason: z
           .string()
@@ -92,18 +92,18 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert operations manager for a school's seafaring training center, specializing in optimizing student flow through queue management.
 
 Based on the current real-time queue lengths and available staff, suggest optimal station assignments to efficiently manage student flow and reduce waiting times. Consider options such as:
--   Designating specific counters as 'All-in-one' (handling counter, cashier, and certificate services).
+-   Designating specific counters as 'All-in-one' (handling enrollment, payment, and certificate services).
 -   Combining roles if appropriate.
 -   Closing stations if they are not needed.
 
 Current Queue Status:
--   Counter Queue Length: {{{counterQueueLength}}}
--   Cashier Queue Length: {{{cashierQueueLength}}}
+-   Enrollment Queue Length: {{{enrollmentQueueLength}}}
+-   Payment Queue Length: {{{paymentQueueLength}}}
 -   Certificate Queue Length: {{{certificateQueueLength}}}
 
 Available Staff/Stations:
--   Available Counters: {{{availableCounters}}}
--   Available Cashiers: {{{availableCashiers}}}
+-   Available Enrollment Stations: {{{availableEnrollmentStations}}}
+-   Available Payment Stations: {{{availablePaymentStations}}}
 -   Available Certificate Stations: {{{availableCertificateStations}}}
 
 Provide actionable suggestions, including a reason and specific actions to take. Ensure the output strictly adheres to the provided JSON schema.

@@ -21,16 +21,16 @@ export function AdminClient() {
   const [suggestion, setSuggestion] = useState<SuggestStationAssignmentsOutput | null>(null);
 
   const [newStationName, setNewStationName] = useState("");
-  const [newStationType, setNewStationType] = useState<StationType>("counter");
+  const [newStationType, setNewStationType] = useState<StationType>("enrollment");
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
   const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
   const { toast } = useToast();
 
-  const counterQueueLength = getWaitingTickets('counter').length;
-  const cashierQueueLength = getWaitingTickets('cashier').length;
+  const enrollmentQueueLength = getWaitingTickets('enrollment').length;
+  const paymentQueueLength = getWaitingTickets('payment').length;
   const certificateQueueLength = getWaitingTickets('certificate').length;
-  const availableCounters = state.stations.filter(s => s.type === 'counter' && s.status === 'open').length;
-  const availableCashiers = state.stations.filter(s => s.type === 'cashier' && s.status === 'open').length;
+  const availableEnrollmentStations = state.stations.filter(s => s.type === 'enrollment' && s.status === 'open').length;
+  const availablePaymentStations = state.stations.filter(s => s.type === 'payment' && s.status === 'open').length;
   const availableCertificateStations = state.stations.filter(s => s.type === 'certificate' && s.status === 'open').length;
 
   const handleGetSuggestion = async () => {
@@ -38,11 +38,11 @@ export function AdminClient() {
     setSuggestion(null);
     try {
       const result = await suggestStationAssignments({
-        counterQueueLength,
-        cashierQueueLength,
+        enrollmentQueueLength,
+        paymentQueueLength,
         certificateQueueLength,
-        availableCounters,
-        availableCashiers,
+        availableEnrollmentStations,
+        availablePaymentStations,
         availableCertificateStations,
       });
       setSuggestion(result);
@@ -67,7 +67,7 @@ export function AdminClient() {
     if (!newStationName.trim()) return;
     dispatch({ type: 'ADD_STATION', payload: { name: newStationName, type: newStationType } });
     setNewStationName('');
-    setNewStationType('counter');
+    setNewStationType('enrollment');
   };
 
   const handleDeleteStation = () => {
@@ -98,11 +98,11 @@ export function AdminClient() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 text-center">
-                <div><p className="font-bold text-2xl">{counterQueueLength}</p><p className="text-sm text-muted-foreground">Counter Queue</p></div>
-                <div><p className="font-bold text-2xl">{cashierQueueLength}</p><p className="text-sm text-muted-foreground">Cashier Queue</p></div>
+                <div><p className="font-bold text-2xl">{enrollmentQueueLength}</p><p className="text-sm text-muted-foreground">Enrollment Queue</p></div>
+                <div><p className="font-bold text-2xl">{paymentQueueLength}</p><p className="text-sm text-muted-foreground">Payment Queue</p></div>
                 <div><p className="font-bold text-2xl">{certificateQueueLength}</p><p className="text-sm text-muted-foreground">Certificate Queue</p></div>
-                <div><p className="font-bold text-2xl">{availableCounters}</p><p className="text-sm text-muted-foreground">Open Counters</p></div>
-                <div><p className="font-bold text-2xl">{availableCashiers}</p><p className="text-sm text-muted-foreground">Open Cashiers</p></div>
+                <div><p className="font-bold text-2xl">{availableEnrollmentStations}</p><p className="text-sm text-muted-foreground">Open Enrollment</p></div>
+                <div><p className="font-bold text-2xl">{availablePaymentStations}</p><p className="text-sm text-muted-foreground">Open Payment</p></div>
                 <div><p className="font-bold text-2xl">{availableCertificateStations}</p><p className="text-sm text-muted-foreground">Open Certificate</p></div>
               </div>
               <Button onClick={handleGetSuggestion} disabled={loading} className="w-full md:w-auto">
@@ -161,8 +161,8 @@ export function AdminClient() {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="counter">Counter</SelectItem>
-                      <SelectItem value="cashier">Cashier</SelectItem>
+                      <SelectItem value="enrollment">Enrollment</SelectItem>
+                      <SelectItem value="payment">Payment</SelectItem>
                       <SelectItem value="certificate">Certificate</SelectItem>
                     </SelectContent>
                   </Select>

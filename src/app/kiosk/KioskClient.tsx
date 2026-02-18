@@ -30,7 +30,7 @@ export function KioskClient() {
 
     const ticketsForNumbering = isNewDay ? [] : state.tickets;
     
-    const prefix = type === 'counter' ? 'C' : type === 'cashier' ? 'S' : 'R';
+    const prefix = type === 'enrollment' ? 'E' : type === 'payment' ? 'P' : 'R';
     const lastTicketOfType = ticketsForNumbering
       .filter((t) => t.type === type)
       .sort((a, b) => b.createdAt - a.createdAt)[0];
@@ -74,21 +74,21 @@ export function KioskClient() {
               <Button
                 variant="default"
                 className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 whitespace-normal py-4"
-                onClick={() => handleGetTicket("counter")}
+                onClick={() => handleGetTicket("enrollment")}
               >
                 <User className="h-8 w-8" />
-                <span>Counter Service</span>
+                <span>Enrollment</span>
                 <p className="text-sm font-normal normal-case text-primary-foreground/80 mt-1 px-2">
-                  For inquiries, enrollment, and payments if cashier is unavailable.
+                  For inquiries, enrollment, and other related services.
                 </p>
               </Button>
               <Button
                 variant="secondary"
                 className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg bg-accent text-accent-foreground hover:bg-accent/90 transform transition-transform hover:scale-105 whitespace-normal py-4"
-                onClick={() => handleGetTicket("cashier")}
+                onClick={() => handleGetTicket("payment")}
               >
                 <TicketIcon className="h-8 w-8" />
-                <span>Cashier Service</span>
+                <span>Payment</span>
                 <p className="text-sm font-normal normal-case text-accent-foreground/80 mt-1 px-2">
                   Exclusive for payment services only.
                 </p>

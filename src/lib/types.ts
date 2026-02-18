@@ -1,4 +1,4 @@
-export type TicketType = 'counter' | 'cashier' | 'certificate';
+export type TicketType = 'enrollment' | 'payment' | 'certificate';
 
 export type TicketStatus = 'waiting' | 'serving' | 'served' | 'skipped';
 
@@ -15,7 +15,7 @@ export type Ticket = {
 
 export type StationStatus = 'open' | 'closed';
 export type StationMode = 'regular' | 'all-in-one';
-export type StationType = 'counter' | 'cashier' | 'certificate';
+export type StationType = 'enrollment' | 'payment' | 'certificate';
 
 export type Station = {
   id: string;

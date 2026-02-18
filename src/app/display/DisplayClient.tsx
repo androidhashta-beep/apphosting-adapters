@@ -29,8 +29,8 @@ export function DisplayClient() {
   
   const getServiceLabel = (type: string) => {
       switch(type) {
-          case 'counter': return 'COUNTER';
-          case 'cashier': return 'PAYMENT';
+          case 'enrollment': return 'ENROLLMENT';
+          case 'payment': return 'PAYMENT';
           case 'certificate': return 'CERTIFICATE';
           default: return 'SERVICE';
       }

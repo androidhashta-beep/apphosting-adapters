@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function StaffClient() {
   const { state, getWaitingTickets } = useQueue();
 
-  const counterWaitingCount = getWaitingTickets('counter').length;
-  const cashierWaitingCount = getWaitingTickets('cashier').length;
+  const enrollmentWaitingCount = getWaitingTickets('enrollment').length;
+  const paymentWaitingCount = getWaitingTickets('payment').length;
   const certificateWaitingCount = getWaitingTickets('certificate').length;
   
   return (
@@ -16,19 +16,19 @@ export function StaffClient() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Counter Queue</CardTitle>
+            <CardTitle>Enrollment Queue</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">{counterWaitingCount}</p>
+            <p className="text-4xl font-bold">{enrollmentWaitingCount}</p>
             <p className="text-muted-foreground">students waiting</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Cashier Queue</CardTitle>
+            <CardTitle>Payment Queue</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-4xl font-bold">{cashierWaitingCount}</p>
+            <p className="text-4xl font-bold">{paymentWaitingCount}</p>
             <p className="text-muted-foreground">students waiting</p>
           </CardContent>
         </Card>
