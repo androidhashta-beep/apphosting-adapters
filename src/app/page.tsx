@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,11 +41,18 @@ const roles = [
 export default function RoleSelectorPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
+    const hasDecidedToShowSelector = useRef(false);
 
     useEffect(() => {
+        if (hasDecidedToShowSelector.current) {
+            setIsLoading(false);
+            return;
+        }
+
         const shouldShowSelector = sessionStorage.getItem('force-role-selection');
         if (shouldShowSelector) {
             sessionStorage.removeItem('force-role-selection');
+            hasDecidedToShowSelector.current = true;
             setIsLoading(false); // Show the selector
             return;
         }
