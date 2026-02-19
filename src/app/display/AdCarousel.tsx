@@ -16,14 +16,18 @@ import {
 } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImagePlaceholder, PlaceHolderImages, BackgroundMusic } from "@/lib/placeholder-images";
+import { ImagePlaceholder, PlaceHolderImages, BackgroundMusic, type AudioTrack } from "@/lib/placeholder-images";
 
 export function AdCarousel() {
   const adItems = PlaceHolderImages;
   const canAutoplay = adItems.length > 1;
 
   const [api, setApi] = React.useState<CarouselApi>();
+
+  // State for shuffled music playlist and current track index
+  const [shuffledMusic, setShuffledMusic] = React.useState<AudioTrack[]>([]);
   const [bgMusicIndex, setBgMusicIndex] = React.useState(0);
+
   const [isBgMuted, setIsBgMuted] = React.useState(false);
   const [isPlaying, setIsPlaying] = React.useState(true);
   const bgAudioRef = React.useRef<HTMLAudioElement>(null);
@@ -32,15 +36,35 @@ export function AdCarousel() {
     Autoplay({ delay: 12000, stopOnInteraction: true, stopOnMouseEnter: true })
   );
 
-  const handleAudioForSlide = React.useCallback((currentApi: EmblaCarouselType) => {
-    if (!currentApi || !bgAudioRef.current) return;
+  // Memoized shuffle function
+  const shuffleArray = React.useCallback((array: AudioTrack[]) => {
+    if (!array || array.length === 0) return [];
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  }, []);
 
-    const selectedIndex = currentApi.selectedScrollSnap();
-    const selectedItem = adItems[selectedIndex];
+  // Shuffle the music list on initial load
+  React.useEffect(() => {
+    setShuffledMusic(shuffleArray(BackgroundMusic));
+  }, [shuffleArray]);
 
-    if (selectedItem?.type === 'video' && selectedItem.useOwnAudio) {
-      bgAudioRef.current.pause();
-    } else {
+  const handleAudioForSlide = React.useCallback((currentApi?: EmblaCarouselType) => {
+    if (!bgAudioRef.current) return;
+
+    let shouldPlayBgMusic = true;
+    if (currentApi) {
+        const selectedIndex = currentApi.selectedScrollSnap();
+        const selectedItem = adItems[selectedIndex];
+        if (selectedItem?.type === 'video' && selectedItem.useOwnAudio) {
+            shouldPlayBgMusic = false;
+        }
+    }
+
+    if (shouldPlayBgMusic) {
       if (bgAudioRef.current.paused && !bgAudioRef.current.muted) {
         const playPromise = bgAudioRef.current.play();
         if (playPromise !== undefined) {
@@ -49,6 +73,8 @@ export function AdCarousel() {
             });
         }
       }
+    } else {
+      bgAudioRef.current.pause();
     }
   }, [adItems]);
 
@@ -78,17 +104,26 @@ export function AdCarousel() {
   }, [api, handleAudioForSlide]);
 
   const handleBgMusicEnded = () => {
-    if (BackgroundMusic.length > 0) {
-      setBgMusicIndex(prevIndex => (prevIndex + 1) % BackgroundMusic.length);
-    }
+    if (BackgroundMusic.length <= 1) return; // Don't shuffle if there's only one song
+
+    setBgMusicIndex(prevIndex => {
+      const nextIndex = prevIndex + 1;
+      // If we've played all songs in the shuffled list, reshuffle and start over
+      if (nextIndex >= shuffledMusic.length) {
+        setShuffledMusic(shuffleArray(BackgroundMusic));
+        return 0;
+      }
+      return nextIndex;
+    });
   };
 
-  // Start playing audio when the component mounts or the track changes
+  // When the track changes, try to play the new one
   React.useEffect(() => {
-    if (bgAudioRef.current && api) {
+    if (bgAudioRef.current) {
+        bgAudioRef.current.load();
         handleAudioForSlide(api);
     }
-  }, [bgMusicIndex, api, handleAudioForSlide]);
+  }, [bgMusicIndex, shuffledMusic, api, handleAudioForSlide]);
 
   React.useEffect(() => {
     if (bgAudioRef.current) {
@@ -120,10 +155,12 @@ export function AdCarousel() {
       setIsBgMuted(newMuted);
 
       if (!newMuted && bgAudioRef.current.paused) {
-          bgAudioRef.current.play().catch(e => console.warn("Failed to play on unmute", e));
+          handleAudioForSlide(api);
       }
     }
   };
+  
+  const currentTrack = shuffledMusic[bgMusicIndex];
 
   return (
     <div className="relative w-full h-full">
@@ -197,10 +234,10 @@ export function AdCarousel() {
             </Button>
         )}
       </div>
-      {BackgroundMusic.length > 0 && (
+      {BackgroundMusic.length > 0 && currentTrack && (
           <audio
             ref={bgAudioRef}
-            src={BackgroundMusic[bgMusicIndex]?.url}
+            src={currentTrack.url}
             onEnded={handleBgMusicEnded}
             loop={BackgroundMusic.length === 1}
             onError={handleMediaError}
