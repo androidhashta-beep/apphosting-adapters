@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQueue } from "@/contexts/QueueProvider";
 import type { StationMode, StationType, StationStatus, State } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 
 
 export function AdminClient() {
+  const router = useRouter();
   const { state, dispatch, isHydrated } = useQueue();
   const { toast } = useToast();
 
@@ -33,6 +34,11 @@ export function AdminClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isRestoreBackupConfirmOpen, setIsRestoreBackupConfirmOpen] = useState(false);
   const [pendingState, setPendingState] = useState<State | null>(null);
+
+  const handleGoHome = () => {
+    localStorage.removeItem('app-instance-role');
+    router.push('/');
+  };
 
   const handleModeChange = (stationId: string, mode: StationMode) => {
     dispatch({ type: 'UPDATE_STATION_MODE', payload: { stationId, mode } });
@@ -146,10 +152,10 @@ export function AdminClient() {
        <header className="border-b">
           <div className="container relative mx-auto flex h-16 items-center justify-between px-4 md:px-6">
               <div className="flex items-center gap-4">
-                  <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <button onClick={handleGoHome} className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                       <ArrowLeft className="h-4 w-4" />
                       Home
-                  </Link>
+                  </button>
               </div>
               <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
               <div className="flex items-center gap-4">
