@@ -48,7 +48,6 @@ export function StationControlCard({ station }: { station: Station }) {
       };
 
       utterance.onerror = (event) => {
-          console.error("SpeechSynthesis Error", event);
           toast({
               variant: "destructive",
               title: "Audio Callout Failed",
@@ -59,7 +58,6 @@ export function StationControlCard({ station }: { station: Station }) {
 
       window.speechSynthesis.speak(utterance);
     } catch (error) {
-        console.error("SpeechSynthesis Error", error);
         toast({
             variant: "destructive",
             title: "Audio Callout Failed",
