@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -13,43 +12,30 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
-export function StationControlCard({ station }: { station: Station }) {
+// Use a more specific prop name to avoid confusion with the live state object.
+export function StationControlCard({ station: initialStation }: { station: Station }) {
   const { state, dispatch } = useQueue();
-
-  const currentStationState = state.stations.find(s => s.id === station.id);
-  const ticket = state.tickets.find(t => t.id === currentStationState?.currentTicketId);
-  
-  const isClosed = station.status === 'closed';
-
   const { toast } = useToast();
 
-  const announce = (ticketNumber: string, stationName: string, serviceType: TicketType) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-        console.warn("Speech synthesis not supported.");
-        return;
-    }
+  // Always use the station object from the central state for dynamic data.
+  // This ensures the component re-renders with the latest status, mode, etc.
+  const station = state.stations.find(s => s.id === initialStation.id) || initialStation;
+  
+  const ticket = state.tickets.find(t => t.id === station.currentTicketId);
+  const isClosed = station.status === 'closed';
 
-    const text = `Customer number ${ticketNumber} for ${serviceType}, please go to ${stationName}.`;
+  const announce = (ticketNumber: string, stationName: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    const text = `Ticket number ${ticketNumber}, please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
-    
-    utterance.onerror = () => {
-        toast({
-            variant: "destructive",
-            title: "Audio Callout Failed",
-            description: "The text-to-speech engine could not play the announcement.",
-        });
-    };
-
-    window.speechSynthesis.cancel(); // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   };
   
-  // This effect will run when a new ticket is assigned to this station,
-  // triggering the initial announcement.
+  // This effect triggers the announcement when a new ticket is assigned to this station.
   useEffect(() => {
-      // Announce only if there's a new ticket that was just called (within the last 3 seconds)
       if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 3000)) {
-          announce(ticket.ticketNumber, station.name, ticket.type);
+          announce(ticket.ticketNumber, station.name);
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket?.id]);
@@ -61,40 +47,36 @@ export function StationControlCard({ station }: { station: Station }) {
 
   const callAgain = () => {
     if (ticket) {
-      announce(ticket.ticketNumber, station.name, ticket.type);
+      announce(ticket.ticketNumber, station.name);
     }
   };
 
   const completeTicket = () => {
-    dispatch({ type: 'COMPLETE_TICKET', payload: { stationId: station.id } });
+    if (ticket) {
+      dispatch({ type: 'COMPLETE_TICKET', payload: { stationId: station.id } });
+    }
   };
 
   const skipTicket = () => {
-    dispatch({ type: 'SKIP_TICKET', payload: { stationId: station.id } });
+    if (ticket) {
+      dispatch({ type: 'SKIP_TICKET', payload: { stationId: station.id } });
+    }
+  };
+
+  const callNext = (ticketType: TicketType) => {
+    // This is the single source of truth for calling the next ticket.
+    // The button's disabled state prevents this from being called with an empty queue.
+    dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
   };
 
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
     const waitingCount = state.tickets.filter(t => t.type === type && t.status === 'waiting').length;
     const isQueueEmpty = waitingCount === 0;
 
-    const callNext = (ticketType: TicketType) => {
-      dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
-    };
-
-    const handleClick = () => {
-        if (isQueueEmpty) {
-            toast({
-                variant: "destructive",
-                title: "No Tickets Waiting",
-                description: `There are no students in the ${type} queue.`,
-            });
-            return;
-        }
-        callNext(type);
-    }
-
+    // The button is disabled if the station is closed or the specific queue is empty.
+    // The onClick now directly calls `callNext`.
     return (
-        <Button onClick={handleClick} className="w-full justify-between" disabled={isClosed || isQueueEmpty}>
+        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isClosed || isQueueEmpty}>
             <div className="flex items-center gap-2">
                 {icon}
                 <span>{label}</span>
