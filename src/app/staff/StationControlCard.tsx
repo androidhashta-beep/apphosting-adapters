@@ -48,7 +48,7 @@ export function StationControlCard({ station }: { station: Station }) {
     try {
         const ticketNumber = nextTicket.ticketNumber;
         const destination = station.name;
-        const textToSay = `Ticket number ${ticketNumber}, please go to ${destination}.`;
+        const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
         const { media, error } = await textToSpeech(textToSay);
 
         if (error) {
@@ -85,7 +85,7 @@ export function StationControlCard({ station }: { station: Station }) {
     try {
       const ticketNumber = ticket.ticketNumber;
       const destination = station.name;
-      const textToSay = `Ticket number ${ticketNumber}, please go to ${destination}.`;
+      const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
       const { media, error } = await textToSpeech(textToSay);
 
       if (error) {
