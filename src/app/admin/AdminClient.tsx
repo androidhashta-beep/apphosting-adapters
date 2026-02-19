@@ -11,14 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CarouselSettings } from "./CarouselSettings";
 import { useToast } from "@/hooks/use-toast";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Icon, iconList } from "@/lib/icons";
-import { useCollection, useDoc, useFirebase, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase";
+import { useCollection, useDoc, useFirebase, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 
 export function AdminClient() {
@@ -26,10 +25,10 @@ export function AdminClient() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
 
-  const settingsRef = useMemo(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
-  const stationsCollection = useMemo(() => (firestore ? collection(firestore, "stations") : null), [firestore]);
+  const stationsCollection = useMemoFirebase(() => (firestore ? collection(firestore, "stations") : null), [firestore]);
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsCollection);
   
   const [newStationName, setNewStationName] = useState("");
@@ -255,7 +254,6 @@ export function AdminClient() {
                       </form>
                     </CardContent>
                 </Card>
-                <CarouselSettings />
             </div>
             <Card>
                 <CardHeader>

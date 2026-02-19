@@ -7,9 +7,26 @@ export type Service = {
   icon: string;
 };
 
+export type ImagePlaceholder = {
+  id: string;
+  description: string;
+  imageUrl: string;
+  imageHint: string;
+  type: 'image' | 'video';
+  useOwnAudio?: boolean;
+};
+
+export type AudioTrack = {
+    id: string;
+    description: string;
+    url: string;
+};
+
 export type Settings = {
   companyName: string;
   services: Service[];
+  placeholderImages: ImagePlaceholder[];
+  backgroundMusic: AudioTrack[];
 };
 
 export type TicketType = string;

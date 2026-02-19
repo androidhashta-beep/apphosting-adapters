@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import { useCollection, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import type { Ticket, Station, Settings } from "@/lib/types";
-import { collection, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, doc } from "firebase/firestore";
 
 export function DisplayClient() {
   const { firestore } = useFirebase();
@@ -50,6 +50,9 @@ export function DisplayClient() {
   }
   
   const isHydrated = !isLoadingSettings && !isLoadingStations && !isLoadingTickets;
+
+  const adItems = settings?.placeholderImages || [];
+  const backgroundMusic = settings?.backgroundMusic || [];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
@@ -94,7 +97,7 @@ export function DisplayClient() {
 
       <div className="lg:col-span-2 flex flex-col gap-6 min-h-0">
         <div className="flex-grow min-h-0">
-            <AdCarousel />
+            <AdCarousel adItems={adItems} backgroundMusic={backgroundMusic} />
         </div>
         <Card>
             <CardContent className="p-4 flex justify-between items-center">

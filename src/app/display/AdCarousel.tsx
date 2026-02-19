@@ -16,10 +16,9 @@ import {
 } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImagePlaceholder, PlaceHolderImages, BackgroundMusic, type AudioTrack } from "@/lib/placeholder-images";
+import type { ImagePlaceholder, AudioTrack } from "@/lib/types";
 
-export function AdCarousel() {
-  const adItems = PlaceHolderImages;
+export function AdCarousel({ adItems = [], backgroundMusic = [] }: { adItems: ImagePlaceholder[], backgroundMusic: AudioTrack[] }) {
   const canAutoplay = adItems.length > 1;
 
   const [api, setApi] = React.useState<CarouselApi>();
@@ -49,8 +48,8 @@ export function AdCarousel() {
 
   // Shuffle the music list on initial load
   React.useEffect(() => {
-    setShuffledMusic(shuffleArray(BackgroundMusic));
-  }, [shuffleArray]);
+    setShuffledMusic(shuffleArray(backgroundMusic));
+  }, [shuffleArray, backgroundMusic]);
 
   const handleAudioForSlide = React.useCallback((currentApi?: EmblaCarouselType) => {
     if (!bgAudioRef.current) return;
@@ -104,13 +103,13 @@ export function AdCarousel() {
   }, [api, handleAudioForSlide]);
 
   const handleBgMusicEnded = () => {
-    if (BackgroundMusic.length <= 1) return; // Don't shuffle if there's only one song
+    if (backgroundMusic.length <= 1) return; // Don't shuffle if there's only one song
 
     setBgMusicIndex(prevIndex => {
       const nextIndex = prevIndex + 1;
       // If we've played all songs in the shuffled list, reshuffle and start over
       if (nextIndex >= shuffledMusic.length) {
-        setShuffledMusic(shuffleArray(BackgroundMusic));
+        setShuffledMusic(shuffleArray(backgroundMusic));
         return 0;
       }
       return nextIndex;
@@ -221,7 +220,7 @@ export function AdCarousel() {
         <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10" />
       </Carousel>
       <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
-        {BackgroundMusic.length > 0 && (
+        {backgroundMusic.length > 0 && (
             <Button variant="outline" size="icon" onClick={toggleMute} className="bg-background/50 hover:bg-background/80">
                 {isBgMuted ? <VolumeX /> : <Volume2 />}
                 <span className="sr-only">Toggle Background Music</span>
@@ -234,12 +233,12 @@ export function AdCarousel() {
             </Button>
         )}
       </div>
-      {BackgroundMusic.length > 0 && currentTrack && (
+      {backgroundMusic.length > 0 && currentTrack && (
           <audio
             ref={bgAudioRef}
             src={currentTrack.url}
             onEnded={handleBgMusicEnded}
-            loop={BackgroundMusic.length === 1}
+            loop={backgroundMusic.length === 1}
             onError={handleMediaError}
             />
       )}

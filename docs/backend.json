@@ -24,6 +24,61 @@
         "icon"
       ]
     },
+    "ImagePlaceholder": {
+      "title": "ImagePlaceholder",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string"
+        },
+        "imageHint": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "image",
+            "video"
+          ]
+        },
+        "useOwnAudio": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "imageUrl",
+        "imageHint",
+        "type"
+      ]
+    },
+    "AudioTrack": {
+      "title": "AudioTrack",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "url"
+      ]
+    },
     "Settings": {
       "title": "Settings",
       "type": "object",
@@ -35,6 +90,18 @@
           "type": "array",
           "items": {
             "$ref": "#/backend/entities/Service"
+          }
+        },
+        "placeholderImages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/backend/entities/ImagePlaceholder"
+          }
+        },
+        "backgroundMusic": {
+          "type": "array",
+          "items": {
+            "$ref": "#/backend/entities/AudioTrack"
           }
         }
       }
