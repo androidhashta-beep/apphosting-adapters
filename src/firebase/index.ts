@@ -3,64 +3,41 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
-  if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
-    try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Only warn in production because it's normal to use the firebaseConfig to initialize
-      // during development
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
-    }
-
-    return getSdks(firebaseApp);
-  }
-
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
-}
-
-// Flag to ensure emulators are connected only once.
+// Flag to ensure emulators are connected only once. This is to prevent errors during hot-reloading.
 let emulatorsConnected = false;
 
-export function getSdks(firebaseApp: FirebaseApp) {
-  const auth = getAuth(firebaseApp);
-  const firestore = getFirestore(firebaseApp);
+export function initializeFirebase() {
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
 
-  // If the emulator host is set, connect to the emulators.
-  // This is used for local, offline development.
+  // This logic ensures we're connecting to the emulators for local/offline development.
+  // The NEXT_PUBLIC_EMULATOR_HOST should be set in a .env file (e.g., to 127.0.0.1)
   const host = process.env.NEXT_PUBLIC_EMULATOR_HOST;
 
   if (host && !emulatorsConnected) {
-    const firestorePort = parseInt(process.env.NEXT_PUBLIC_FIRESTORE_PORT || '8080', 10);
-    const authPort = parseInt(process.env.NEXT_PUBLIC_AUTH_PORT || '9099', 10);
-
-    console.log(`[Firebase] Connecting to emulators on ${host}:${firestorePort}`);
-    
-    connectFirestoreEmulator(firestore, host, firestorePort);
-    connectAuthEmulator(auth, `http://${host}:${authPort}`);
-    
-    emulatorsConnected = true;
+    console.log(`[Firebase] Connecting to emulators on ${host}`);
+    try {
+      connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+      connectFirestoreEmulator(firestore, host, 8080);
+      emulatorsConnected = true;
+    } catch (e) {
+      console.error('[Firebase] Error connecting to emulators:', e);
+    }
+  } else if (!emulatorsConnected) {
+    console.warn('[Firebase] App is connecting to LIVE services. For offline mode, ensure NEXT_PUBLIC_EMULATOR_HOST is set in your .env file and restart the development server.');
   }
 
   return {
-    firebaseApp,
+    firebaseApp: app,
     auth,
-    firestore
+    firestore,
   };
 }
+
 
 export * from './provider';
 export * from './client-provider';
