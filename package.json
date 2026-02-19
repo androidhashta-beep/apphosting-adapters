@@ -1,15 +1,21 @@
 {
-  "name": "nextn",
-  "version": "0.1.0",
+  "name": "nextn-desktop",
+  "version": "1.0.0",
   "private": true,
+  "description": "Smart Queueing System Desktop App",
+  "author": "Renaissance Training Center Inc.",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "next dev --turbopack",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "NODE_ENV=production next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "electron:dev": "concurrently \"npm:dev\" \"wait-on http://localhost:3000 && electron-forge start\"",
+    "electron:package": "npm run build && electron-forge package",
+    "electron:make": "npm run build && electron-forge make"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.28.0",
@@ -41,6 +47,7 @@
     "dotenv": "^16.5.0",
     "embla-carousel-autoplay": "^8.1.7",
     "embla-carousel-react": "^8.6.0",
+    "electron-is-dev": "^3.0.1",
     "firebase": "^11.9.1",
     "genkit": "^1.28.0",
     "lucide-react": "^0.475.0",
@@ -59,13 +66,21 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-deb": "^7.4.0",
+    "@electron-forge/maker-rpm": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
     "@types/node": "^20",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
     "@types/wav": "^1.0.3",
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.2",
     "genkit-cli": "^1.28.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wait-on": "^7.2.0"
   }
 }
