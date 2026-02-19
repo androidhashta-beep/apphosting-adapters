@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -7,6 +6,7 @@ import { AdCarousel } from "./AdCarousel";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 export function DisplayClient() {
   const { state, isHydrated } = useQueue();
@@ -59,8 +59,7 @@ export function DisplayClient() {
                   className={cn(
                     "grid grid-cols-3 items-center text-center p-3 rounded-lg text-2xl font-bold transition-all",
                     {
-                      "bg-destructive text-destructive-foreground": ticket.status === 'serving',
-                      "animate-pulse": ticket.status === 'serving',
+                      "bg-destructive text-destructive-foreground animate-pulse": ticket.status === 'serving',
                       "bg-card border border-gold": ticket.status === 'served',
                       "bg-muted text-muted-foreground opacity-60 line-through": ticket.status === 'skipped',
                     }
@@ -89,9 +88,12 @@ export function DisplayClient() {
         <Card>
             <CardContent className="p-4 flex justify-between items-center">
                 <p className="font-semibold text-muted-foreground">{currentTime?.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                <p className="text-2xl font-bold font-mono text-foreground">
-                    {currentTime?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
-                </p>
+                <div className="flex items-center gap-4">
+                  <p className="text-2xl font-bold font-mono text-foreground">
+                      {currentTime?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                  </p>
+                  <ThemeSwitcher />
+                </div>
             </CardContent>
         </Card>
       </div>
