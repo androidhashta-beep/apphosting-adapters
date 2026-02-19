@@ -19,15 +19,65 @@ export function StationControlCard({ station }: { station: Station }) {
   const isClosed = station.status === 'closed';
 
   const [isRecalling, setIsRecalling] = useState(false);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const { toast } = useToast();
 
-  const playAnnouncement = (text: string) => {
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      if (availableVoices.length > 0) {
+        setVoices(availableVoices);
+      }
+    };
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      loadVoices();
+    }
+
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, []);
+
+  const selectVoice = (serviceType: TicketType, allVoices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined => {
+    if (allVoices.length === 0) return undefined;
+
+    let selectedVoice: SpeechSynthesisVoice | undefined;
+
+    if (serviceType === 'enrollment') {
+        // Prefer female voices for registrar
+        selectedVoice = allVoices.find(v => v.gender === 'female') || allVoices.find(v => v.name.toLowerCase().includes('female'));
+    } else {
+        // Prefer male voices for cashier and certificate
+        selectedVoice = allVoices.find(v => v.gender === 'male') || allVoices.find(v => v.name.toLowerCase().includes('male'));
+    }
+    
+    // Fallback if a gender-specific voice wasn't found
+    if (!selectedVoice) {
+        if (serviceType !== 'enrollment') {
+          // For male, try any non-female voice as a fallback
+          selectedVoice = allVoices.find(v => v.gender !== 'female' && !v.name.toLowerCase().includes('female'));
+        }
+        // If still no voice, or for enrollment, just pick the default system voice
+        if (!selectedVoice) {
+          selectedVoice = allVoices[0];
+        }
+    }
+    return selectedVoice;
+  };
+
+
+  const playAnnouncement = (text: string, serviceType: TicketType, onEnd?: () => void) => {
     if (!('speechSynthesis' in window)) {
       toast({
         variant: "destructive",
         title: "Audio Callout Not Supported",
         description: "Your browser does not support speech synthesis.",
       });
+      onEnd?.();
       return;
     }
 
@@ -35,6 +85,11 @@ export function StationControlCard({ station }: { station: Station }) {
 
     try {
       const utterance = new SpeechSynthesisUtterance(text);
+      utterance.voice = selectVoice(serviceType, voices);
+      
+      utterance.onend = () => {
+        onEnd?.();
+      };
       
       utterance.onerror = () => {
           toast({
@@ -42,6 +97,7 @@ export function StationControlCard({ station }: { station: Station }) {
               title: "Audio Callout Failed",
               description: "An error occurred during speech synthesis.",
           });
+          onEnd?.();
       };
 
       window.speechSynthesis.speak(utterance);
@@ -51,6 +107,7 @@ export function StationControlCard({ station }: { station: Station }) {
             title: "Audio Callout Failed",
             description: "Could not initiate speech synthesis.",
         });
+        onEnd?.();
     }
   };
 
@@ -71,16 +128,14 @@ export function StationControlCard({ station }: { station: Station }) {
       return;
     }
       
-    // Dispatch the action immediately to update the state.
     dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
 
-    // The UI will update, and then we play the announcement.
     const ticketNumber = nextTicket.ticketNumber;
     const destination = station.name;
     const serviceType = nextTicket.type;
     const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
 
-    playAnnouncement(textToSay);
+    playAnnouncement(textToSay, serviceType);
   };
 
   const handleCallAgain = () => {
@@ -93,41 +148,12 @@ export function StationControlCard({ station }: { station: Station }) {
     const serviceType = ticket.type;
     const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
     
-    if (!('speechSynthesis' in window)) {
-      toast({
-        variant: "destructive",
-        title: "Audio Callout Not Supported",
-      });
+    playAnnouncement(textToSay, serviceType, () => {
       setIsRecalling(false);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    try {
-      const utterance = new SpeechSynthesisUtterance(textToSay);
-      utterance.onend = () => {
-        setIsRecalling(false);
-      };
-      utterance.onerror = () => {
-        toast({
-          variant: "destructive",
-          title: "Audio Callout Failed",
-        });
-        setIsRecalling(false);
-      };
-      window.speechSynthesis.speak(utterance);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Audio Callout Failed",
-      });
-      setIsRecalling(false);
-    }
+    });
   };
 
   useEffect(() => {
-    // Cancel any ongoing speech when the component unmounts or the ticket changes
     return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
