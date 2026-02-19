@@ -1,15 +1,16 @@
 "use client";
 
-import type { Ticket } from '@/lib/types';
+import type { Ticket, Service } from '@/lib/types';
 import React from 'react';
 
 type PrintableTicketProps = {
   ticket: Ticket | null;
   companyName: string;
+  service?: Service | null;
 };
 
 export const PrintableTicket = React.forwardRef<HTMLDivElement, PrintableTicketProps>(
-  ({ ticket, companyName }, ref) => {
+  ({ ticket, companyName, service }, ref) => {
     if (!ticket) return null;
 
     return (
@@ -17,7 +18,7 @@ export const PrintableTicket = React.forwardRef<HTMLDivElement, PrintableTicketP
         <h3 className="company-name">{companyName}</h3>
         <p className="ticket-label">Your Queue Number is:</p>
         <p className="ticket-number">{ticket.ticketNumber}</p>
-        <p className="service-type">Service: {ticket.type}</p>
+        <p className="service-type">Service: {service?.label || ticket.type}</p>
         <hr className="separator" />
         <p className="timestamp">
           {new Date(ticket.createdAt).toLocaleDateString('en-US', {

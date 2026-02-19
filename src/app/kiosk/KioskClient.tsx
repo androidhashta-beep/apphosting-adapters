@@ -4,10 +4,10 @@ import { useQueue } from "@/contexts/QueueProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Ticket as TicketIcon, User, Award } from "lucide-react";
-import type { TicketType, Ticket } from "@/lib/types";
+import type { TicketType, Ticket, Service } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
+import { Icon } from "@/lib/icons";
 
 export function KioskClient() {
   const { dispatch, state, isHydrated } = useQueue();
@@ -15,15 +15,7 @@ export function KioskClient() {
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
   const lastTicketCount = useRef(state.tickets.length);
-
-  const getServiceLabel = (type: TicketType) => {
-    switch(type) {
-      case 'enrollment': return 'Enrollment';
-      case 'payment': return 'Payment';
-      case 'certificate': return 'Certificate Claiming';
-      default: return 'Service';
-    }
-  };
+  const { settings } = state;
 
   useEffect(() => {
     if (ticketToPrint) {
@@ -36,13 +28,13 @@ export function KioskClient() {
     // If a new ticket was added
     if (isHydrated && state.tickets.length > lastTicketCount.current) {
         const newTicket = state.tickets[state.tickets.length - 1];
-        // Only trigger print if it was just created (e.g., within the last 5 seconds)
-        // to avoid re-printing on page reloads.
+        const service = settings.services.find(s => s.id === newTicket.type);
+        
         if (Date.now() - newTicket.createdAt < 5000) {
              setTicketToPrint(newTicket);
              toast({
                 title: `Printing Ticket ${newTicket.ticketNumber}`,
-                description: `Your ticket for ${getServiceLabel(newTicket.type)} is printing. Please take it from the printer.`,
+                description: `Your ticket for ${service?.label || 'a service'} is printing. Please take it from the printer.`,
                 duration: 5000,
              });
         }
@@ -55,6 +47,11 @@ export function KioskClient() {
   const handleGetTicket = (type: TicketType) => {
     dispatch({ type: "ADD_TICKET", payload: { type } });
   };
+  
+  const getPrintableService = (ticket: Ticket | null): Service | undefined => {
+      if (!ticket) return undefined;
+      return settings.services.find(s => s.id === ticket.type);
+  }
 
   return (
     <>
@@ -68,48 +65,30 @@ export function KioskClient() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Button
-                variant="outline"
-                className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
-                onClick={() => handleGetTicket("enrollment")}
-                disabled={!isHydrated}
-              >
-                <User className="h-8 w-8" />
-                <span>Enrollment</span>
-                <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
-                  For inquiries, enrollment, and other related services.
-                </p>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
-                onClick={() => handleGetTicket("payment")}
-                disabled={!isHydrated}
-              >
-                <TicketIcon className="h-8 w-8" />
-                <span>Payment</span>
-                <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
-                  Exclusive for payment services only.
-                </p>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
-                onClick={() => handleGetTicket("certificate")}
-                disabled={!isHydrated}
-              >
-                <Award className="h-8 w-8" />
-                <span>Claim Certificate</span>
-                <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
-                  Exclusive for claiming of certificates.
-                </p>
-              </Button>
+              {isHydrated && settings.services.map(service => (
+                <Button
+                  key={service.id}
+                  variant="outline"
+                  className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
+                  onClick={() => handleGetTicket(service.id)}
+                  disabled={!isHydrated}
+                >
+                  <Icon name={service.icon} className="h-8 w-8" />
+                  <span>{service.label}</span>
+                  <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
+                    {service.description}
+                  </p>
+                </Button>
+              ))}
+               {!isHydrated && Array.from({length: 3}).map((_, i) => (
+                    <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
+                ))}
             </div>
           </CardContent>
         </Card>
       </div>
       <div className="printable-area">
-        <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName="Renaissance Training Center Inc." />
+        <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings.companyName} service={getPrintableService(ticketToPrint)} />
       </div>
     </>
   );

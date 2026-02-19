@@ -29,13 +29,9 @@ export function DisplayClient() {
     return state.stations.find(s => s.id === stationId)?.name || '-';
   }
   
-  const getServiceLabel = (type: string) => {
-      switch(type) {
-          case 'enrollment': return 'ENROLLMENT';
-          case 'payment': return 'PAYMENT';
-          case 'certificate': return 'CERTIFICATE';
-          default: return 'SERVICE';
-      }
+  const getServiceLabel = (serviceId: string) => {
+      const service = state.settings.services.find(s => s.id === serviceId);
+      return service ? service.label.toUpperCase() : 'SERVICE';
   }
 
   return (
@@ -53,7 +49,7 @@ export function DisplayClient() {
           <CardContent className="p-4 flex-grow overflow-y-auto">
             <div className="flex flex-col gap-3">
               {!isHydrated && [...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-              {isHydrated && recentlyCalledTickets.map((ticket, index) => (
+              {isHydrated && recentlyCalledTickets.map((ticket) => (
                 <div 
                   key={ticket.id} 
                   className={cn(

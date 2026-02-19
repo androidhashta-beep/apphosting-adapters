@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useEffect, useState, useCallback } from 'react';
-import type { Station, Ticket, TicketType, StationStatus, StationMode, StationType as IStationType, State } from '@/lib/types';
+import type { Station, Ticket, TicketType, StationStatus, StationMode, StationType as IStationType, State, Settings, Service } from '@/lib/types';
 import { initialStations } from '@/lib/data';
 
 type Action =
@@ -14,6 +14,8 @@ type Action =
   | { type: 'SKIP_TICKET'; payload: { stationId: string } }
   | { type: 'ADD_STATION'; payload: { name: string; type: IStationType } }
   | { type: 'REMOVE_STATION'; payload: { stationId: string } }
+  | { type: 'UPDATE_SETTINGS'; payload: Partial<Settings> }
+  | { type: 'REMOVE_SERVICE'; payload: { serviceId: string } }
   | { type: 'HYDRATE_STATE', payload: Partial<State> }
   | { type: 'RESET_STATE' }
   | { type: 'RESTORE_FROM_BACKUP', payload: State };
@@ -27,10 +29,20 @@ type QueueContextType = {
 
 const QueueContext = createContext<QueueContextType | undefined>(undefined);
 
+const initialSettings: Settings = {
+  companyName: "Renaissance Training Center Inc.",
+  services: [
+    { id: 'enrollment', label: 'Enrollment', description: 'For inquiries, enrollment, and other related services.', icon: 'User' },
+    { id: 'payment', label: 'Payment', description: 'Exclusive for payment services only.', icon: 'Ticket' },
+    { id: 'certificate', label: 'Certificate Claiming', description: 'Exclusive for claiming of certificates.', icon: 'Award' },
+  ]
+};
+
 const initialState: State = {
   tickets: [],
   stations: initialStations,
   lastTicketTimestamp: null,
+  settings: initialSettings,
 };
 
 const queueReducer = (state: State, action: Action): State => {
@@ -193,10 +205,45 @@ const queueReducer = (state: State, action: Action): State => {
             tickets: updatedTickets,
         };
     }
+     case 'UPDATE_SETTINGS': {
+      const updatedSettings = { ...state.settings, ...action.payload };
+       // If services are being updated, ensure IDs are unique
+      if (action.payload.services) {
+          const serviceIds = new Set(action.payload.services.map(s => s.id));
+          if (serviceIds.size !== action.payload.services.length) {
+              console.error("Duplicate service IDs detected. Aborting settings update.");
+              return state; // Abort update
+          }
+          updatedSettings.services = action.payload.services;
+      }
+      return {
+        ...state,
+        settings: updatedSettings,
+      };
+    }
+    case 'REMOVE_SERVICE': {
+      const { serviceId } = action.payload;
+      const updatedServices = state.settings.services.filter(s => s.id !== serviceId);
+      const updatedStations = state.stations.filter(s => s.type !== serviceId);
+
+      return {
+        ...state,
+        stations: updatedStations,
+        settings: {
+          ...state.settings,
+          services: updatedServices,
+        }
+      };
+    }
     case 'HYDRATE_STATE':
+        // Merge hydrated state with initial state to ensure all keys are present
         return {
             ...initialState,
             ...action.payload,
+            settings: {
+                ...initialState.settings,
+                ...(action.payload.settings || {}),
+            },
         };
 
     case 'RESTORE_FROM_BACKUP':
@@ -226,28 +273,16 @@ export const QueueProvider = ({ children }: { children: ReactNode }) => {
         
         // Ensure we have a valid object before proceeding
         if (savedState && typeof savedState === 'object') {
-            // Check if the loaded tickets have the old, prefixed format (e.g., "E-1").
-            const needsMigration = Array.isArray(savedState.tickets) && savedState.tickets.some((t: Ticket) => t.ticketNumber && isNaN(parseInt(t.ticketNumber, 10)));
-
-            if (needsMigration) {
-              // If the format is old, clear the tickets and timestamp to start fresh,
-              // but preserve the user's station configuration.
-              const migratedState = {
-                ...savedState,
-                tickets: [],
-                lastTicketTimestamp: null,
-              };
-              dispatch({ type: 'HYDRATE_STATE', payload: migratedState });
+            if (!savedState.settings || !Array.isArray(savedState.settings.services)) {
+              // If old state without settings, reset to initial to avoid conflicts
+              dispatch({ type: 'RESET_STATE' });
             } else {
-              // If no migration is needed, just load the state.
-              // The reducer will merge it with initialState to prevent missing properties.
               dispatch({ type: 'HYDRATE_STATE', payload: savedState });
             }
         }
       }
     } catch (error) {
       console.error("Could not load state from localStorage", error);
-      // In case of parsing error, it's safer to reset.
       localStorage.removeItem('queueState');
     } finally {
         setIsHydrated(true);

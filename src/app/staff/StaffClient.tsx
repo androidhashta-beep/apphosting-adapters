@@ -9,6 +9,15 @@ import type { Ticket, TicketType } from "@/lib/types";
 export function StaffClient() {
   const { state, isHydrated } = useQueue();
 
+  const getWaitingCount = (type: TicketType): number => {
+    return state.tickets.filter(t => t.type === type && t.status === 'waiting').length;
+  };
+
+  const waitingCounts = state.settings.services.reduce((acc, service) => {
+    acc[service.id] = getWaitingCount(service.id);
+    return acc;
+  }, {} as { [key: string]: number });
+
   if (!isHydrated) {
     return (
       <div className="space-y-8">
@@ -32,44 +41,20 @@ export function StaffClient() {
     )
   }
   
-  const getWaitingCount = (type: TicketType): number => {
-    return state.tickets.filter(t => t.type === type && t.status === 'waiting').length;
-  };
-
-  const enrollmentWaitingCount = getWaitingCount('enrollment');
-  const paymentWaitingCount = getWaitingCount('payment');
-  const certificateWaitingCount = getWaitingCount('certificate');
-  
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Enrollment Queue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">{enrollmentWaitingCount}</p>
-            <p className="text-muted-foreground">students waiting</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Queue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">{paymentWaitingCount}</p>
-            <p className="text-muted-foreground">students waiting</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Certificate Queue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-4xl font-bold">{certificateWaitingCount}</p>
-            <p className="text-muted-foreground">students waiting</p>
-          </CardContent>
-        </Card>
+        {state.settings.services.map(service => (
+          <Card key={service.id}>
+            <CardHeader>
+              <CardTitle>{service.label} Queue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold">{waitingCounts[service.id] || 0}</p>
+              <p className="text-muted-foreground">students waiting</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {state.stations.map((station) => {
@@ -79,11 +64,7 @@ export function StaffClient() {
               key={station.id} 
               station={station}
               ticket={ticket as Ticket | undefined}
-              waitingCounts={{
-                enrollment: enrollmentWaitingCount,
-                payment: paymentWaitingCount,
-                certificate: certificateWaitingCount
-              }}
+              waitingCounts={waitingCounts}
             />
           )
         })}

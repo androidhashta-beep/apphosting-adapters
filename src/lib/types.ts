@@ -1,4 +1,16 @@
-export type TicketType = 'enrollment' | 'payment' | 'certificate';
+export type Service = {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+};
+
+export type Settings = {
+  companyName: string;
+  services: Service[];
+};
+
+export type TicketType = string;
 
 export type TicketStatus = 'waiting' | 'serving' | 'served' | 'skipped';
 
@@ -15,7 +27,7 @@ export type Ticket = {
 
 export type StationStatus = 'open' | 'closed';
 export type StationMode = 'regular' | 'all-in-one' | 'payment-only' | 'certificate-only';
-export type StationType = 'enrollment' | 'payment' | 'certificate';
+export type StationType = string;
 
 export type Station = {
   id: string;
@@ -30,4 +42,5 @@ export type State = {
   tickets: Ticket[];
   stations: Station[];
   lastTicketTimestamp: number | null;
+  settings: Settings;
 };

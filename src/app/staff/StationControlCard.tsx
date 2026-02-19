@@ -7,41 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket as TicketIcon, Volume2 } from "lucide-react";
+import { Megaphone, Check, SkipForward, Ban, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Icon } from "@/lib/icons";
 
 export function StationControlCard({ 
   station,
+  waitingCounts,
 }: { 
   station: Station;
+  waitingCounts: { [key: string]: number };
 }) {
   const { state, dispatch } = useQueue();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-
   const ticket = state.tickets.find(t => t.id === station.currentTicketId);
   
-  const waitingCounts = {
-    enrollment: state.tickets.filter(t => t.type === 'enrollment' && t.status === 'waiting').length,
-    payment: state.tickets.filter(t => t.type === 'payment' && t.status === 'waiting').length,
-    certificate: state.tickets.filter(t => t.type === 'certificate' && t.status === 'waiting').length,
-  };
-
   // Get available voices from the browser
   useEffect(() => {
     const handleVoicesChanged = () => {
         setVoices(window.speechSynthesis.getVoices());
     };
     if (typeof window !== 'undefined' && window.speechSynthesis) {
-        // Pre-populate voices if already available
         if (window.speechSynthesis.getVoices().length > 0) {
             setVoices(window.speechSynthesis.getVoices());
         }
-        // Subscribe to the event
         window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
         
-        // Cleanup
         return () => {
             window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
         };
@@ -51,24 +44,25 @@ export function StationControlCard({
   const announce = useCallback((ticketNumber: string, stationName: string, ticketType: TicketType) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     
-    window.speechSynthesis.cancel(); // Stop any currently speaking announcements
+    window.speechSynthesis.cancel();
 
-    const text = `Customer number ${ticketNumber}, For ${ticketType} please go to ${stationName}.`;
+    const service = state.settings.services.find(s => s.id === ticketType);
+    const serviceLabel = service ? service.label : ticketType;
+
+    const text = `Customer number ${ticketNumber}, For ${serviceLabel} please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
 
-    // Try to find a male Filipino voice
     const filipinoMaleVoice = voices.find(voice => 
-        voice.lang.startsWith('fil') && // 'fil' is the language code for Filipino
+        voice.lang.startsWith('fil') &&
         /male/i.test(voice.name)
     );
 
     if (filipinoMaleVoice) {
       utterance.voice = filipinoMaleVoice;
     }
-    // If no male Filipino voice is found, it will use the browser's default voice.
 
     window.speechSynthesis.speak(utterance);
-  }, [voices]);
+  }, [voices, state.settings.services]);
 
   useEffect(() => {
     if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 5000)) {
@@ -108,8 +102,6 @@ export function StationControlCard({
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
     const waitingCount = waitingCounts[type] || 0;
     const isQueueEmpty = waitingCount === 0;
-    
-    // This button should be enabled if the station is open AND the queue is not empty
     const isDisabled = isClosed || isQueueEmpty;
 
     return (
@@ -172,19 +164,18 @@ export function StationControlCard({
                 case 'all-in-one':
                   return (
                     <div className="w-full space-y-2">
-                      {getCallButton('enrollment', 'Call Enrollment', <User />)}
-                      {getCallButton('payment', 'Call Payment', <TicketIcon />)}
-                      {getCallButton('certificate', 'Call Certificate', <Award />)}
+                      {state.settings.services.map(service => getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />))}
                     </div>
                   );
                 case 'payment-only':
-                  return getCallButton('payment', 'Call Payment', <TicketIcon />);
+                   return getCallButton('payment', 'Call Payment', <Icon name="Ticket" />);
                 case 'certificate-only':
-                  return getCallButton('certificate', 'Call Certificate', <Award />);
+                  return getCallButton('certificate', 'Call Certificate', <Icon name="Award" />);
                 case 'regular':
                 default:
-                  const typeLabel = station.type.charAt(0).toUpperCase() + station.type.slice(1);
-                  return getCallButton(station.type, `Call Next ${typeLabel}`, <Megaphone />);
+                  const service = state.settings.services.find(s => s.id === station.type);
+                  if (!service) return null;
+                  return getCallButton(station.type, `Call Next ${service.label}`, <Megaphone />);
               }
             })()}
             {!isClosed && (
