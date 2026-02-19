@@ -1,6 +1,5 @@
 "use client";
 
-import { useQueue } from "@/contexts/QueueProvider";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { AdCarousel } from "./AdCarousel";
 import { useEffect, useState } from "react";
@@ -10,14 +9,25 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
+import { useCollection, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
+import type { Ticket, Station, Settings } from "@/lib/types";
+import { collection, query, where, orderBy, limit } from "firebase/firestore";
 
 export function DisplayClient() {
-  const { state, isHydrated } = useQueue();
+  const { firestore } = useFirebase();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const router = useRouter();
 
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
+
+  const stationsRef = useMemoFirebase(() => (firestore ? collection(firestore, "stations") : null), [firestore]);
+  const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsRef);
+  
+  const servingTicketsQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, "tickets"), where("status", "in", ["serving", "served", "skipped"]), orderBy("calledAt", "desc"), limit(10)) : null), [firestore]);
+  const { data: recentlyCalledTickets, isLoading: isLoadingTickets } = useCollection<Ticket>(servingTicketsQuery);
+
   useEffect(() => {
-    // Set initial time on client mount to avoid hydration mismatch
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -29,24 +39,20 @@ export function DisplayClient() {
     router.push('/');
   };
 
-  const recentlyCalledTickets = state.tickets
-    .filter(t => t.status === 'serving' || t.status === 'served' || t.status === 'skipped')
-    .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0))
-    .slice(0, 10);
-
   const getStationName = (stationId: string | undefined) => {
     if (!stationId) return '-';
-    return state.stations.find(s => s.id === stationId)?.name || '-';
+    return stations?.find(s => s.id === stationId)?.name || '-';
   }
   
   const getServiceLabel = (serviceId: string) => {
-      const service = state.settings.services.find(s => s.id === serviceId);
+      const service = settings?.services.find(s => s.id === serviceId);
       return service ? service.label.toUpperCase() : 'SERVICE';
   }
+  
+  const isHydrated = !isLoadingSettings && !isLoadingStations && !isLoadingTickets;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-      {/* Left Section: Queue List */}
       <div className="lg:col-span-1 h-full">
         <Card className="flex flex-col h-full">
           <CardHeader className="p-4 border-b border-gold">
@@ -59,7 +65,7 @@ export function DisplayClient() {
           <CardContent className="p-4 flex-grow overflow-y-auto">
             <div className="flex flex-col gap-3">
               {!isHydrated && [...Array(10)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-              {isHydrated && recentlyCalledTickets.map((ticket) => (
+              {isHydrated && recentlyCalledTickets?.map((ticket) => (
                 <div 
                   key={ticket.id} 
                   className={cn(
@@ -76,7 +82,7 @@ export function DisplayClient() {
                   <div>{getStationName(ticket.servedBy)}</div>
                 </div>
               ))}
-              {isHydrated && recentlyCalledTickets.length === 0 && (
+              {isHydrated && recentlyCalledTickets?.length === 0 && (
                  <div className="flex items-center justify-center h-full py-10">
                     <p className="text-muted-foreground">Waiting for next ticket...</p>
                  </div>
@@ -86,7 +92,6 @@ export function DisplayClient() {
         </Card>
       </div>
 
-      {/* Right Section: Ads and Info */}
       <div className="lg:col-span-2 flex flex-col gap-6 min-h-0">
         <div className="flex-grow min-h-0">
             <AdCarousel />

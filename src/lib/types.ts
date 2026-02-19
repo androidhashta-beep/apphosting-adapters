@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export type Service = {
   id: string;
   label: string;
@@ -19,10 +21,10 @@ export type Ticket = {
   ticketNumber: string;
   type: TicketType;
   status: TicketStatus;
-  createdAt: number;
+  createdAt: Timestamp;
   servedBy?: string; // stationId
-  calledAt?: number;
-  servedAt?: number;
+  calledAt?: Timestamp | null;
+  servedAt?: Timestamp | null;
 };
 
 export type StationStatus = 'open' | 'closed';
@@ -36,11 +38,4 @@ export type Station = {
   status: StationStatus;
   mode: StationMode;
   currentTicketId?: string | null;
-};
-
-export type State = {
-  tickets: Ticket[];
-  stations: Station[];
-  lastTicketTimestamp: number | null;
-  settings: Settings;
 };

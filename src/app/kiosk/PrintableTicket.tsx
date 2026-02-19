@@ -2,6 +2,7 @@
 
 import type { Ticket, Service } from '@/lib/types';
 import React from 'react';
+import { Timestamp } from 'firebase/firestore';
 
 type PrintableTicketProps = {
   ticket: Ticket | null;
@@ -13,6 +14,8 @@ export const PrintableTicket = React.forwardRef<HTMLDivElement, PrintableTicketP
   ({ ticket, companyName, service }, ref) => {
     if (!ticket) return null;
 
+    const createdAtDate = ticket.createdAt instanceof Timestamp ? ticket.createdAt.toDate() : new Date(ticket.createdAt);
+
     return (
       <div ref={ref} className="ticket-content">
         <h3 className="company-name">{companyName}</h3>
@@ -21,11 +24,11 @@ export const PrintableTicket = React.forwardRef<HTMLDivElement, PrintableTicketP
         <p className="service-type">Service: {service?.label || ticket.type}</p>
         <hr className="separator" />
         <p className="timestamp">
-          {new Date(ticket.createdAt).toLocaleDateString('en-US', {
+          {createdAtDate.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
-          })} - {new Date(ticket.createdAt).toLocaleTimeString('en-US', {
+          })} - {createdAtDate.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: true

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { QueueProvider } from '@/contexts/QueueProvider';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Renaissance Training Center Inc.',
@@ -25,10 +25,10 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <QueueProvider>
+          <FirebaseClientProvider>
             {children}
             <Toaster />
-          </QueueProvider>
+          </FirebaseClientProvider>
         </ThemeProvider>
       </body>
     </html>

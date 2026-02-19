@@ -1,21 +1,27 @@
 "use client";
 
-import { useQueue } from "@/contexts/QueueProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import type { TicketType, Ticket, Service } from "@/lib/types";
+import type { Ticket, Service, Settings } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
+import { useCollection, useDoc, useFirebase, addDocumentNonBlocking } from "@/firebase";
+import { collection, query, where, getDocs, Timestamp, orderBy, limit } from "firebase/firestore";
 
 export function KioskClient() {
-  const { dispatch, state, isHydrated } = useQueue();
+  const { firestore } = useFirebase();
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(
+    firestore ? collection(firestore, "settings").doc("app") : null
+  );
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
-  const lastTicketCount = useRef(state.tickets.length);
-  const { settings } = state;
+  
+  const ticketsCollection = firestore ? collection(firestore, 'tickets') : null;
+  const {data: tickets, isLoading: isLoadingTickets} = useCollection<Ticket>(ticketsCollection);
+
 
   useEffect(() => {
     if (ticketToPrint) {
@@ -23,35 +29,62 @@ export function KioskClient() {
       setTicketToPrint(null); // Reset after triggering print
     }
   }, [ticketToPrint]);
-
-  useEffect(() => {
-    // If a new ticket was added
-    if (isHydrated && state.tickets.length > lastTicketCount.current) {
-        const newTicket = state.tickets[state.tickets.length - 1];
-        const service = settings.services.find(s => s.id === newTicket.type);
-        
-        if (Date.now() - newTicket.createdAt < 5000) {
-             setTicketToPrint(newTicket);
-             toast({
-                title: `Printing Ticket ${newTicket.ticketNumber}`,
-                description: `Your ticket for ${service?.label || 'a service'} is printing. Please take it from the printer.`,
-                duration: 5000,
-             });
-        }
-    }
-    lastTicketCount.current = state.tickets.length;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.tickets, isHydrated]);
-
-
-  const handleGetTicket = (type: TicketType) => {
-    dispatch({ type: "ADD_TICKET", payload: { type } });
-  };
   
+  const handleGetTicket = async (type: string) => {
+    if (!firestore || !ticketsCollection) return;
+  
+    // Determine the ticket number
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
+  
+    const q = query(
+      ticketsCollection,
+      where("createdAt", ">=", startOfDayTimestamp),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
+  
+    const querySnapshot = await getDocs(q);
+    let newNumber = 1;
+    if (!querySnapshot.empty) {
+      const lastTicket = querySnapshot.docs[0].data();
+      const lastTicketNumber = parseInt(lastTicket.ticketNumber, 10);
+      newNumber = lastTicketNumber + 1;
+    }
+  
+    const ticketNumber = `${newNumber}`;
+  
+    const newTicketData = {
+      ticketNumber,
+      type,
+      status: 'waiting' as const,
+      createdAt: Timestamp.now(),
+    };
+  
+    const docRefPromise = addDocumentNonBlocking(ticketsCollection, newTicketData);
+  
+    docRefPromise.then(docRef => {
+        const fullTicket: Ticket = {
+            id: docRef.id,
+            ...newTicketData,
+        };
+        setTicketToPrint(fullTicket);
+        const service = settings?.services.find(s => s.id === type);
+        toast({
+            title: `Printing Ticket ${fullTicket.ticketNumber}`,
+            description: `Your ticket for ${service?.label || 'a service'} is printing.`,
+            duration: 5000,
+        });
+    });
+  };
+
   const getPrintableService = (ticket: Ticket | null): Service | undefined => {
       if (!ticket) return undefined;
-      return settings.services.find(s => s.id === ticket.type);
+      return settings?.services.find(s => s.id === ticket.type);
   }
+
+  const isHydrated = !isLoadingSettings;
 
   return (
     <>
@@ -65,7 +98,7 @@ export function KioskClient() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {isHydrated && settings.services.map(service => (
+              {isHydrated && settings?.services.map(service => (
                 <Button
                   key={service.id}
                   variant="outline"
@@ -88,7 +121,7 @@ export function KioskClient() {
         </Card>
       </div>
       <div className="printable-area">
-        <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings.companyName} service={getPrintableService(ticketToPrint)} />
+        <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings?.companyName || ''} service={getPrintableService(ticketToPrint)} />
       </div>
     </>
   );

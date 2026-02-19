@@ -1,22 +1,35 @@
 "use client";
 
-import { useQueue } from "@/contexts/QueueProvider";
 import { StationControlCard } from "./StationControlCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Ticket, TicketType } from "@/lib/types";
+import type { Ticket, Settings, Station } from "@/lib/types";
+import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
 
 export function StaffClient() {
-  const { state, isHydrated } = useQueue();
+  const { firestore } = useFirebase();
 
-  const getWaitingCount = (type: TicketType): number => {
-    return state.tickets.filter(t => t.type === type && t.status === 'waiting').length;
+  const settingsRef = useMemoFirebase(() => firestore ? collection(firestore, "settings").doc("app") : null, [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useCollection<Settings>(settingsRef);
+  
+  const stationsRef = useMemoFirebase(() => firestore ? collection(firestore, "stations") : null, [firestore]);
+  const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsRef);
+
+  const ticketsRef = useMemoFirebase(() => firestore ? collection(firestore, "tickets") : null, [firestore]);
+  const { data: tickets, isLoading: isLoadingTickets } = useCollection<Ticket>(ticketsRef);
+
+  const getWaitingCount = (type: string): number => {
+    if (!tickets) return 0;
+    return tickets.filter(t => t.type === type && t.status === 'waiting').length;
   };
 
-  const waitingCounts = state.settings.services.reduce((acc, service) => {
+  const waitingCounts = settings?.[0]?.services.reduce((acc, service) => {
     acc[service.id] = getWaitingCount(service.id);
     return acc;
-  }, {} as { [key: string]: number });
+  }, {} as { [key: string]: number }) || {};
+
+  const isHydrated = !isLoadingSettings && !isLoadingStations && !isLoadingTickets;
 
   if (!isHydrated) {
     return (
@@ -44,7 +57,7 @@ export function StaffClient() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {state.settings.services.map(service => (
+        {settings?.[0]?.services.map(service => (
           <Card key={service.id}>
             <CardHeader>
               <CardTitle>{service.label} Queue</CardTitle>
@@ -57,8 +70,8 @@ export function StaffClient() {
         ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {state.stations.map((station) => {
-          const ticket = state.tickets.find(t => t.id === station.currentTicketId);
+        {stations?.map((station) => {
+          const ticket = tickets?.find(t => t.id === station.currentTicketId);
           return (
             <StationControlCard 
               key={station.id} 

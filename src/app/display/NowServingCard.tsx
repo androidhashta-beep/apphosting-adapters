@@ -1,16 +1,19 @@
 
 "use client";
 
-import { useQueue } from "@/contexts/QueueProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { Station } from "@/lib/types";
+import type { Station, Ticket } from "@/lib/types";
 import { useEffect, useState } from "react";
+import { useDoc, useFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 export function NowServingCard({ station }: { station: Station }) {
-  const { state } = useQueue();
-  const currentStationState = state.stations.find(s => s.id === station.id);
-  const ticket = state.tickets.find(t => t.id === currentStationState?.currentTicketId);
+  const { firestore } = useFirebase();
+
+  const ticketRef = station.currentTicketId ? doc(firestore, 'tickets', station.currentTicketId) : null;
+  const { data: ticket } = useDoc<Ticket>(ticketRef);
+
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {

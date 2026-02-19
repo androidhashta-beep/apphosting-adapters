@@ -1,7 +1,6 @@
 "use client";
 
-import { useQueue } from "@/contexts/QueueProvider";
-import type { Station, StationStatus, TicketType, Ticket } from "@/lib/types";
+import type { Station, StationStatus, TicketType, Ticket, Settings } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -12,19 +11,25 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/lib/icons";
+import { useCollection, useFirebase, updateDocumentNonBlocking, useDoc } from "@/firebase";
+import { collection, doc, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 
 export function StationControlCard({ 
   station,
+  ticket,
   waitingCounts,
 }: { 
   station: Station;
+  ticket: Ticket | undefined;
   waitingCounts: { [key: string]: number };
 }) {
-  const { state, dispatch } = useQueue();
+  const { firestore } = useFirebase();
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(
+    firestore ? doc(firestore, "settings", "app") : null
+  );
+
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const ticket = state.tickets.find(t => t.id === station.currentTicketId);
   
-  // Get available voices from the browser
   useEffect(() => {
     const handleVoicesChanged = () => {
         setVoices(window.speechSynthesis.getVoices());
@@ -42,11 +47,11 @@ export function StationControlCard({
   }, []);
 
   const announce = useCallback((ticketNumber: string, stationName: string, ticketType: TicketType) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (typeof window === 'undefined' || !window.speechSynthesis || !settings) return;
     
     window.speechSynthesis.cancel();
 
-    const service = state.settings.services.find(s => s.id === ticketType);
+    const service = settings.services.find(s => s.id === ticketType);
     const serviceLabel = service ? service.label : ticketType;
 
     const text = `Customer number ${ticketNumber}, For ${serviceLabel} please go to ${stationName}.`;
@@ -62,14 +67,13 @@ export function StationControlCard({
     }
 
     window.speechSynthesis.speak(utterance);
-  }, [voices, state.settings.services]);
+  }, [voices, settings]);
 
   useEffect(() => {
-    if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 5000)) {
+    if (ticket && ticket.status === 'serving' && ticket.calledAt && (Timestamp.now().toMillis() - ticket.calledAt.toMillis() < 5000)) {
       announce(ticket.ticketNumber, station.name, ticket.type);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket?.id, ticket?.calledAt, announce]);
+  }, [ticket?.id, ticket?.calledAt, announce, ticket, station.name]);
 
   if (!station) {
     return <Skeleton className="h-[480px] rounded-lg" />;
@@ -84,19 +88,62 @@ export function StationControlCard({
   };
 
   const completeTicket = () => {
-    if (ticket) {
-      dispatch({ type: 'COMPLETE_TICKET', payload: { stationId: station.id } });
+    if (ticket && firestore) {
+      const stationRef = doc(firestore, 'stations', station.id);
+      const ticketRef = doc(firestore, 'tickets', ticket.id);
+      updateDocumentNonBlocking(stationRef, { currentTicketId: null });
+      updateDocumentNonBlocking(ticketRef, { status: 'served', servedAt: Timestamp.now() });
     }
   };
 
   const skipTicket = () => {
-    if (ticket) {
-      dispatch({ type: 'SKIP_TICKET', payload: { stationId: station.id } });
+    if (ticket && firestore) {
+      const stationRef = doc(firestore, 'stations', station.id);
+      const ticketRef = doc(firestore, 'tickets', ticket.id);
+      updateDocumentNonBlocking(stationRef, { currentTicketId: null });
+      updateDocumentNonBlocking(ticketRef, { status: 'skipped' });
     }
   };
 
-  const callNext = (ticketType: TicketType) => {
-    dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+  const callNext = async (ticketType: TicketType) => {
+    if (!firestore || station.status === 'closed' || station.currentTicketId) {
+      return;
+    }
+
+    const ticketsCollection = collection(firestore, "tickets");
+    const q = query(
+      ticketsCollection,
+      where("type", "==", ticketType),
+      where("status", "==", "waiting"),
+      orderBy("createdAt"),
+      limit(1)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      const nextTicket = querySnapshot.docs[0];
+      const stationRef = doc(firestore, 'stations', station.id);
+      const ticketRef = doc(firestore, 'tickets', nextTicket.id);
+      
+      updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicket.id });
+      updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
+    }
+  };
+
+  const handleStatusChange = (checked: boolean) => {
+    if (firestore) {
+      const stationRef = doc(firestore, 'stations', station.id);
+      const newStatus: StationStatus = checked ? 'open' : 'closed';
+      
+      if (newStatus === 'closed' && station.currentTicketId && ticket) {
+        const ticketRef = doc(firestore, 'tickets', ticket.id);
+        updateDocumentNonBlocking(ticketRef, { status: 'waiting', servedBy: null, calledAt: null });
+        updateDocumentNonBlocking(stationRef, { status: newStatus, currentTicketId: null });
+      } else {
+        updateDocumentNonBlocking(stationRef, { status: newStatus });
+      }
+    }
   };
 
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
@@ -124,10 +171,7 @@ export function StationControlCard({
             <Switch
               id={`status-${station.id}`}
               checked={!isClosed}
-              onCheckedChange={(checked) => {
-                const newStatus: StationStatus = checked ? 'open' : 'closed';
-                dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId: station.id, status: newStatus } });
-              }}
+              onCheckedChange={handleStatusChange}
               aria-label={`Toggle station ${station.name}`}
             />
             <Label htmlFor={`status-${station.id}`}>{isClosed ? "Closed" : "Open"}</Label>
@@ -159,12 +203,12 @@ export function StationControlCard({
           </>
         ) : (
           <>
-            {(() => {
+            {settings && (() => {
               switch (station.mode) {
                 case 'all-in-one':
                   return (
                     <div className="w-full space-y-2">
-                      {state.settings.services.map(service => getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />))}
+                      {settings.services.map(service => getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />))}
                     </div>
                   );
                 case 'payment-only':
@@ -173,7 +217,7 @@ export function StationControlCard({
                   return getCallButton('certificate', 'Call Certificate', <Icon name="Award" />);
                 case 'regular':
                 default:
-                  const service = state.settings.services.find(s => s.id === station.type);
+                  const service = settings.services.find(s => s.id === station.type);
                   if (!service) return null;
                   return getCallButton(station.type, `Call Next ${service.label}`, <Megaphone />);
               }

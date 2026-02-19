@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useQueue } from "@/contexts/QueueProvider";
-import type { StationMode, StationType, StationStatus, State, Service } from "@/lib/types";
+import type { StationMode, Station, Service, Settings } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,36 +18,39 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Icon, iconList } from "@/lib/icons";
+import { useCollection, useDoc, useFirebase, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 
 export function AdminClient() {
   const router = useRouter();
-  const { state, dispatch, isHydrated } = useQueue();
+  const { firestore } = useFirebase();
   const { toast } = useToast();
 
+  const settingsRef = useMemo(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
+
+  const stationsCollection = useMemo(() => (firestore ? collection(firestore, "stations") : null), [firestore]);
+  const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsCollection);
+  
   const [newStationName, setNewStationName] = useState("");
-  const [newStationType, setNewStationType] = useState<StationType>("");
+  const [newStationType, setNewStationType] = useState<string>("");
   
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
-  const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isRestoreBackupConfirmOpen, setIsRestoreBackupConfirmOpen] = useState(false);
-  const [pendingState, setPendingState] = useState<State | null>(null);
-
-  const [companyName, setCompanyName] = useState(state.settings.companyName);
+  const [companyName, setCompanyName] = useState("");
   
   const [isServiceEditorOpen, setIsServiceEditorOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
 
   useEffect(() => {
-    if (isHydrated) {
-        setCompanyName(state.settings.companyName);
-        if (state.settings.services.length > 0 && !newStationType) {
-            setNewStationType(state.settings.services[0].id);
+    if (settings) {
+        setCompanyName(settings.companyName);
+        if (settings.services.length > 0 && !newStationType) {
+            setNewStationType(settings.services[0].id);
         }
     }
-  }, [isHydrated, state.settings.companyName, state.settings.services, newStationType]);
+  }, [settings, newStationType]);
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -58,99 +59,54 @@ export function AdminClient() {
   };
 
   const handleModeChange = (stationId: string, mode: StationMode) => {
-    dispatch({ type: 'UPDATE_STATION_MODE', payload: { stationId, mode } });
+    if (!firestore) return;
+    const stationRef = doc(firestore, "stations", stationId);
+    updateDocumentNonBlocking(stationRef, { mode });
   };
 
   const handleStatusChange = (stationId: string, checked: boolean) => {
-    const newStatus: StationStatus = checked ? 'open' : 'closed';
-    dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId, status: newStatus } });
+    if (!firestore) return;
+    const stationRef = doc(firestore, "stations", stationId);
+    const newStatus = checked ? 'open' : 'closed';
+    updateDocumentNonBlocking(stationRef, { status: newStatus });
   };
 
   const handleAddStation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStationName.trim() || !newStationType) {
+    if (!newStationName.trim() || !newStationType || !stationsCollection) {
         toast({ variant: "destructive", title: "Missing Information", description: "Please provide a station name and select a type." });
         return;
     };
-    dispatch({ type: 'ADD_STATION', payload: { name: newStationName, type: newStationType } });
+    const newStation: Omit<Station, 'id'> = {
+        name: newStationName,
+        type: newStationType,
+        status: 'closed',
+        mode: 'regular',
+        currentTicketId: null,
+    };
+    addDocumentNonBlocking(stationsCollection, newStation);
     setNewStationName('');
   };
 
   const handleDeleteStation = () => {
-    if (stationToDelete) {
-        dispatch({ type: 'REMOVE_STATION', payload: { stationId: stationToDelete } });
+    if (stationToDelete && firestore) {
+        const stationRef = doc(firestore, "stations", stationToDelete);
+        deleteDocumentNonBlocking(stationRef);
         setStationToDelete(null);
     }
   }
 
-  const handleConfirmRestore = () => {
-    dispatch({ type: 'RESET_STATE' });
-    setIsRestoreConfirmOpen(false);
-  };
-
-  const handleBackup = () => {
-    try {
-        const stateJSON = JSON.stringify(state, null, 2);
-        const blob = new Blob([stateJSON], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        const date = new Date().toISOString().split('T')[0];
-        a.download = `queue-backup-${date}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast({ title: "Backup Successful", description: "Your queue data has been saved." });
-    } catch (error) {
-        console.error("Backup failed", error);
-        toast({ variant: "destructive", title: "Backup Failed", description: "Could not create backup file." });
-    }
-  };
-
-  const handleRestoreClick = () => fileInputRef.current?.click();
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-          try {
-              const text = e.target?.result;
-              if (typeof text !== 'string') throw new Error("File is not a valid text file.");
-              const restoredState = JSON.parse(text);
-              if (restoredState && restoredState.tickets && restoredState.stations && restoredState.settings) {
-                  setPendingState(restoredState);
-                  setIsRestoreBackupConfirmOpen(true);
-              } else {
-                  throw new Error("Invalid backup file format.");
-              }
-          } catch (error: any) {
-              toast({ variant: "destructive", title: "Restore Failed", description: error.message || "The selected file is not a valid backup." });
-          } finally {
-              if (fileInputRef.current) fileInputRef.current.value = "";
-          }
-      };
-      reader.readAsText(file);
-  };
-
-  const confirmRestoreFromBackup = () => {
-      if (pendingState) {
-          dispatch({ type: 'RESTORE_FROM_BACKUP', payload: pendingState });
-          toast({ title: "Restore Successful", description: "Queue data has been restored from backup." });
-      }
-      setIsRestoreBackupConfirmOpen(false);
-      setPendingState(null);
-  };
-  
   const handleCompanyNameSave = () => {
-      dispatch({type: 'UPDATE_SETTINGS', payload: { companyName }});
-      toast({ title: "Settings Saved", description: "Company name has been updated." });
+      if(settingsRef) {
+        setDocumentNonBlocking(settingsRef, { companyName }, { merge: true });
+        toast({ title: "Settings Saved", description: "Company name has been updated." });
+      }
   }
 
   const handleSaveService = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!settings || !settingsRef) return;
+
     const formData = new FormData(e.currentTarget);
     const id = formData.get('id') as string;
     const label = formData.get('label') as string;
@@ -164,19 +120,19 @@ export function AdminClient() {
     
     const service: Service = { id: id.toLowerCase().replace(/\s+/g, '-'), label, description, icon };
     
-    let services = [...state.settings.services];
-    if (editingService) { // Update existing
+    let services = [...settings.services];
+    if (editingService) {
         const index = services.findIndex(s => s.id === editingService.id);
         if (index > -1) services[index] = service;
-    } else { // Add new
+    } else {
         if (services.some(s => s.id === service.id)) {
             toast({ variant: "destructive", title: "ID already exists", description: `Service ID "${service.id}" is already in use. Please choose a unique label.` });
             return;
         }
         services.push(service);
     }
-
-    dispatch({type: 'UPDATE_SETTINGS', payload: { services }});
+    
+    setDocumentNonBlocking(settingsRef, { services }, { merge: true });
     toast({ title: "Service Saved", description: `Service "${label}" has been saved.` });
     setIsServiceEditorOpen(false);
     setEditingService(null);
@@ -188,13 +144,25 @@ export function AdminClient() {
   }
 
   const handleDeleteService = () => {
-    if (serviceToDelete) {
-        dispatch({ type: 'REMOVE_SERVICE', payload: { serviceId: serviceToDelete.id } });
+    if (serviceToDelete && settingsRef && settings) {
+        const updatedServices = settings.services.filter(s => s.id !== serviceToDelete.id);
+        setDocumentNonBlocking(settingsRef, { services: updatedServices }, { merge: true });
+
+        // Also remove stations of this type
+        stations?.forEach(station => {
+            if (station.type === serviceToDelete.id && firestore) {
+                const stationRef = doc(firestore, 'stations', station.id);
+                deleteDocumentNonBlocking(stationRef);
+            }
+        });
+
         toast({ title: "Service Removed", description: `Service "${serviceToDelete.label}" and its associated stations have been removed.` });
         setServiceToDelete(null);
     }
   }
   
+  const isHydrated = !isLoadingSettings && !isLoadingStations;
+
   return (
     <div className="flex flex-col h-screen">
        <header className="border-b">
@@ -234,7 +202,7 @@ export function AdminClient() {
                         <CardDescription>Manage the services offered at the kiosk.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                        {isHydrated && state.settings.services.map(service => (
+                        {isHydrated && settings?.services.map(service => (
                             <div key={service.id} className="flex items-center justify-between p-3 rounded-md border bg-card">
                                 <div className="flex items-center gap-3">
                                     <Icon name={service.icon} className="h-5 w-5 text-muted-foreground" />
@@ -245,7 +213,7 @@ export function AdminClient() {
                                 </div>
                                 <div className="flex gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => openServiceEditor(service)}><Edit className="h-4 w-4" /></Button>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setServiceToDelete(service)} disabled={state.settings.services.length <= 1}>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setServiceToDelete(service)} disabled={settings?.services.length <= 1}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -272,12 +240,12 @@ export function AdminClient() {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="new-station-type">Station Type</Label>
-                          <Select value={newStationType} onValueChange={(value: StationType) => setNewStationType(value)} disabled={!isHydrated}>
+                          <Select value={newStationType} onValueChange={(value: string) => setNewStationType(value)} disabled={!isHydrated}>
                             <SelectTrigger id="new-station-type">
                               <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                             <SelectContent>
-                              {state.settings.services.map(service => (
+                              {settings?.services.map(service => (
                                 <SelectItem key={service.id} value={service.id}>{service.label}</SelectItem>
                               ))}
                             </SelectContent>
@@ -288,20 +256,6 @@ export function AdminClient() {
                     </CardContent>
                 </Card>
                 <CarouselSettings />
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Backup &amp; Restore</CardTitle>
-                        <CardDescription>Save and load all queue data to or from a file.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Button onClick={handleBackup} variant="outline" className="w-full" disabled={!isHydrated}><Download className="mr-2 h-4 w-4" />Backup Queue Data</Button>
-                        <Button onClick={handleRestoreClick} variant="outline" className="w-full" disabled={!isHydrated}><Upload className="mr-2 h-4 w-4" />Restore Queue Data</Button>
-                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="application/json" />
-                    </CardContent>
-                    <CardFooter>
-                        <p className="text-xs text-muted-foreground">This is useful for moving data between computers or creating a manual save point.</p>
-                    </CardFooter>
-                </Card>
             </div>
             <Card>
                 <CardHeader>
@@ -312,11 +266,11 @@ export function AdminClient() {
                   {!isHydrated && [...Array(3)].map((_, i) => (
                       <div key={i} className="flex items-center justify-between p-2 rounded-md border h-[180px]"><Skeleton className="h-full w-full" /></div>
                   ))}
-                  {isHydrated && state.stations.map((station) => {
-                    const isServing = !!state.stations.find(s => s.id === station.id)?.currentTicketId;
+                  {isHydrated && stations?.map((station) => {
+                    const isServing = !!station.currentTicketId;
                     const isClosed = station.status === 'closed';
                     const isDeleteDisabled = (isServing && !isClosed);
-                    const serviceType = state.settings.services.find(s => s.id === station.type)?.label || station.type;
+                    const serviceType = settings?.services.find(s => s.id === station.type)?.label || station.type;
 
                     return (
                       <div key={station.id} className="space-y-3 rounded-md border p-4">
@@ -336,7 +290,6 @@ export function AdminClient() {
                                 <SelectContent>
                                     <SelectItem value="regular">Regular</SelectItem>
                                     <SelectItem value="all-in-one">All-in-One</SelectItem>
-                                    {/* These modes are less relevant now but kept for compatibility */}
                                     <SelectItem value="payment-only">Payment-only (Legacy)</SelectItem>
                                     <SelectItem value="certificate-only">Certificate-only (Legacy)</SelectItem>
                                 </SelectContent>
@@ -353,10 +306,6 @@ export function AdminClient() {
                     );
                 })}
                 </CardContent>
-                <CardFooter className="flex-col items-start gap-2 border-t px-6 py-4">
-                  <Button variant="outline" onClick={() => setIsRestoreConfirmOpen(true)} disabled={!isHydrated}><RefreshCw className="mr-2 h-4 w-4" />Restore Default Stations</Button>
-                  <p className="text-xs text-muted-foreground">Restoring will clear all current tickets and reset stations to their initial configuration.</p>
-                </CardFooter>
             </Card>
         </div>
       </ScrollArea>
@@ -372,7 +321,7 @@ export function AdminClient() {
                     <div className="space-y-2">
                         <Label htmlFor="service-label">Label</Label>
                         <Input id="service-label" name="label" defaultValue={editingService?.label} placeholder="e.g. Enrollment" required />
-                        <Input id="service-id" name="id" defaultValue={editingService?.id} type="hidden" />
+                        <Input id="service-id" name="id" defaultValue={editingService?.id || editingService?.label.toLowerCase().replace(/\s+/g, '-') || ''} type="hidden" />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="service-description">Description</Label>
@@ -414,18 +363,6 @@ export function AdminClient() {
         <AlertDialogContent>
             <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the "{serviceToDelete?.label}" service and any stations assigned to it. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
             <AlertDialogFooter><AlertDialogCancel onClick={() => setServiceToDelete(null)}>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteService} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog open={isRestoreConfirmOpen} onOpenChange={setIsRestoreConfirmOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This will reset all stations and settings to their default configuration and clear all tickets. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmRestore} className="bg-destructive hover:bg-destructive/90">Restore</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-       <AlertDialog open={isRestoreBackupConfirmOpen} onOpenChange={setIsRestoreBackupConfirmOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This will overwrite all current data with the data from the backup file. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-            <AlertDialogFooter><AlertDialogCancel onClick={() => { setPendingState(null); setIsRestoreBackupConfirmOpen(false); }}>Cancel</AlertDialogCancel><AlertDialogAction onClick={confirmRestoreFromBackup}>Restore Backup</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
