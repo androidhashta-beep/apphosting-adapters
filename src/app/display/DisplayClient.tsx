@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -44,8 +45,8 @@ export function DisplayClient() {
         <Card className="flex flex-col h-full">
           <CardHeader className="p-4 border-b">
             <div className="grid grid-cols-3 text-center font-bold text-muted-foreground uppercase">
-              <div>Services</div>
               <div>Queue No.</div>
+              <div>Services</div>
               <div>Counter</div>
             </div>
           </CardHeader>
@@ -63,8 +64,8 @@ export function DisplayClient() {
                     ticket.status === 'skipped' && "bg-muted text-muted-foreground opacity-60 line-through"
                   )}
                 >
-                  <div className="text-xl">{getServiceLabel(ticket.type)}</div>
                   <div>{ticket.ticketNumber}</div>
+                  <div className="text-xl">{getServiceLabel(ticket.type)}</div>
                   <div>{getStationName(ticket.servedBy)}</div>
                 </div>
               ))}
