@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
-import type { Station, StationStatus, TicketType, Ticket } from "@/lib/types";
+import type { StationStatus, TicketType } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,14 +11,30 @@ import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket as TicketIcon, 
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// The component now takes the full station and tickets array as props.
-export function StationControlCard({ station, tickets }: { station: Station, tickets: Ticket[] }) {
-  // We only need the dispatch function from the context.
-  const { dispatch } = useQueue();
+export function StationControlCard({ stationId }: { stationId: string }) {
+  const { state, dispatch } = useQueue();
   const { toast } = useToast();
 
-  // Find the current ticket from the provided tickets array.
+  const station = state.stations.find(s => s.id === stationId);
+  const { tickets } = state;
+
+  // Effect for announcements
+  useEffect(() => {
+    if (station?.currentTicketId) {
+      const currentTicket = tickets.find(t => t.id === station.currentTicketId);
+      if (currentTicket && currentTicket.status === 'serving' && currentTicket.calledAt && (Date.now() - currentTicket.calledAt < 5000)) {
+        announce(currentTicket.ticketNumber, station.name);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [station?.currentTicketId]); // Re-run only when the ticket ID on this station changes
+
+  if (!station) {
+    return <Skeleton className="h-[480px] rounded-lg" />;
+  }
+  
   const ticket = tickets.find(t => t.id === station.currentTicketId);
   const isClosed = station.status === 'closed';
 
@@ -29,14 +45,6 @@ export function StationControlCard({ station, tickets }: { station: Station, tic
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   };
-  
-  // This effect triggers the announcement when a new ticket is assigned to this station.
-  useEffect(() => {
-      if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 5000)) {
-          announce(ticket.ticketNumber, station.name);
-      }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket?.id]); // Only re-run when the ticket ID changes.
 
   const callAgain = () => {
     if (ticket) {
@@ -61,7 +69,6 @@ export function StationControlCard({ station, tickets }: { station: Station, tic
   };
 
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
-    // Calculate waiting count from the tickets prop.
     const waitingCount = tickets.filter(t => t.type === type && t.status === 'waiting').length;
     const isQueueEmpty = waitingCount === 0;
 
@@ -136,7 +143,6 @@ export function StationControlCard({ station, tickets }: { station: Station, tic
                   return getCallButton('certificate', 'Call Certificate', <Award />);
                 case 'regular':
                 default:
-                  // Make label more readable
                   const typeLabel = station.type.charAt(0).toUpperCase() + station.type.slice(1);
                   return getCallButton(station.type, `Call Next ${typeLabel}`, <Megaphone />);
               }
