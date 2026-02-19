@@ -19,28 +19,7 @@ export function StationControlCard({ station }: { station: Station }) {
   const isClosed = station.status === 'closed';
 
   const [isRecalling, setIsRecalling] = useState(false);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      if (availableVoices.length > 0) {
-        setVoices(availableVoices);
-      }
-    };
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
-      loadVoices();
-    }
-
-    return () => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.onvoiceschanged = null;
-      }
-    };
-  }, []);
 
   const selectVoice = (serviceType: TicketType, allVoices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined => {
     if (allVoices.length === 0) return undefined;
@@ -81,11 +60,14 @@ export function StationControlCard({ station }: { station: Station }) {
       return;
     }
 
-    window.speechSynthesis.cancel(); // Stop any currently playing announcements
-
     try {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.voice = selectVoice(serviceType, voices);
+      const allVoices = window.speechSynthesis.getVoices();
+
+      // If voices are available, select one. Otherwise, the browser uses the default.
+      if (allVoices.length > 0) {
+        utterance.voice = selectVoice(serviceType, allVoices);
+      }
       
       utterance.onend = () => {
         onEnd?.();
@@ -100,6 +82,7 @@ export function StationControlCard({ station }: { station: Station }) {
           onEnd?.();
       };
 
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     } catch (error) {
         toast({
@@ -154,12 +137,16 @@ export function StationControlCard({ station }: { station: Station }) {
   };
 
   useEffect(() => {
+    // Pre-load voices when component mounts.
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+    }
     return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [ticket?.id]);
+  }, []);
 
 
   const completeTicket = () => {
