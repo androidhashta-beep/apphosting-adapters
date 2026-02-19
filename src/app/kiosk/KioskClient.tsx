@@ -9,7 +9,6 @@ import { Ticket as TicketIcon, User, Award } from "lucide-react";
 import type { TicketType, Ticket } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
-import { Separator } from "@/components/ui/separator";
 
 const TicketPreview = ({ type, number }: { type: TicketType, number: string }) => {
   const companyName = "Renaissance Training Center Inc.";
@@ -20,14 +19,14 @@ const TicketPreview = ({ type, number }: { type: TicketType, number: string }) =
   }, []);
 
   return (
-    <Card className="font-mono text-sm shadow-lg bg-card text-card-foreground border-dashed border-2">
+    <Card className="font-mono text-sm shadow-lg bg-white text-black border-dashed border-2 border-gray-400">
         <CardContent className="p-4 text-center">
         <h3 className="font-bold text-base uppercase">{companyName}</h3>
-        <p className="text-muted-foreground mt-4 text-xs">Your Queue Number is:</p>
+        <p className="text-gray-600 mt-4 text-xs">Your Queue Number is:</p>
         <p className="text-5xl font-bold my-2 tracking-wider">{number}</p>
         <p className="font-bold capitalize">Service: {type}</p>
-        <Separator className="my-4 border-dashed" />
-        <div className="text-xs text-muted-foreground space-y-1">
+        <hr className="my-4 border-t border-dashed border-gray-400" />
+        <div className="text-xs text-gray-600 space-y-1">
             <p>
             {now?.toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -43,7 +42,7 @@ const TicketPreview = ({ type, number }: { type: TicketType, number: string }) =
             })}
             </p>
         </div>
-        <p className="text-xs mt-3 text-muted-foreground">Please wait for your number to be called.</p>
+        <p className="text-xs mt-3 text-gray-600">Please wait for your number to be called.</p>
         </CardContent>
     </Card>
   );
