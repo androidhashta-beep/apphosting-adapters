@@ -10,45 +10,6 @@ import type { TicketType, Ticket } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 
-const TicketPreview = ({ type, number }: { type: TicketType, number: string }) => {
-  const companyName = "Renaissance Training Center Inc.";
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setNow(new Date());
-  }, []);
-
-  return (
-    <Card className="font-mono text-sm shadow-lg bg-white text-black border-dashed border-2 border-gray-400">
-        <CardContent className="p-4 text-center">
-        <h3 className="font-bold text-base uppercase">{companyName}</h3>
-        <p className="text-gray-600 mt-4 text-xs">Your Queue Number is:</p>
-        <p className="text-5xl font-bold my-2 tracking-wider">{number}</p>
-        <p className="font-bold capitalize">Service: {type}</p>
-        <hr className="my-4 border-t border-dashed border-gray-400" />
-        <div className="text-xs text-gray-600 space-y-1">
-            <p>
-            {now?.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-            })}
-            </p>
-            <p>
-            {now?.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            })}
-            </p>
-        </div>
-        <p className="text-xs mt-3 text-gray-600">Please wait for your number to be called.</p>
-        </CardContent>
-    </Card>
-  );
-};
-
-
 export function KioskClient() {
   const { dispatch, state, isHydrated } = useQueue();
   const { toast } = useToast();
@@ -137,21 +98,6 @@ export function KioskClient() {
             </div>
           </CardContent>
         </Card>
-
-        <div className="w-full max-w-5xl mt-12">
-            <div className="text-center mb-8">
-                <h3 className="text-3xl font-bold text-foreground">Ticket Layout Previews</h3>
-                <p className="text-muted-foreground mt-2">
-                    This is what your printed ticket will look like for each service type.
-                </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-                <TicketPreview type="enrollment" number="123" />
-                <TicketPreview type="payment" number="124" />
-                <TicketPreview type="certificate" number="125" />
-            </div>
-        </div>
-
       </div>
       <div className="printable-area">
         <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName="Renaissance Training Center Inc." />
