@@ -13,7 +13,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "firebase:emulators": "firebase emulators:start",
+    "firebase:emulators": "npx firebase emulators:start",
     "electron:dev": "concurrently \"npm:dev\" \"wait-on http://localhost:3000 && electron-forge start\"",
     "electron:package": "npm run build && electron-forge package",
     "electron:make": "npm run build && electron-forge make"
