@@ -21,73 +21,38 @@ export function StationControlCard({ station }: { station: Station }) {
   const [isRecalling, setIsRecalling] = useState(false);
   const { toast } = useToast();
 
-  const selectVoice = (serviceType: TicketType, allVoices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined => {
-    if (allVoices.length === 0) return undefined;
-
-    let selectedVoice: SpeechSynthesisVoice | undefined;
-
-    if (serviceType === 'enrollment') {
-        // Prefer female voices for registrar
-        selectedVoice = allVoices.find(v => v.gender === 'female') || allVoices.find(v => v.name.toLowerCase().includes('female'));
-    } else {
-        // Prefer male voices for cashier and certificate
-        selectedVoice = allVoices.find(v => v.gender === 'male') || allVoices.find(v => v.name.toLowerCase().includes('male'));
-    }
-    
-    // Fallback if a gender-specific voice wasn't found
-    if (!selectedVoice) {
-        if (serviceType !== 'enrollment') {
-          // For male, try any non-female voice as a fallback
-          selectedVoice = allVoices.find(v => v.gender !== 'female' && !v.name.toLowerCase().includes('female'));
-        }
-        // If still no voice, or for enrollment, just pick the default system voice
-        if (!selectedVoice) {
-          selectedVoice = allVoices[0];
-        }
-    }
-    return selectedVoice;
-  };
-
-
-  const playAnnouncement = (text: string, serviceType: TicketType, onEnd?: () => void) => {
-    if (!('speechSynthesis' in window)) {
-      toast({
-        variant: "destructive",
-        title: "Audio Callout Not Supported",
-        description: "Your browser does not support speech synthesis.",
-      });
-      onEnd?.();
+  const playAnnouncement = (text: string, onEnd?: () => void) => {
+    // Check for SSR and browser support
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      onEnd?.(); // Immediately call onEnd if not supported
       return;
     }
 
     try {
       const utterance = new SpeechSynthesisUtterance(text);
-      const allVoices = window.speechSynthesis.getVoices();
-
-      // If voices are available, select one. Otherwise, the browser uses the default.
-      if (allVoices.length > 0) {
-        utterance.voice = selectVoice(serviceType, allVoices);
-      }
       
       utterance.onend = () => {
         onEnd?.();
       };
       
       utterance.onerror = () => {
-          toast({
-              variant: "destructive",
-              title: "Audio Callout Failed",
-              description: "An error occurred during speech synthesis.",
-          });
-          onEnd?.();
-      };
-
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
-    } catch (error) {
+        // We show a toast, but don't console.error to avoid console noise
         toast({
             variant: "destructive",
             title: "Audio Callout Failed",
+            description: "Could not play announcement.",
+        });
+        onEnd?.();
+      };
+
+      // Cancel any ongoing speech to prevent overlap
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Audio Error",
             description: "Could not initiate speech synthesis.",
         });
         onEnd?.();
@@ -111,14 +76,16 @@ export function StationControlCard({ station }: { station: Station }) {
       return;
     }
       
+    // Dispatch immediately to update the UI without delay
     dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
 
+    // Announce after dispatching
     const ticketNumber = nextTicket.ticketNumber;
     const destination = station.name;
     const serviceType = nextTicket.type;
     const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
 
-    playAnnouncement(textToSay, serviceType);
+    playAnnouncement(textToSay);
   };
 
   const handleCallAgain = () => {
@@ -131,18 +98,15 @@ export function StationControlCard({ station }: { station: Station }) {
     const serviceType = ticket.type;
     const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
     
-    playAnnouncement(textToSay, serviceType, () => {
+    playAnnouncement(textToSay, () => {
       setIsRecalling(false);
     });
   };
 
   useEffect(() => {
-    // Pre-load voices when component mounts.
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.getVoices();
-    }
+    // Ensure speech is cancelled on component unmount
     return () => {
-      if ('speechSynthesis' in window) {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     };
