@@ -90,7 +90,7 @@ export function StationControlCard({ station }: { station: Station }) {
     
     const ticketNumber = nextTicket.ticketNumber;
     const destination = station.name;
-    const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
+    const textToSay = `Customer number ${ticketNumber} for ${ticketType}, please go to ${destination}.`;
 
     playAnnouncement(textToSay, () => {
       dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
@@ -105,7 +105,7 @@ export function StationControlCard({ station }: { station: Station }) {
     
     const ticketNumber = ticket.ticketNumber;
     const destination = station.name;
-    const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
+    const textToSay = `Customer number ${ticketNumber} for ${ticket.type}, please go to ${destination}.`;
     
     playAnnouncement(textToSay, () => {
       setIsRecalling(false);
