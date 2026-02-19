@@ -34,17 +34,13 @@ export function StationControlCard({ station }: { station: Station }) {
       return;
     }
 
+    window.speechSynthesis.cancel(); // Stop any currently playing announcements
+
     try {
-      let playCount = 0;
       const utterance = new SpeechSynthesisUtterance(text);
       
       utterance.onend = () => {
-        playCount++;
-        if (playCount < 2) {
-          window.speechSynthesis.speak(utterance);
-        } else {
-          onFinish();
-        }
+        onFinish();
       };
 
       utterance.onerror = (event) => {
