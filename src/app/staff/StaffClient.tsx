@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -6,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function StaffClient() {
-  const { state, getWaitingTickets, isHydrated } = useQueue();
+  const { state, isHydrated } = useQueue();
 
   if (!isHydrated) {
     return (
@@ -31,9 +32,9 @@ export function StaffClient() {
     )
   }
   
-  const enrollmentWaitingCount = getWaitingTickets('enrollment').length;
-  const paymentWaitingCount = getWaitingTickets('payment').length;
-  const certificateWaitingCount = getWaitingTickets('certificate').length;
+  const enrollmentWaitingCount = state.tickets.filter(t => t.type === 'enrollment' && t.status === 'waiting').length;
+  const paymentWaitingCount = state.tickets.filter(t => t.type === 'payment' && t.status === 'waiting').length;
+  const certificateWaitingCount = state.tickets.filter(t => t.type === 'certificate' && t.status === 'waiting').length;
   
   return (
     <div className="space-y-8">

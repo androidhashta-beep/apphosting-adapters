@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -13,22 +14,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
 export function StationControlCard({ station }: { station: Station }) {
-  const { dispatch, getTicketByStation, getWaitingTickets } = useQueue();
-  const ticket = getTicketByStation(station.id);
+  const { state, dispatch } = useQueue();
+
+  const currentStationState = state.stations.find(s => s.id === station.id);
+  const ticket = state.tickets.find(t => t.id === currentStationState?.currentTicketId);
+  
   const isClosed = station.status === 'closed';
 
   const { toast } = useToast();
-
-  // This effect will run when a new ticket is assigned to this station,
-  // triggering the initial announcement.
-  useEffect(() => {
-      // Announce only if there's a new ticket that was just called (within the last 3 seconds)
-      if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 3000)) {
-          announce(ticket.ticketNumber, station.name, ticket.type);
-      }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket?.id]);
-
 
   const announce = (ticketNumber: string, stationName: string, serviceType: TicketType) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
@@ -50,16 +43,20 @@ export function StationControlCard({ station }: { station: Station }) {
     window.speechSynthesis.cancel(); // Cancel any ongoing speech
     window.speechSynthesis.speak(utterance);
   };
-
+  
+  // This effect will run when a new ticket is assigned to this station,
+  // triggering the initial announcement.
+  useEffect(() => {
+      // Announce only if there's a new ticket that was just called (within the last 3 seconds)
+      if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 3000)) {
+          announce(ticket.ticketNumber, station.name, ticket.type);
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket?.id]);
 
   const handleStatusChange = (checked: boolean) => {
     const newStatus: StationStatus = checked ? 'open' : 'closed';
     dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId: station.id, status: newStatus } });
-  };
-
-  const callNext = (ticketType: TicketType) => {
-    // This action now happens immediately and is not dependent on audio.
-    dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
   };
 
   const callAgain = () => {
@@ -77,8 +74,12 @@ export function StationControlCard({ station }: { station: Station }) {
   };
 
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
-    const waitingCount = getWaitingTickets(type).length;
+    const waitingCount = state.tickets.filter(t => t.type === type && t.status === 'waiting').length;
     const isQueueEmpty = waitingCount === 0;
+
+    const callNext = (ticketType: TicketType) => {
+      dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+    };
 
     const handleClick = () => {
         if (isQueueEmpty) {

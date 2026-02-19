@@ -21,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 
 
 export function AdminClient() {
-  const { state, dispatch, getTicketByStation, isHydrated } = useQueue();
+  const { state, dispatch, isHydrated } = useQueue();
 
   const [newStationName, setNewStationName] = useState("");
   const [newStationType, setNewStationType] = useState<StationType>("enrollment");
@@ -134,7 +134,7 @@ export function AdminClient() {
                       </div>
                   ))}
                   {isHydrated && state.stations.map((station) => {
-                    const isServing = !!getTicketByStation(station.id);
+                    const isServing = !!state.stations.find(s => s.id === station.id)?.currentTicketId;
                     const isClosed = station.status === 'closed';
                     const isLastStation = state.stations.length <= 1;
                     const isDeleteDisabled = (isServing && !isClosed) || isLastStation;

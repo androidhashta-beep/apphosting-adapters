@@ -27,9 +27,6 @@ type Action =
 type QueueContextType = {
   state: State;
   dispatch: React.Dispatch<Action>;
-  getWaitingTickets: (type: TicketType) => Ticket[];
-  getServedTickets: (type: TicketType) => Ticket[];
-  getTicketByStation: (stationId: string) => Ticket | undefined;
   isHydrated: boolean;
 };
 
@@ -273,25 +270,7 @@ export const QueueProvider = ({ children }: { children: ReactNode }) => {
 
 
   const value = useMemo(() => {
-    const getWaitingTickets = (type: TicketType) => {
-      return state.tickets
-        .filter((t) => t.type === type && t.status === 'waiting')
-        .sort((a, b) => a.createdAt - b.createdAt);
-    };
-    
-    const getServedTickets = (type: TicketType) => {
-      return state.tickets
-        .filter((t) => t.type === type && (t.status === 'serving' || t.status === 'served' || t.status === 'skipped'))
-        .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0));
-    };
-  
-    const getTicketByStation = (stationId: string) => {
-        const station = state.stations.find(s => s.id === stationId);
-        if (!station || !station.currentTicketId) return undefined;
-        return state.tickets.find(t => t.id === station.currentTicketId);
-    };
-
-    return { state, dispatch, getWaitingTickets, getServedTickets, getTicketByStation, isHydrated };
+    return { state, dispatch, isHydrated };
   }, [state, isHydrated]);
 
   return (
@@ -308,5 +287,3 @@ export const useQueue = () => {
   }
   return context;
 };
-
-    

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -7,8 +8,9 @@ import type { Station } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 export function NowServingCard({ station }: { station: Station }) {
-  const { getTicketByStation } = useQueue();
-  const ticket = getTicketByStation(station.id);
+  const { state } = useQueue();
+  const currentStationState = state.stations.find(s => s.id === station.id);
+  const ticket = state.tickets.find(t => t.id === currentStationState?.currentTicketId);
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
