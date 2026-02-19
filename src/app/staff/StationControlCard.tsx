@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket as TicketIcon, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function StationControlCard({ 
@@ -22,21 +22,56 @@ export function StationControlCard({
   waitingCounts: { [key in TicketType]: number };
 }) {
   const { dispatch } = useQueue();
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  const announce = (ticketNumber: string, stationName: string, ticketType: TicketType) => {
+  // Get available voices from the browser
+  useEffect(() => {
+    const handleVoicesChanged = () => {
+        setVoices(window.speechSynthesis.getVoices());
+    };
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+        // Pre-populate voices if already available
+        if (window.speechSynthesis.getVoices().length > 0) {
+            setVoices(window.speechSynthesis.getVoices());
+        }
+        // Subscribe to the event
+        window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
+        
+        // Cleanup
+        return () => {
+            window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
+        };
+    }
+  }, []);
+
+  const announce = useCallback((ticketNumber: string, stationName: string, ticketType: TicketType) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    
+    window.speechSynthesis.cancel(); // Stop any currently speaking announcements
 
-    let text = `Customer number ${ticketNumber}, For ${ticketType} please go to ${stationName}.`;
+    const text = `Customer number ${ticketNumber}, For ${ticketType} please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
+
+    // Try to find a female English voice
+    const femaleVoice = voices.find(voice => 
+        voice.lang.startsWith('en') && 
+        /female/i.test(voice.name)
+    );
+
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
+    }
+    // If no female voice is found, it will use the browser's default voice.
+
     window.speechSynthesis.speak(utterance);
-  };
+  }, [voices]);
 
   useEffect(() => {
     if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 5000)) {
       announce(ticket.ticketNumber, station.name, ticket.type);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket?.id, ticket?.calledAt]);
+  }, [ticket?.id, ticket?.calledAt, announce]);
 
   if (!station) {
     return <Skeleton className="h-[480px] rounded-lg" />;
