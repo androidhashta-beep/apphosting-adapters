@@ -60,7 +60,7 @@ export function DisplayClient() {
                     "grid grid-cols-3 items-center text-center p-3 rounded-lg text-2xl font-bold transition-all",
                     {
                       "bg-destructive text-destructive-foreground": ticket.status === 'serving',
-                      "animate-pulse": ticket.status === 'serving' && index === 0,
+                      "animate-pulse": ticket.status === 'serving',
                       "bg-card border border-gold": ticket.status === 'served',
                       "bg-muted text-muted-foreground opacity-60 line-through": ticket.status === 'skipped',
                     }
