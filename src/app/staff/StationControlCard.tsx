@@ -12,14 +12,19 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
-// Use a more specific prop name to avoid confusion with the live state object.
-export function StationControlCard({ station: initialStation }: { station: Station }) {
+// The component now only needs the station's ID to fetch its own data.
+export function StationControlCard({ stationId }: { stationId: string }) {
   const { state, dispatch } = useQueue();
   const { toast } = useToast();
 
-  // Always use the station object from the central state for dynamic data.
-  // This ensures the component re-renders with the latest status, mode, etc.
-  const station = state.stations.find(s => s.id === initialStation.id) || initialStation;
+  // Fetch the latest station data directly from the central state.
+  // This prevents issues with stale props.
+  const station = state.stations.find(s => s.id === stationId);
+
+  // If the station doesn't exist (e.g., deleted), don't render the card.
+  if (!station) {
+    return null;
+  }
   
   const ticket = state.tickets.find(t => t.id === station.currentTicketId);
   const isClosed = station.status === 'closed';
@@ -28,22 +33,18 @@ export function StationControlCard({ station: initialStation }: { station: Stati
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     const text = `Ticket number ${ticketNumber}, please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.cancel();
+    // We don't want to get into complex voice selection. Just speak.
+    window.speechSynthesis.cancel(); 
     window.speechSynthesis.speak(utterance);
   };
   
   // This effect triggers the announcement when a new ticket is assigned to this station.
   useEffect(() => {
-      if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 3000)) {
+      if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 5000)) {
           announce(ticket.ticketNumber, station.name);
       }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket?.id]);
-
-  const handleStatusChange = (checked: boolean) => {
-    const newStatus: StationStatus = checked ? 'open' : 'closed';
-    dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId: station.id, status: newStatus } });
-  };
+  }, [ticket?.id]); // Only re-run when the ticket ID changes.
 
   const callAgain = () => {
     if (ticket) {
@@ -64,8 +65,6 @@ export function StationControlCard({ station: initialStation }: { station: Stati
   };
 
   const callNext = (ticketType: TicketType) => {
-    // This is the single source of truth for calling the next ticket.
-    // The button's disabled state prevents this from being called with an empty queue.
     dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
   };
 
@@ -73,8 +72,6 @@ export function StationControlCard({ station: initialStation }: { station: Stati
     const waitingCount = state.tickets.filter(t => t.type === type && t.status === 'waiting').length;
     const isQueueEmpty = waitingCount === 0;
 
-    // The button is disabled if the station is closed or the specific queue is empty.
-    // The onClick now directly calls `callNext`.
     return (
         <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isClosed || isQueueEmpty}>
             <div className="flex items-center gap-2">
@@ -95,7 +92,10 @@ export function StationControlCard({ station: initialStation }: { station: Stati
             <Switch
               id={`status-${station.id}`}
               checked={!isClosed}
-              onCheckedChange={handleStatusChange}
+              onCheckedChange={(checked) => {
+                const newStatus: StationStatus = checked ? 'open' : 'closed';
+                dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId: station.id, status: newStatus } });
+              }}
               aria-label={`Toggle station ${station.name}`}
             />
             <Label htmlFor={`status-${station.id}`}>{isClosed ? "Closed" : "Open"}</Label>
@@ -143,7 +143,9 @@ export function StationControlCard({ station: initialStation }: { station: Stati
                   return getCallButton('certificate', 'Call Certificate', <Award />);
                 case 'regular':
                 default:
-                  return getCallButton(station.type, `Call Next ${station.type}`, <Megaphone />);
+                  // Make label more readable
+                  const typeLabel = station.type.charAt(0).toUpperCase() + station.type.slice(1);
+                  return getCallButton(station.type, `Call Next ${typeLabel}`, <Megaphone />);
               }
             })()}
             {!isClosed && (
