@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/lib/icons";
-import { useCollection, useFirebase, updateDocumentNonBlocking, useDoc } from "@/firebase";
+import { useCollection, useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, doc, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
 
 export function StationControlCard({ 
@@ -24,9 +24,8 @@ export function StationControlCard({
   waitingCounts: { [key: string]: number };
 }) {
   const { firestore } = useFirebase();
-  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(
-    firestore ? doc(firestore, "settings", "app") : null
-  );
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   

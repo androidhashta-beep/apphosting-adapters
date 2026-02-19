@@ -7,19 +7,18 @@ import type { Ticket, Service, Settings } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
-import { useCollection, useDoc, useFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, getDocs, Timestamp, orderBy, limit } from "firebase/firestore";
+import { useCollection, useDoc, useFirebase, addDocumentNonBlocking, useMemoFirebase } from "@/firebase";
+import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc } from "firebase/firestore";
 
 export function KioskClient() {
   const { firestore } = useFirebase();
-  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(
-    firestore ? collection(firestore, "settings").doc("app") : null
-  );
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
   
-  const ticketsCollection = firestore ? collection(firestore, 'tickets') : null;
+  const ticketsCollection = useMemoFirebase(() => (firestore ? collection(firestore, 'tickets') : null), [firestore]);
   const {data: tickets, isLoading: isLoadingTickets} = useCollection<Ticket>(ticketsCollection);
 
 

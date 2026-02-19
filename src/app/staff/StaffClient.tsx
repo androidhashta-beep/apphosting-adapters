@@ -4,19 +4,19 @@ import { StationControlCard } from "./StationControlCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Ticket, Settings, Station } from "@/lib/types";
-import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { useCollection, useFirebase, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, query, where, doc } from "firebase/firestore";
 
 export function StaffClient() {
   const { firestore } = useFirebase();
 
-  const settingsRef = useMemoFirebase(() => firestore ? collection(firestore, "settings").doc("app") : null, [firestore]);
-  const { data: settings, isLoading: isLoadingSettings } = useCollection<Settings>(settingsRef);
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   
-  const stationsRef = useMemoFirebase(() => firestore ? collection(firestore, "stations") : null, [firestore]);
+  const stationsRef = useMemoFirebase(() => (firestore ? collection(firestore, "stations") : null), [firestore]);
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsRef);
 
-  const ticketsRef = useMemoFirebase(() => firestore ? collection(firestore, "tickets") : null, [firestore]);
+  const ticketsRef = useMemoFirebase(() => (firestore ? collection(firestore, "tickets") : null), [firestore]);
   const { data: tickets, isLoading: isLoadingTickets } = useCollection<Ticket>(ticketsRef);
 
   const getWaitingCount = (type: string): number => {
@@ -24,7 +24,7 @@ export function StaffClient() {
     return tickets.filter(t => t.type === type && t.status === 'waiting').length;
   };
 
-  const waitingCounts = settings?.[0]?.services.reduce((acc, service) => {
+  const waitingCounts = settings?.services.reduce((acc, service) => {
     acc[service.id] = getWaitingCount(service.id);
     return acc;
   }, {} as { [key: string]: number }) || {};
@@ -57,7 +57,7 @@ export function StaffClient() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {settings?.[0]?.services.map(service => (
+        {settings?.services.map(service => (
           <Card key={service.id}>
             <CardHeader>
               <CardTitle>{service.label} Queue</CardTitle>
