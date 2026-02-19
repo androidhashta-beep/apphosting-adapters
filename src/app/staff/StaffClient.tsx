@@ -19,7 +19,7 @@ export function StaffClient() {
               <CardContent>
                 <Skeleton className="h-10 w-1/4" />
                 <Skeleton className="h-4 w-1/2 mt-2" />
-              </Content>
+              </CardContent>
             </Card>
           ))}
         </div>
