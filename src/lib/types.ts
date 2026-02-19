@@ -25,3 +25,9 @@ export type Station = {
   mode: StationMode;
   currentTicketId?: string | null;
 };
+
+export type State = {
+  tickets: Ticket[];
+  stations: Station[];
+  lastTicketTimestamp: number | null;
+};

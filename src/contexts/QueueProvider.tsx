@@ -2,14 +2,8 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, ReactNode, useMemo, useEffect, useState, useCallback } from 'react';
-import type { Station, Ticket, TicketType, StationStatus, StationMode, StationType as IStationType } from '@/lib/types';
+import type { Station, Ticket, TicketType, StationStatus, StationMode, StationType as IStationType, State } from '@/lib/types';
 import { initialStations } from '@/lib/data';
-
-type State = {
-  tickets: Ticket[];
-  stations: Station[];
-  lastTicketTimestamp: number | null;
-};
 
 type Action =
   | { type: 'ADD_TICKET'; payload: { type: TicketType } }
@@ -21,7 +15,8 @@ type Action =
   | { type: 'ADD_STATION'; payload: { name: string; type: IStationType } }
   | { type: 'REMOVE_STATION'; payload: { stationId: string } }
   | { type: 'HYDRATE_STATE', payload: Partial<State> }
-  | { type: 'RESET_STATE' };
+  | { type: 'RESET_STATE' }
+  | { type: 'RESTORE_FROM_BACKUP', payload: State };
 
 
 type QueueContextType = {
@@ -203,6 +198,9 @@ const queueReducer = (state: State, action: Action): State => {
             ...initialState,
             ...action.payload,
         };
+
+    case 'RESTORE_FROM_BACKUP':
+        return action.payload;
 
     case 'RESET_STATE': {
       if (typeof window !== 'undefined') {

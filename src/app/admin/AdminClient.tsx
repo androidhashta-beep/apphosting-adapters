@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useQueue } from "@/contexts/QueueProvider";
-import type { StationMode, StationType, StationStatus } from "@/lib/types";
+import type { StationMode, StationType, StationStatus, State } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, RefreshCw, ArrowLeft } from "lucide-react";
+import { Trash2, RefreshCw, ArrowLeft, Download, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -22,12 +22,17 @@ import { Switch } from "@/components/ui/switch";
 
 export function AdminClient() {
   const { state, dispatch, isHydrated } = useQueue();
+  const { toast } = useToast();
 
   const [newStationName, setNewStationName] = useState("");
   const [newStationType, setNewStationType] = useState<StationType>("enrollment");
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
   const [isRestoreConfirmOpen, setIsRestoreConfirmOpen] = useState(false);
-  const { toast } = useToast();
+  
+  // For Backup & Restore
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isRestoreBackupConfirmOpen, setIsRestoreBackupConfirmOpen] = useState(false);
+  const [pendingState, setPendingState] = useState<State | null>(null);
 
   const handleModeChange = (stationId: string, mode: StationMode) => {
     dispatch({ type: 'UPDATE_STATION_MODE', payload: { stationId, mode } });
@@ -56,6 +61,83 @@ export function AdminClient() {
   const handleConfirmRestore = () => {
     dispatch({ type: 'RESET_STATE' });
     setIsRestoreConfirmOpen(false);
+  };
+
+  const handleBackup = () => {
+    try {
+        const stateJSON = JSON.stringify(state, null, 2);
+        const blob = new Blob([stateJSON], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const date = new Date().toISOString().split('T')[0];
+        a.download = `queue-backup-${date}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({
+            title: "Backup Successful",
+            description: "Your queue data has been saved to a file.",
+        });
+    } catch (error) {
+        console.error("Backup failed", error);
+        toast({
+            variant: "destructive",
+            title: "Backup Failed",
+            description: "Could not create backup file.",
+        });
+    }
+  };
+
+  const handleRestoreClick = () => {
+      fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const text = e.target?.result;
+              if (typeof text !== 'string') {
+                  throw new Error("File is not a valid text file.");
+              }
+              const restoredState = JSON.parse(text);
+
+              if (restoredState && Array.isArray(restoredState.tickets) && Array.isArray(restoredState.stations)) {
+                  setPendingState(restoredState);
+                  setIsRestoreBackupConfirmOpen(true);
+              } else {
+                  throw new Error("Invalid backup file format.");
+              }
+          } catch (error: any) {
+              toast({
+                  variant: "destructive",
+                  title: "Restore Failed",
+                  description: error.message || "The selected file is not a valid backup.",
+              });
+          } finally {
+              if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+              }
+          }
+      };
+      reader.readAsText(file);
+  };
+
+  const confirmRestoreFromBackup = () => {
+      if (pendingState) {
+          dispatch({ type: 'RESTORE_FROM_BACKUP', payload: pendingState });
+          toast({
+              title: "Restore Successful",
+              description: "The queue data has been restored from the backup file.",
+          });
+      }
+      setIsRestoreBackupConfirmOpen(false);
+      setPendingState(null);
   };
 
 
@@ -121,6 +203,34 @@ export function AdminClient() {
                     </CardContent>
                 </Card>
                 <CarouselSettings />
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Backup &amp; Restore</CardTitle>
+                        <CardDescription>Save and load all queue data to or from a file.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Button onClick={handleBackup} variant="outline" className="w-full" disabled={!isHydrated}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Backup Queue Data
+                        </Button>
+                        <Button onClick={handleRestoreClick} variant="outline" className="w-full" disabled={!isHydrated}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Restore Queue Data
+                        </Button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            className="hidden"
+                            accept="application/json"
+                        />
+                    </CardContent>
+                    <CardFooter>
+                        <p className="text-xs text-muted-foreground">
+                            This is useful for moving data between computers or creating a manual save point.
+                        </p>
+                    </CardFooter>
+                </Card>
             </div>
             <Card>
                 <CardHeader>
@@ -239,6 +349,20 @@ export function AdminClient() {
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleConfirmRestore} className="bg-destructive hover:bg-destructive/90">Restore</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+       <AlertDialog open={isRestoreBackupConfirmOpen} onOpenChange={setIsRestoreBackupConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will overwrite all current tickets and station configurations with the data from the backup file. This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => { setPendingState(null); setIsRestoreBackupConfirmOpen(false); }}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmRestoreFromBackup}>Restore Backup</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
