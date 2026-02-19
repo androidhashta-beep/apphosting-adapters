@@ -58,7 +58,8 @@ export default function RoleSelectorPage() {
             localStorage.setItem(APP_ROLE_KEY, 'staff');
             router.replace('/staff');
         }
-    }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleRoleSelect = (role: Role) => {
         localStorage.setItem(APP_ROLE_KEY, role);
