@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
-import type { StationStatus, TicketType } from "@/lib/types";
+import type { Station, StationStatus, TicketType, Ticket } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -9,42 +9,40 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket as TicketIcon, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function StationControlCard({ stationId }: { stationId: string }) {
-  const { state, dispatch } = useQueue();
-  const { toast } = useToast();
-
-  const station = state.stations.find(s => s.id === stationId);
-  const { tickets } = state;
-
-  // Effect for announcements
-  useEffect(() => {
-    if (station?.currentTicketId) {
-      const currentTicket = tickets.find(t => t.id === station.currentTicketId);
-      if (currentTicket && currentTicket.status === 'serving' && currentTicket.calledAt && (Date.now() - currentTicket.calledAt < 5000)) {
-        announce(currentTicket.ticketNumber, station.name);
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [station?.currentTicketId]); // Re-run only when the ticket ID on this station changes
-
-  if (!station) {
-    return <Skeleton className="h-[480px] rounded-lg" />;
-  }
-  
-  const ticket = tickets.find(t => t.id === station.currentTicketId);
-  const isClosed = station.status === 'closed';
+export function StationControlCard({ 
+  station,
+  ticket,
+  waitingCounts
+}: { 
+  station: Station;
+  ticket: Ticket | undefined;
+  waitingCounts: { [key in TicketType]: number };
+}) {
+  const { dispatch } = useQueue();
 
   const announce = (ticketNumber: string, stationName: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     const text = `Ticket number ${ticketNumber}, please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel(); // Clear any previous announcements
     window.speechSynthesis.speak(utterance);
   };
+
+  useEffect(() => {
+    if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 5000)) {
+      announce(ticket.ticketNumber, station.name);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket?.id, ticket?.calledAt]);
+
+  if (!station) {
+    return <Skeleton className="h-[480px] rounded-lg" />;
+  }
+  
+  const isClosed = station.status === 'closed';
 
   const callAgain = () => {
     if (ticket) {
@@ -69,7 +67,7 @@ export function StationControlCard({ stationId }: { stationId: string }) {
   };
 
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
-    const waitingCount = tickets.filter(t => t.type === type && t.status === 'waiting').length;
+    const waitingCount = waitingCounts[type] || 0;
     const isQueueEmpty = waitingCount === 0;
 
     return (
