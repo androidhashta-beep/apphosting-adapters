@@ -39,8 +39,11 @@ export function getSdks(firebaseApp: FirebaseApp) {
   const auth = getAuth(firebaseApp);
   const firestore = getFirestore(firebaseApp);
 
-  if (process.env.NEXT_PUBLIC_USE_EMULATOR === 'true' && !emulatorsConnected) {
-    const host = process.env.NEXT_PUBLIC_EMULATOR_HOST || 'localhost';
+  // If the emulator host is set, connect to the emulators.
+  // This is used for local, offline development.
+  const host = process.env.NEXT_PUBLIC_EMULATOR_HOST;
+
+  if (host && !emulatorsConnected) {
     const firestorePort = parseInt(process.env.NEXT_PUBLIC_FIRESTORE_PORT || '8080', 10);
     const authPort = parseInt(process.env.NEXT_PUBLIC_AUTH_PORT || '9099', 10);
 
