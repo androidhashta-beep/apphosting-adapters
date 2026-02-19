@@ -3,170 +3,26 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * Core Philosophy:
-     * This ruleset implements a role-based access control (RBAC) model combined with
-     * resource-specific operational control. It is designed for a public-facing
-     * queuing system with three primary user types:
-     * 1. Public/Anonymous Users: Can view queue data and create tickets.
-     * 2. Staff: Can manage the operational state of assigned service stations and
-     *    the tickets they are serving.
-     * 3. Admins: Can configure the fundamental system entities like queue types
-     *    and stations.
+     * Development/Local Network Rules:
+     * These rules are simplified for local network operation where user authentication
+     * is not required. It allows any device on the network to read from and write
+     * to the database.
      *
-     * Data Structure:
-     * The data is organized into a flat structure with top-level collections for
-     * `queue_types`, `queue_stations`, and `queue_tickets`. This optimizes for
-     * diverse query patterns required by public display screens, staff interfaces,
-     * and administrative panels. Roles are defined in dedicated collections
-     * (`roles_admin`, `staff_assignments`) but are not directly accessible by clients.
-     *
-     * Key Security Decisions:
-     * - Public Read-Access: Core data collections (`queue_types`, `queue_stations`,
-     *   `queue_tickets`) are publicly readable to support real-time displays.
-     * - Write Control: All write operations are strictly controlled. Ticket creation is
-     *   open but validated, while updates are restricted to authorized staff. System
-     *   configuration is restricted to administrators.
-     * - Role Secrecy: To prevent user enumeration, the `roles_admin` and
-     *   `staff_assignments` collections are made inaccessible to all client-side
-     *   requests. Authorization checks use server-side `exists()` calls.
-     *
-     * Denormalization for Authorization:
-     * To ensure fast and secure operational control, the `QueueStation` document
-     * contains a `currentOperatorUid` field. This denormalized field allows rules
-     * to instantly verify if a staff member is authorized to update that station or
-     * its associated tickets, avoiding slow and complex cross-collection lookups
-     * for most operational tasks.
+     * WARNING: These rules are insecure and should NOT be used in a production
+     * environment with internet access. For production, you must implement
+     * proper user authentication and role-based access control.
      */
 
-    // --------------------------------------------------------------------------
-    // Helper Functions
-    // --------------------------------------------------------------------------
-
-    /**
-     * Checks if a user is authenticated.
-     */
-    function isSignedIn() {
-      return request.auth != null;
+    match /settings/{settingId} {
+      allow read, write: if true;
     }
 
-    /**
-     * Checks if the currently authenticated user has administrative privileges.
-     * This is determined by the existence of a document in the /roles_admin collection
-     * where the document ID matches the user's UID.
-     */
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    match /stations/{stationId} {
+      allow read, write: if true;
     }
 
-    /**
-     * Checks if the currently authenticated user is the designated operator of a
-     * specific queue station.
-     * This is the primary mechanism for authorizing staff operational actions.
-     * @param stationId The ID of the queue station to check.
-     */
-    function isStationOperator(stationId) {
-      let stationData = get(/databases/$(database)/documents/queue_stations/$(stationId)).data;
-      return isSignedIn() && stationData.currentOperatorUid == request.auth.uid;
-    }
-
-    /**
-     * Validates the initial state of a newly created queue ticket.
-     * Ensures that a user cannot create a ticket that is already in an advanced
-     * state (e.g., 'Called'), assigned to a station, or has a non-zero call count.
-     */
-    function hasValidInitialTicketData() {
-      let data = request.resource.data;
-      return data.status == 'Waiting'
-          && !('callingStationId' in data)
-          && data.calledCount == 0;
-    }
-
-    // --------------------------------------------------------------------------
-    // Collection Rules
-    // --------------------------------------------------------------------------
-
-    /**
-     * @description Defines different types of queues. Publicly readable for all users and
-     *              displays, but writable only by administrators.
-     * @path /queue_types/{queueTypeId}
-     * @allow (get) Any user, signed-in or not, can read a queue type definition.
-     * @deny (create) A non-administrative user attempts to create a new queue type.
-     * @principle Public Read with Admin-Only Writes.
-     */
-    match /queue_types/{queueTypeId} {
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin() && resource != null;
-      allow delete: if isAdmin() && resource != null;
-    }
-
-    /**
-     * @description Represents physical service stations. Publicly readable for displays.
-     *              Admins can configure stations, while assigned staff (operators)
-     *              can update their operational status.
-     * @path /queue_stations/{stationId}
-     * @allow (update) An authenticated user whose UID matches the station's `currentOperatorUid`
-     *                 updates its `operationalStatus`.
-     * @deny (update) A staff member tries to update a station they are not currently assigned to as the operator.
-     * @principle Hybrid access: Public Read, with writes split between Admins (configuration)
-     *            and denormalized owners (operations).
-     */
-    match /queue_stations/{stationId} {
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if resource != null && (isAdmin() || request.auth.uid == resource.data.currentOperatorUid);
-      allow delete: if resource != null && isAdmin();
-    }
-
-    /**
-     * @description Individual queue tickets. Publicly readable for displays. Anyone can
-     *              create a new ticket. Updates (like calling or serving a ticket)
-     *              are restricted to the operator of the assigned station.
-     * @path /queue_tickets/{ticketId}
-     * @allow (create) Any anonymous or authenticated user can create a new ticket.
-     * @allow (update) A staff member updates a ticket's status to 'Called', setting the
-     *                 `callingStationId` to the station they operate.
-     * @deny (update) A staff member attempts to modify a ticket that is assigned to a different station.
-     * @principle Public Read with Relational Authorization for writes. Ticket updates
-     *            are authorized via a `get()` call to the related QueueStation.
-     */
-    match /queue_tickets/{ticketId} {
-      allow get, list: if true;
-      allow create: if hasValidInitialTicketData();
-      allow update: if resource != null && isStationOperator(request.resource.data.callingStationId);
-      allow delete: if false;
-    }
-
-    /**
-     * @description Defines which users are administrators. This collection is for
-     *              server-side checks only and must not be exposed to clients.
-     * @path /roles_admin/{adminUid}
-     * @allow (N/A) No operations are permitted from the client.
-     * @deny (get) Any user attempts to read or list documents to prevent user enumeration.
-     * @principle Secure by default. Prevents any client-side read or write to protect role information.
-     */
-    match /roles_admin/{adminUid} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    /**
-     * @description Defines which users are staff members. This collection is for
-     *              server-side checks only and must not be exposed to clients.
-     * @path /staff_assignments/{staffUid}
-     * @allow (N/A) No operations are permitted from the client.
-     * @deny (list) Any user attempts to list all staff members.
-     * @principle Secure by default. Prevents any client-side read or write to protect role information.
-     */
-    match /staff_assignments/{staffUid} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+    match /tickets/{ticketId} {
+      allow read, write: if true;
     }
   }
 }
