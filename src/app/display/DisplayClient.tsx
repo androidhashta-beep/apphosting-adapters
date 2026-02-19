@@ -58,10 +58,12 @@ export function DisplayClient() {
                   key={ticket.id} 
                   className={cn(
                     "grid grid-cols-3 items-center text-center p-3 rounded-lg text-2xl font-bold transition-all",
-                    index === 0 && ticket.status !== 'skipped'
-                        ? "bg-destructive text-destructive-foreground animate-pulse" 
-                        : "bg-card border",
-                    ticket.status === 'skipped' && "bg-muted text-muted-foreground opacity-60 line-through"
+                    {
+                      "bg-destructive text-destructive-foreground": ticket.status === 'serving',
+                      "animate-pulse": ticket.status === 'serving' && index === 0,
+                      "bg-card border": ticket.status === 'served',
+                      "bg-muted text-muted-foreground opacity-60 line-through": ticket.status === 'skipped',
+                    }
                   )}
                 >
                   <div>{ticket.ticketNumber}</div>
