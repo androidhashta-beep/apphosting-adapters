@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode, useMemo, useEffect, useState } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useMemo, useEffect, useState, useCallback } from 'react';
 import type { Station, Ticket, TicketType, StationStatus, StationMode, StationType as IStationType } from '@/lib/types';
 import { initialStations } from '@/lib/data';
 
@@ -272,25 +272,25 @@ export const QueueProvider = ({ children }: { children: ReactNode }) => {
   }, [state, isHydrated]);
 
 
-  const getWaitingTickets = (type: TicketType) => {
+  const getWaitingTickets = useCallback((type: TicketType) => {
     return state.tickets
       .filter((t) => t.type === type && t.status === 'waiting')
       .sort((a, b) => a.createdAt - b.createdAt);
-  };
+  }, [state.tickets]);
   
-  const getServedTickets = (type: TicketType) => {
+  const getServedTickets = useCallback((type: TicketType) => {
     return state.tickets
       .filter((t) => t.type === type && (t.status === 'serving' || t.status === 'served' || t.status === 'skipped'))
       .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0));
-  }
+  }, [state.tickets]);
 
-  const getTicketByStation = (stationId: string) => {
+  const getTicketByStation = useCallback((stationId: string) => {
       const station = state.stations.find(s => s.id === stationId);
       if (!station || !station.currentTicketId) return undefined;
       return state.tickets.find(t => t.id === station.currentTicketId);
-  }
+  }, [state.stations, state.tickets]);
 
-  const value = useMemo(() => ({ state, dispatch, getWaitingTickets, getServedTickets, getTicketByStation, isHydrated }), [state, isHydrated]);
+  const value = useMemo(() => ({ state, dispatch, getWaitingTickets, getServedTickets, getTicketByStation, isHydrated }), [state, isHydrated, getWaitingTickets, getServedTickets, getTicketByStation]);
 
   return (
     <QueueContext.Provider value={value}>
@@ -306,3 +306,5 @@ export const useQueue = () => {
   }
   return context;
 };
+
+    
