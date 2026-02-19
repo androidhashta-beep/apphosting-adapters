@@ -2,8 +2,8 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
@@ -32,11 +32,30 @@ export function initializeFirebase() {
   return getSdks(getApp());
 }
 
+// Flag to ensure emulators are connected only once.
+let emulatorsConnected = false;
+
 export function getSdks(firebaseApp: FirebaseApp) {
+  const auth = getAuth(firebaseApp);
+  const firestore = getFirestore(firebaseApp);
+
+  if (process.env.NEXT_PUBLIC_USE_EMULATOR === 'true' && !emulatorsConnected) {
+    const host = process.env.NEXT_PUBLIC_EMULATOR_HOST || 'localhost';
+    const firestorePort = parseInt(process.env.NEXT_PUBLIC_FIRESTORE_PORT || '8080', 10);
+    const authPort = parseInt(process.env.NEXT_PUBLIC_AUTH_PORT || '9099', 10);
+
+    console.log(`[Firebase] Connecting to emulators on ${host}:${firestorePort}`);
+    
+    connectFirestoreEmulator(firestore, host, firestorePort);
+    connectAuthEmulator(auth, `http://${host}:${authPort}`);
+    
+    emulatorsConnected = true;
+  }
+
   return {
     firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    auth,
+    firestore
   };
 }
 
