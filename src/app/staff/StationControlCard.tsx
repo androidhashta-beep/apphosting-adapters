@@ -23,17 +23,17 @@ export function StationControlCard({
 }) {
   const { dispatch } = useQueue();
 
-  const announce = (ticketNumber: string, stationName: string) => {
+  const announce = (ticketNumber: string, stationName: string, ticketType: TicketType) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const text = `Ticket number ${ticketNumber}, please go to ${stationName}.`;
+
+    let text = `Customer number ${ticketNumber}, For ${ticketType} please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.cancel(); // Clear any previous announcements
     window.speechSynthesis.speak(utterance);
   };
 
   useEffect(() => {
     if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 5000)) {
-      announce(ticket.ticketNumber, station.name);
+      announce(ticket.ticketNumber, station.name, ticket.type);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket?.id, ticket?.calledAt]);
@@ -46,7 +46,7 @@ export function StationControlCard({
 
   const callAgain = () => {
     if (ticket) {
-      announce(ticket.ticketNumber, station.name);
+      announce(ticket.ticketNumber, station.name, ticket.type);
     }
   };
 
@@ -69,9 +69,12 @@ export function StationControlCard({
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
     const waitingCount = waitingCounts[type] || 0;
     const isQueueEmpty = waitingCount === 0;
+    
+    // This button should be enabled if the station is open AND the queue is not empty
+    const isDisabled = isClosed || isQueueEmpty;
 
     return (
-        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isClosed || isQueueEmpty}>
+        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isDisabled}>
             <div className="flex items-center gap-2">
                 {icon}
                 <span>{label}</span>
