@@ -53,6 +53,7 @@ export function AdminClient() {
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
+    sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
   };
 

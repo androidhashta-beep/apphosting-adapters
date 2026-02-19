@@ -9,6 +9,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
+    sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
   };
 

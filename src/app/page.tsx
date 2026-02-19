@@ -43,11 +43,20 @@ export default function RoleSelectorPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        const shouldShowSelector = sessionStorage.getItem('force-role-selection');
+        if (shouldShowSelector) {
+            sessionStorage.removeItem('force-role-selection');
+            setIsLoading(false); // Show the selector
+            return;
+        }
+
         const savedRole = localStorage.getItem(APP_ROLE_KEY);
         if (savedRole && roles.some(r => r.id === savedRole)) {
             router.replace(`/${savedRole}`);
         } else {
-            setIsLoading(false);
+            // If no role is saved, default to staff dashboard.
+            localStorage.setItem(APP_ROLE_KEY, 'staff');
+            router.replace('/staff');
         }
     }, [router]);
 
