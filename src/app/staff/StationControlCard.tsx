@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket } from "lucide-react";
+import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-
+import { useEffect } from "react";
 
 export function StationControlCard({ station }: { station: Station }) {
   const { dispatch, getTicketByStation, getWaitingTickets } = useQueue();
@@ -19,25 +19,53 @@ export function StationControlCard({ station }: { station: Station }) {
 
   const { toast } = useToast();
 
+  // This effect will run when a new ticket is assigned to this station,
+  // triggering the initial announcement.
+  useEffect(() => {
+      // Announce only if there's a new ticket that was just called (within the last 3 seconds)
+      if (ticket && ticket.status === 'serving' && ticket.calledAt && (Date.now() - ticket.calledAt < 3000)) {
+          announce(ticket.ticketNumber, station.name, ticket.type);
+      }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket?.id]);
+
+
+  const announce = (ticketNumber: string, stationName: string, serviceType: TicketType) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+        console.warn("Speech synthesis not supported.");
+        return;
+    }
+
+    const text = `Customer number ${ticketNumber} for ${serviceType}, please go to ${stationName}.`;
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    utterance.onerror = () => {
+        toast({
+            variant: "destructive",
+            title: "Audio Callout Failed",
+            description: "The text-to-speech engine could not play the announcement.",
+        });
+    };
+
+    window.speechSynthesis.cancel(); // Cancel any ongoing speech
+    window.speechSynthesis.speak(utterance);
+  };
+
+
   const handleStatusChange = (checked: boolean) => {
     const newStatus: StationStatus = checked ? 'open' : 'closed';
     dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId: station.id, status: newStatus } });
   };
 
   const callNext = (ticketType: TicketType) => {
-    const waitingTickets = getWaitingTickets(ticketType);
-    if (waitingTickets.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "No Tickets Waiting",
-        description: `There are no students in the ${ticketType} queue.`,
-      });
-      return;
-    }
-    
-    // Dispatch immediately to update the UI without delay.
-    // The audio announcement has been removed to guarantee stability.
+    // This action now happens immediately and is not dependent on audio.
     dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+  };
+
+  const callAgain = () => {
+    if (ticket) {
+      announce(ticket.ticketNumber, station.name, ticket.type);
+    }
   };
 
   const completeTicket = () => {
@@ -50,8 +78,22 @@ export function StationControlCard({ station }: { station: Station }) {
 
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
     const waitingCount = getWaitingTickets(type).length;
+    const isQueueEmpty = waitingCount === 0;
+
+    const handleClick = () => {
+        if (isQueueEmpty) {
+            toast({
+                variant: "destructive",
+                title: "No Tickets Waiting",
+                description: `There are no students in the ${type} queue.`,
+            });
+            return;
+        }
+        callNext(type);
+    }
+
     return (
-        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isClosed || waitingCount === 0}>
+        <Button onClick={handleClick} className="w-full justify-between" disabled={isClosed || isQueueEmpty}>
             <div className="flex items-center gap-2">
                 {icon}
                 <span>{label}</span>
@@ -90,6 +132,9 @@ export function StationControlCard({ station }: { station: Station }) {
         <Separator className="mb-2" />
         {ticket ? (
           <>
+            <Button onClick={callAgain} variant="secondary" className="w-full">
+              <Volume2 /> Call Again
+            </Button>
             <Button onClick={completeTicket} className="w-full bg-green-600 hover:bg-green-700">
               <Check /> Complete Service
             </Button>
