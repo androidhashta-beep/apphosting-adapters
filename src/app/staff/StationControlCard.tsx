@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Volume2, Check, SkipForward, Ban, Loader2, Award, User, Ticket } from "lucide-react";
+import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -18,46 +17,7 @@ export function StationControlCard({ station }: { station: Station }) {
   const ticket = getTicketByStation(station.id);
   const isClosed = station.status === 'closed';
 
-  const [isRecalling, setIsRecalling] = useState(false);
   const { toast } = useToast();
-
-  const playAnnouncement = (text: string, onEnd?: () => void) => {
-    // Check for SSR and browser support
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      onEnd?.(); // Immediately call onEnd if not supported
-      return;
-    }
-
-    try {
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      utterance.onend = () => {
-        onEnd?.();
-      };
-      
-      utterance.onerror = () => {
-        // We show a toast, but don't console.error to avoid console noise
-        toast({
-            variant: "destructive",
-            title: "Audio Callout Failed",
-            description: "Could not play announcement.",
-        });
-        onEnd?.();
-      };
-
-      // Cancel any ongoing speech to prevent overlap
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(utterance);
-
-    } catch (error) {
-        toast({
-            variant: "destructive",
-            title: "Audio Error",
-            description: "Could not initiate speech synthesis.",
-        });
-        onEnd?.();
-    }
-  };
 
   const handleStatusChange = (checked: boolean) => {
     const newStatus: StationStatus = checked ? 'open' : 'closed';
@@ -66,8 +26,7 @@ export function StationControlCard({ station }: { station: Station }) {
 
   const callNext = (ticketType: TicketType) => {
     const waitingTickets = getWaitingTickets(ticketType);
-    const nextTicket = waitingTickets[0];
-    if (!nextTicket) {
+    if (waitingTickets.length === 0) {
       toast({
         variant: "destructive",
         title: "No Tickets Waiting",
@@ -75,43 +34,11 @@ export function StationControlCard({ station }: { station: Station }) {
       });
       return;
     }
-      
-    // Dispatch immediately to update the UI without delay
+    
+    // Dispatch immediately to update the UI without delay.
+    // The audio announcement has been removed to guarantee stability.
     dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
-
-    // Announce after dispatching
-    const ticketNumber = nextTicket.ticketNumber;
-    const destination = station.name;
-    const serviceType = nextTicket.type;
-    const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
-
-    playAnnouncement(textToSay);
   };
-
-  const handleCallAgain = () => {
-    if (!ticket) return;
-
-    setIsRecalling(true);
-    
-    const ticketNumber = ticket.ticketNumber;
-    const destination = station.name;
-    const serviceType = ticket.type;
-    const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
-    
-    playAnnouncement(textToSay, () => {
-      setIsRecalling(false);
-    });
-  };
-
-  useEffect(() => {
-    // Ensure speech is cancelled on component unmount
-    return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
 
   const completeTicket = () => {
     dispatch({ type: 'COMPLETE_TICKET', payload: { stationId: station.id } });
@@ -166,10 +93,6 @@ export function StationControlCard({ station }: { station: Station }) {
             <Button onClick={completeTicket} className="w-full bg-green-600 hover:bg-green-700">
               <Check /> Complete Service
             </Button>
-            <Button onClick={handleCallAgain} variant="outline" className="w-full" disabled={isRecalling}>
-                {isRecalling ? <Loader2 className="animate-spin" /> : <Volume2 />}
-                Call Again
-            </Button>
             <Button onClick={skipTicket} variant="outline" className="w-full">
               <SkipForward /> Skip Ticket
             </Button>
@@ -192,7 +115,7 @@ export function StationControlCard({ station }: { station: Station }) {
                   return getCallButton('certificate', 'Call Certificate', <Award />);
                 case 'regular':
                 default:
-                  return getCallButton(station.type, `Call Next ${station.type}`, <Volume2 />);
+                  return getCallButton(station.type, `Call Next ${station.type}`, <Megaphone />);
               }
             })()}
             {!isClosed && (
