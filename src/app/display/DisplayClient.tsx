@@ -7,10 +7,14 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Home } from "lucide-react";
 
 export function DisplayClient() {
   const { state, isHydrated } = useQueue();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // Set initial time on client mount to avoid hydration mismatch
@@ -18,6 +22,12 @@ export function DisplayClient() {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleGoHome = () => {
+    localStorage.removeItem('app-instance-role');
+    sessionStorage.setItem('force-role-selection', 'true');
+    router.push('/');
+  };
 
   const recentlyCalledTickets = state.tickets
     .filter(t => t.status === 'serving' || t.status === 'served' || t.status === 'skipped')
@@ -89,6 +99,10 @@ export function DisplayClient() {
                       {currentTime?.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                   </p>
                   <ThemeSwitcher />
+                   <Button variant="outline" size="icon" onClick={handleGoHome}>
+                      <Home className="h-[1.2rem] w-[1.2rem]" />
+                      <span className="sr-only">Home</span>
+                  </Button>
                 </div>
             </CardContent>
         </Card>
