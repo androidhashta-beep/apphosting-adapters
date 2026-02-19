@@ -14,15 +14,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function StationControlCard({ 
   station,
-  ticket,
-  waitingCounts
 }: { 
   station: Station;
-  ticket: Ticket | undefined;
-  waitingCounts: { [key in TicketType]: number };
 }) {
-  const { dispatch } = useQueue();
+  const { state, dispatch } = useQueue();
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  const ticket = state.tickets.find(t => t.id === station.currentTicketId);
+  
+  const waitingCounts = {
+    enrollment: state.tickets.filter(t => t.type === 'enrollment' && t.status === 'waiting').length,
+    payment: state.tickets.filter(t => t.type === 'payment' && t.status === 'waiting').length,
+    certificate: state.tickets.filter(t => t.type === 'certificate' && t.status === 'waiting').length,
+  };
 
   // Get available voices from the browser
   useEffect(() => {
@@ -52,16 +56,16 @@ export function StationControlCard({
     const text = `Customer number ${ticketNumber}, For ${ticketType} please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
 
-    // Try to find a female English voice
-    const femaleVoice = voices.find(voice => 
-        voice.lang.startsWith('en') && 
-        /female/i.test(voice.name)
+    // Try to find a male Filipino voice
+    const filipinoMaleVoice = voices.find(voice => 
+        voice.lang.startsWith('fil') && // 'fil' is the language code for Filipino
+        /male/i.test(voice.name)
     );
 
-    if (femaleVoice) {
-      utterance.voice = femaleVoice;
+    if (filipinoMaleVoice) {
+      utterance.voice = filipinoMaleVoice;
     }
-    // If no female voice is found, it will use the browser's default voice.
+    // If no male Filipino voice is found, it will use the browser's default voice.
 
     window.speechSynthesis.speak(utterance);
   }, [voices]);
