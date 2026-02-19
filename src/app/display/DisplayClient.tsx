@@ -43,7 +43,7 @@ export function DisplayClient() {
       {/* Left Section: Queue List */}
       <div className="lg:col-span-1 h-full">
         <Card className="flex flex-col h-full">
-          <CardHeader className="p-4 border-b">
+          <CardHeader className="p-4 border-b border-gold">
             <div className="grid grid-cols-3 text-center font-bold text-muted-foreground uppercase">
               <div>Queue No.</div>
               <div>Services</div>
@@ -61,7 +61,7 @@ export function DisplayClient() {
                     {
                       "bg-destructive text-destructive-foreground": ticket.status === 'serving',
                       "animate-pulse": ticket.status === 'serving' && index === 0,
-                      "bg-card border": ticket.status === 'served',
+                      "bg-card border border-gold": ticket.status === 'served',
                       "bg-muted text-muted-foreground opacity-60 line-through": ticket.status === 'skipped',
                     }
                   )}

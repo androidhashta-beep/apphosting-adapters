@@ -37,6 +37,7 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --gold: 45 86% 51%;
   }
   .dark {
     --background: 217 30% 10%;
@@ -71,6 +72,7 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --gold: 45 76% 61%;
   }
   .theme-orange-and-black {
     --background: 0 0% 7%;
