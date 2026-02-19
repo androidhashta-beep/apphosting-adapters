@@ -14,7 +14,7 @@ export type Ticket = {
 };
 
 export type StationStatus = 'open' | 'closed';
-export type StationMode = 'regular' | 'all-in-one';
+export type StationMode = 'regular' | 'all-in-one' | 'payment-only' | 'certificate-only';
 export type StationType = 'enrollment' | 'payment' | 'certificate';
 
 export type Station = {

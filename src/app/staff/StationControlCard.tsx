@@ -185,15 +185,25 @@ export function StationControlCard({ station }: { station: Station }) {
           </>
         ) : (
           <>
-            {station.mode === 'all-in-one' ? (
-              <div className="w-full space-y-2">
-                {getCallButton('enrollment', 'Call Enrollment', <User />)}
-                {getCallButton('payment', 'Call Payment', <Ticket />)}
-                {getCallButton('certificate', 'Call Certificate', <Award />)}
-              </div>
-            ) : (
-                 getCallButton(station.type, `Call Next ${station.type}`, <Volume2 />)
-            )}
+            {(() => {
+              switch (station.mode) {
+                case 'all-in-one':
+                  return (
+                    <div className="w-full space-y-2">
+                      {getCallButton('enrollment', 'Call Enrollment', <User />)}
+                      {getCallButton('payment', 'Call Payment', <Ticket />)}
+                      {getCallButton('certificate', 'Call Certificate', <Award />)}
+                    </div>
+                  );
+                case 'payment-only':
+                  return getCallButton('payment', 'Call Payment', <Ticket />);
+                case 'certificate-only':
+                  return getCallButton('certificate', 'Call Certificate', <Award />);
+                case 'regular':
+                default:
+                  return getCallButton(station.type, `Call Next ${station.type}`, <Volume2 />);
+              }
+            })()}
             {!isClosed && (
               <Button variant="ghost" className="w-full text-muted-foreground" disabled>
                 <Ban /> No ticket serving

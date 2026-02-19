@@ -178,6 +178,8 @@ export function AdminClient() {
                                 <SelectContent>
                                 <SelectItem value="regular">Regular</SelectItem>
                                 <SelectItem value="all-in-one">All-in-One</SelectItem>
+                                <SelectItem value="payment-only">Payment-only</SelectItem>
+                                <SelectItem value="certificate-only">Certificate-only</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
