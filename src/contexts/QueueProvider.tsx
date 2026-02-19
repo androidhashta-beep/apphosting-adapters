@@ -272,25 +272,27 @@ export const QueueProvider = ({ children }: { children: ReactNode }) => {
   }, [state, isHydrated]);
 
 
-  const getWaitingTickets = useCallback((type: TicketType) => {
-    return state.tickets
-      .filter((t) => t.type === type && t.status === 'waiting')
-      .sort((a, b) => a.createdAt - b.createdAt);
-  }, [state.tickets]);
+  const value = useMemo(() => {
+    const getWaitingTickets = (type: TicketType) => {
+      return state.tickets
+        .filter((t) => t.type === type && t.status === 'waiting')
+        .sort((a, b) => a.createdAt - b.createdAt);
+    };
+    
+    const getServedTickets = (type: TicketType) => {
+      return state.tickets
+        .filter((t) => t.type === type && (t.status === 'serving' || t.status === 'served' || t.status === 'skipped'))
+        .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0));
+    };
   
-  const getServedTickets = useCallback((type: TicketType) => {
-    return state.tickets
-      .filter((t) => t.type === type && (t.status === 'serving' || t.status === 'served' || t.status === 'skipped'))
-      .sort((a, b) => (b.calledAt ?? 0) - (a.calledAt ?? 0));
-  }, [state.tickets]);
+    const getTicketByStation = (stationId: string) => {
+        const station = state.stations.find(s => s.id === stationId);
+        if (!station || !station.currentTicketId) return undefined;
+        return state.tickets.find(t => t.id === station.currentTicketId);
+    };
 
-  const getTicketByStation = useCallback((stationId: string) => {
-      const station = state.stations.find(s => s.id === stationId);
-      if (!station || !station.currentTicketId) return undefined;
-      return state.tickets.find(t => t.id === station.currentTicketId);
-  }, [state.stations, state.tickets]);
-
-  const value = useMemo(() => ({ state, dispatch, getWaitingTickets, getServedTickets, getTicketByStation, isHydrated }), [state, isHydrated, getWaitingTickets, getServedTickets, getTicketByStation]);
+    return { state, dispatch, getWaitingTickets, getServedTickets, getTicketByStation, isHydrated };
+  }, [state, isHydrated]);
 
   return (
     <QueueContext.Provider value={value}>
