@@ -5,6 +5,6 @@ export default function StaffPage() {
   return (
     <PageWrapper title="Staff Dashboard" showBackButton={true}>
       <StaffClient />
-    </Page-Wrapper>
+    </PageWrapper>
   );
 }
