@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -69,7 +68,7 @@ export function StaffClient() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {state.stations.map((station) => (
-          <StationControlCard key={station.id} stationId={station.id} />
+          <StationControlCard key={station.id} station={station} tickets={state.tickets} />
         ))}
       </div>
     </div>

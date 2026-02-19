@@ -1,40 +1,32 @@
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
-import type { Station, StationStatus, TicketType } from "@/lib/types";
+import type { Station, StationStatus, TicketType, Ticket } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket, Volume2 } from "lucide-react";
+import { Megaphone, Check, SkipForward, Ban, Award, User, Ticket as TicketIcon, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
-// The component now only needs the station's ID to fetch its own data.
-export function StationControlCard({ stationId }: { stationId: string }) {
-  const { state, dispatch } = useQueue();
+// The component now takes the full station and tickets array as props.
+export function StationControlCard({ station, tickets }: { station: Station, tickets: Ticket[] }) {
+  // We only need the dispatch function from the context.
+  const { dispatch } = useQueue();
   const { toast } = useToast();
 
-  // Fetch the latest station data directly from the central state.
-  // This prevents issues with stale props.
-  const station = state.stations.find(s => s.id === stationId);
-
-  // If the station doesn't exist (e.g., deleted), don't render the card.
-  if (!station) {
-    return null;
-  }
-  
-  const ticket = state.tickets.find(t => t.id === station.currentTicketId);
+  // Find the current ticket from the provided tickets array.
+  const ticket = tickets.find(t => t.id === station.currentTicketId);
   const isClosed = station.status === 'closed';
 
   const announce = (ticketNumber: string, stationName: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     const text = `Ticket number ${ticketNumber}, please go to ${stationName}.`;
     const utterance = new SpeechSynthesisUtterance(text);
-    // We don't want to get into complex voice selection. Just speak.
-    window.speechSynthesis.cancel(); 
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   };
   
@@ -69,7 +61,8 @@ export function StationControlCard({ stationId }: { stationId: string }) {
   };
 
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
-    const waitingCount = state.tickets.filter(t => t.type === type && t.status === 'waiting').length;
+    // Calculate waiting count from the tickets prop.
+    const waitingCount = tickets.filter(t => t.type === type && t.status === 'waiting').length;
     const isQueueEmpty = waitingCount === 0;
 
     return (
@@ -133,12 +126,12 @@ export function StationControlCard({ stationId }: { stationId: string }) {
                   return (
                     <div className="w-full space-y-2">
                       {getCallButton('enrollment', 'Call Enrollment', <User />)}
-                      {getCallButton('payment', 'Call Payment', <Ticket />)}
+                      {getCallButton('payment', 'Call Payment', <TicketIcon />)}
                       {getCallButton('certificate', 'Call Certificate', <Award />)}
                     </div>
                   );
                 case 'payment-only':
-                  return getCallButton('payment', 'Call Payment', <Ticket />);
+                  return getCallButton('payment', 'Call Payment', <TicketIcon />);
                 case 'certificate-only':
                   return getCallButton('certificate', 'Call Certificate', <Award />);
                 case 'regular':
