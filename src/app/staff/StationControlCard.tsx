@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -10,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Volume2, Check, SkipForward, Ban, Loader2, Award, User, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useRef, useEffect } from "react";
-import { textToSpeech } from "@/ai/flows/text-to-speech";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -22,17 +20,61 @@ export function StationControlCard({ station }: { station: Station }) {
 
   const [isCalling, setIsCalling] = useState(false);
   const [isRecalling, setIsRecalling] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [playCount, setPlayCount] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
+
+  // New function to handle speech synthesis
+  const playAnnouncement = (text: string, onFinish: () => void) => {
+    if (!('speechSynthesis' in window)) {
+      toast({
+        variant: "destructive",
+        title: "Audio Callout Not Supported",
+        description: "Your browser does not support speech synthesis.",
+      });
+      onFinish(); // Proceed without audio
+      return;
+    }
+
+    try {
+      let playCount = 0;
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      utterance.onend = () => {
+        playCount++;
+        if (playCount < 2) {
+          window.speechSynthesis.speak(utterance);
+        } else {
+          onFinish();
+        }
+      };
+
+      utterance.onerror = (event) => {
+          console.error("SpeechSynthesis Error", event);
+          toast({
+              variant: "destructive",
+              title: "Audio Callout Failed",
+              description: "An error occurred during speech synthesis.",
+          });
+          onFinish(); // Proceed without audio
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+        console.error("SpeechSynthesis Error", error);
+        toast({
+            variant: "destructive",
+            title: "Audio Callout Failed",
+            description: "Could not initiate speech synthesis.",
+        });
+        onFinish(); // Proceed without audio
+    }
+  };
 
   const handleStatusChange = (checked: boolean) => {
     const newStatus: StationStatus = checked ? 'open' : 'closed';
     dispatch({ type: 'UPDATE_STATION_STATUS', payload: { stationId: station.id, status: newStatus } });
   };
 
-  const callNext = async (ticketType: TicketType) => {
+  const callNext = (ticketType: TicketType) => {
     const waitingTickets = getWaitingTickets(ticketType);
     const nextTicket = waitingTickets[0];
     if (!nextTicket) {
@@ -45,93 +87,39 @@ export function StationControlCard({ station }: { station: Station }) {
     }
       
     setIsCalling(true);
-    try {
-        const ticketNumber = nextTicket.ticketNumber;
-        const destination = station.name;
-        const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
-        const { media, error } = await textToSpeech(textToSay);
+    
+    const ticketNumber = nextTicket.ticketNumber;
+    const destination = station.name;
+    const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
 
-        if (error) {
-            const isRateLimitError = error.includes('RESOURCE_EXHAUSTED') || error.includes('429');
-
-            toast({
-                variant: "destructive",
-                title: "Audio Callout Failed",
-                description: isRateLimitError
-                    ? "Audio announcement quota has been reached. Please wait a minute before trying again. The queue will continue without audio."
-                    : "Could not generate audio. The queue will continue without audio.",
-            });
-        } else if (media) {
-            setPlayCount(1);
-            setAudioUrl(media);
-        }
-    } catch (error: any) {
-        // Fallback for network errors or other unexpected issues
-        toast({
-            variant: "destructive",
-            title: "Audio Callout Failed",
-            description: "An unexpected error occurred. The queue will continue without audio.",
-        });
-    } finally {
-        dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
-        setIsCalling(false);
-    }
+    playAnnouncement(textToSay, () => {
+      dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+      setIsCalling(false);
+    });
   };
 
-  const handleCallAgain = async () => {
+  const handleCallAgain = () => {
     if (!ticket) return;
 
     setIsRecalling(true);
-    try {
-      const ticketNumber = ticket.ticketNumber;
-      const destination = station.name;
-      const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
-      const { media, error } = await textToSpeech(textToSay);
-
-      if (error) {
-        const isRateLimitError =
-          error.includes('RESOURCE_EXHAUSTED') || error.includes('429');
-
-        toast({
-          variant: 'destructive',
-          title: 'Audio Callout Failed',
-          description: isRateLimitError
-            ? 'Audio announcement quota has been reached. Please wait a minute before trying again.'
-            : 'Could not generate audio.',
-        });
-      } else if (media) {
-        setPlayCount(1);
-        setAudioUrl(media);
-      }
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Audio Callout Failed',
-        description:
-          'An unexpected error occurred while trying to call the customer again.',
-      });
-    } finally {
+    
+    const ticketNumber = ticket.ticketNumber;
+    const destination = station.name;
+    const textToSay = `Customer number ${ticketNumber}, please go to ${destination}.`;
+    
+    playAnnouncement(textToSay, () => {
       setIsRecalling(false);
-    }
+    });
   };
 
   useEffect(() => {
-    if (audioUrl && audioRef.current) {
-        audioRef.current.play().catch(e => console.warn("Error playing audio:", e));
-    }
-  }, [audioUrl]);
-
-  const handleAudioEnded = () => {
-    if (playCount < 2) {
-      setPlayCount(prev => prev + 1);
-      if (audioRef.current) {
-        audioRef.current.play().catch(e => console.warn("Error re-playing audio:", e));
+    // Cancel any ongoing speech when the component unmounts or the ticket changes
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
       }
-    } else {
-      setAudioUrl(null);
-      setPlayCount(0);
-    }
-  };
+    };
+  }, [ticket?.id]);
 
 
   const completeTicket = () => {
@@ -214,7 +202,6 @@ export function StationControlCard({ station }: { station: Station }) {
           </>
         )}
       </CardFooter>
-      {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={handleAudioEnded}/>}
     </Card>
   );
 }
