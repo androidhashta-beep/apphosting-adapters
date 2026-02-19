@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -17,6 +16,15 @@ export function KioskClient() {
   const printableRef = useRef<HTMLDivElement>(null);
   const lastTicketCount = useRef(state.tickets.length);
 
+  const getServiceLabel = (type: TicketType) => {
+    switch(type) {
+      case 'enrollment': return 'Enrollment';
+      case 'payment': return 'Payment';
+      case 'certificate': return 'Certificate Claiming';
+      default: return 'Service';
+    }
+  };
+
   useEffect(() => {
     if (ticketToPrint) {
       window.print();
@@ -33,14 +41,15 @@ export function KioskClient() {
         if (Date.now() - newTicket.createdAt < 5000) {
              setTicketToPrint(newTicket);
              toast({
-                title: "Printing Ticket...",
-                description: `Now printing ticket ${newTicket.ticketNumber}. Please take it from the printer.`,
+                title: `Printing Ticket ${newTicket.ticketNumber}`,
+                description: `Your ticket for ${getServiceLabel(newTicket.type)} is printing. Please take it from the printer.`,
                 duration: 5000,
              });
         }
     }
     lastTicketCount.current = state.tickets.length;
-  }, [state.tickets, isHydrated, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.tickets, isHydrated]);
 
 
   const handleGetTicket = (type: TicketType) => {
