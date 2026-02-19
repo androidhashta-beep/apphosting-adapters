@@ -144,19 +144,9 @@ export function AdminClient() {
   return (
     <div className="flex flex-col h-screen">
        <header className="border-b">
-          <div className="container mx-auto flex h-16 items-center px-4 md:px-6">
-              <div className="flex items-center gap-4 w-1/3">
-                  <Link href="/" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                      <ArrowLeft className="h-4 w-4" />
-                      Home
-                  </Link>
-              </div>
-              <div className="flex items-center justify-center w-1/3">
-                  <h1 className="text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
-              </div>
-              <div className="w-1/3 flex justify-end">
-                  <ThemeSwitcher />
-              </div>
+          <div className="container relative mx-auto flex h-16 items-center justify-end px-4 md:px-6">
+              <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">Admin Panel</h1>
+              <ThemeSwitcher />
           </div>
       </header>
 

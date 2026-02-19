@@ -1,97 +1,101 @@
-import Link from 'next/link';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
-import {
-  Ticket,
-  MonitorPlay,
-  UsersRound,
-  BrainCircuit,
-  ArrowRight,
-} from 'lucide-react';
+'use client';
 
-const menuItems = [
-  {
-    href: '/kiosk',
-    icon: Ticket,
-    title: 'Ticket Kiosk',
-    description: 'Students can generate queue tickets here.',
-  },
-  {
-    href: '/display',
-    icon: MonitorPlay,
-    title: 'Public Display',
-    description: 'Real-time view of serving and waiting tickets.',
-  },
-  {
-    href: '/staff',
-    icon: UsersRound,
-    title: 'Staff Dashboard',
-    description: 'Manage queues and serve students.',
-  },
-  {
-    href: '/admin',
-    icon: BrainCircuit,
-    title: 'Admin Panel',
-    description: 'Configure stations and get AI suggestions.',
-  },
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { MonitorPlay, Ticket, UsersRound, BrainCircuit, Loader2 } from 'lucide-react';
+import { PageWrapper } from '@/components/PageWrapper';
+
+const APP_ROLE_KEY = 'app-instance-role';
+
+type Role = 'kiosk' | 'display' | 'staff' | 'admin';
+
+const roles = [
+    {
+        id: 'kiosk' as Role,
+        title: 'Ticket Kiosk',
+        description: 'For students to get a queue number.',
+        icon: Ticket,
+    },
+    {
+        id: 'display' as Role,
+        title: 'Public Display',
+        description: 'Shows the current queue status on a public screen.',
+        icon: MonitorPlay,
+    },
+    {
+        id: 'staff' as Role,
+        title: 'Staff Dashboard',
+        description: 'For staff to manage queues and call tickets.',
+        icon: UsersRound,
+    },
+    {
+        id: 'admin' as Role,
+        title: 'Admin Panel',
+        description: 'For administrators to configure stations.',
+        icon: BrainCircuit,
+    }
 ];
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <header className="bg-primary shadow-lg">
-        <div className="container mx-auto flex h-20 items-center justify-center px-4 md:h-24">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-primary-foreground tracking-tight md:text-3xl">
-              Renaissance Training Center Inc.
-            </h1>
-          </div>
-        </div>
-      </header>
-      <main className="flex-1">
-        <div className="container mx-auto max-w-5xl px-4 py-8 md:py-12">
-          <div className="text-center mb-12">
-            <p className="mt-2 text-muted-foreground">
-              Select an option to get started.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-            {menuItems.map((item) => (
-              <Link href={item.href} key={item.href} className="group">
-                <Card className="h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/50">
-                  <CardHeader className="flex flex-row items-center gap-4 pb-4">
-                    <div className="rounded-full bg-primary/10 p-3">
-                      <item.icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg font-semibold">
-                        {item.title}
-                      </CardTitle>
-                      <CardDescription>{item.description}</CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center text-sm font-medium text-primary">
-                      Go to {item.title}
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </div>
-                  </CardContent>
+export default function RoleSelectorPage() {
+    const router = useRouter();
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const savedRole = localStorage.getItem(APP_ROLE_KEY);
+        if (savedRole && roles.some(r => r.id === savedRole)) {
+            router.replace(`/${savedRole}`);
+        } else {
+            setIsLoading(false);
+        }
+    }, [router]);
+
+    const handleRoleSelect = (role: Role) => {
+        localStorage.setItem(APP_ROLE_KEY, role);
+        router.push(`/${role}`);
+    };
+    
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">Loading Application...</p>
+            </div>
+        );
+    }
+
+    return (
+        <PageWrapper title="Device Role Setup" showBackButton={false}>
+            <div className="flex flex-col items-center justify-center">
+                <Card className="w-full max-w-4xl">
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-2xl">Select This Device's Role</CardTitle>
+                        <CardDescription>
+                            Please choose the primary function for this device. This setting will be saved.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                            {roles.map((role) => (
+                            <Button
+                                key={role.id}
+                                variant="outline"
+                                className="h-auto justify-start p-6 text-left"
+                                onClick={() => handleRoleSelect(role.id)}
+                            >
+                                <role.icon className="mr-4 h-8 w-8 flex-shrink-0 text-primary" />
+                                <div className="flex flex-col">
+                                    <p className="font-bold text-lg">{role.title}</p>
+                                    <p className="text-sm text-muted-foreground whitespace-normal">{role.description}</p>
+                                </div>
+                            </Button>
+                            ))}
+                    </CardContent>
                 </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </main>
-      <footer className="py-4">
-        <div className="container mx-auto text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Renaissance Training Center Inc. All rights reserved.
-        </div>
-      </footer>
-    </div>
-  );
+                <div className="mt-6 text-center text-sm text-muted-foreground">
+                    <p>To change this setting later, you will need to clear the application's stored data.</p>
+                </div>
+            </div>
+        </PageWrapper>
+    );
 }
