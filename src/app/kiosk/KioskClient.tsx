@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useQueue } from "@/contexts/QueueProvider";
@@ -12,7 +13,11 @@ import { Separator } from "@/components/ui/separator";
 
 const TicketPreview = ({ type, number }: { type: TicketType, number: string }) => {
   const companyName = "Renaissance Training Center Inc.";
-  const now = new Date();
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setNow(new Date());
+  }, []);
 
   return (
     <Card className="font-mono text-sm shadow-lg bg-card text-card-foreground border-dashed border-2">
@@ -24,14 +29,14 @@ const TicketPreview = ({ type, number }: { type: TicketType, number: string }) =
         <Separator className="my-4 border-dashed" />
         <div className="text-xs text-muted-foreground space-y-1">
             <p>
-            {now.toLocaleDateString('en-US', {
+            {now?.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
             })}
             </p>
             <p>
-            {now.toLocaleTimeString('en-US', {
+            {now?.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: true
