@@ -18,19 +18,16 @@ export function StationControlCard({ station }: { station: Station }) {
   const ticket = getTicketByStation(station.id);
   const isClosed = station.status === 'closed';
 
-  const [isCalling, setIsCalling] = useState(false);
   const [isRecalling, setIsRecalling] = useState(false);
   const { toast } = useToast();
 
-  // New function to handle speech synthesis
-  const playAnnouncement = (text: string, onFinish: () => void) => {
+  const playAnnouncement = (text: string) => {
     if (!('speechSynthesis' in window)) {
       toast({
         variant: "destructive",
         title: "Audio Callout Not Supported",
         description: "Your browser does not support speech synthesis.",
       });
-      onFinish(); // Proceed without audio
       return;
     }
 
@@ -39,17 +36,12 @@ export function StationControlCard({ station }: { station: Station }) {
     try {
       const utterance = new SpeechSynthesisUtterance(text);
       
-      utterance.onend = () => {
-        onFinish();
-      };
-
-      utterance.onerror = (event) => {
+      utterance.onerror = () => {
           toast({
               variant: "destructive",
               title: "Audio Callout Failed",
               description: "An error occurred during speech synthesis.",
           });
-          onFinish(); // Proceed without audio
       };
 
       window.speechSynthesis.speak(utterance);
@@ -59,7 +51,6 @@ export function StationControlCard({ station }: { station: Station }) {
             title: "Audio Callout Failed",
             description: "Could not initiate speech synthesis.",
         });
-        onFinish(); // Proceed without audio
     }
   };
 
@@ -80,16 +71,16 @@ export function StationControlCard({ station }: { station: Station }) {
       return;
     }
       
-    setIsCalling(true);
-    
+    // Dispatch the action immediately to update the state.
+    dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
+
+    // The UI will update, and then we play the announcement.
     const ticketNumber = nextTicket.ticketNumber;
     const destination = station.name;
-    const textToSay = `Customer number ${ticketNumber} for ${ticketType}, please go to ${destination}.`;
+    const serviceType = nextTicket.type;
+    const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
 
-    playAnnouncement(textToSay, () => {
-      dispatch({ type: 'CALL_NEXT_TICKET', payload: { stationId: station.id, ticketType } });
-      setIsCalling(false);
-    });
+    playAnnouncement(textToSay);
   };
 
   const handleCallAgain = () => {
@@ -99,11 +90,40 @@ export function StationControlCard({ station }: { station: Station }) {
     
     const ticketNumber = ticket.ticketNumber;
     const destination = station.name;
-    const textToSay = `Customer number ${ticketNumber} for ${ticket.type}, please go to ${destination}.`;
+    const serviceType = ticket.type;
+    const textToSay = `Customer number ${ticketNumber} for ${serviceType}, please go to ${destination}.`;
     
-    playAnnouncement(textToSay, () => {
+    if (!('speechSynthesis' in window)) {
+      toast({
+        variant: "destructive",
+        title: "Audio Callout Not Supported",
+      });
       setIsRecalling(false);
-    });
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    try {
+      const utterance = new SpeechSynthesisUtterance(textToSay);
+      utterance.onend = () => {
+        setIsRecalling(false);
+      };
+      utterance.onerror = () => {
+        toast({
+          variant: "destructive",
+          title: "Audio Callout Failed",
+        });
+        setIsRecalling(false);
+      };
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Audio Callout Failed",
+      });
+      setIsRecalling(false);
+    }
   };
 
   useEffect(() => {
@@ -127,9 +147,9 @@ export function StationControlCard({ station }: { station: Station }) {
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
     const waitingCount = getWaitingTickets(type).length;
     return (
-        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isClosed || isCalling || waitingCount === 0}>
+        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isClosed || waitingCount === 0}>
             <div className="flex items-center gap-2">
-                {isCalling ? <Loader2 className="animate-spin" /> : icon}
+                {icon}
                 <span>{label}</span>
             </div>
             <span className="bg-primary-foreground/20 text-primary-foreground rounded-full px-2 text-xs">{waitingCount}</span>
