@@ -41,7 +41,7 @@ import {
   setDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
 
 export function AdminClient() {
@@ -211,20 +211,17 @@ export function AdminClient() {
   };
 
   const handleRestoreDefaults = async () => {
-    if (!firestore || !settingsRef || !stationsCollection || !stations) {
+    if (!firestore || !settingsRef || !stationsCollection) {
       toast({ title: 'System Not Ready', description: 'Please wait a moment and try again.', variant: 'destructive' });
       return;
     }
     setRestoreDefaultsDialog(false);
-
-    let servicesRestored = false;
-    let stationsAdded = false;
-
+  
     try {
       // --- Services ---
       const currentServices = settings?.services || [];
       let servicesToUse: Service[];
-
+  
       if (currentServices.length === 0) {
         const defaultServices: Service[] = [
           { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
@@ -232,38 +229,39 @@ export function AdminClient() {
           { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
         ];
         await setDoc(settingsRef, { services: defaultServices }, { merge: true });
-        servicesRestored = true;
         servicesToUse = defaultServices;
       } else {
         servicesToUse = currentServices;
       }
       
       const serviceIds = servicesToUse.map(s => s.id);
-
+  
       // --- Stations ---
-      const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
-      const existingStationNames = new Set(stations.map(s => s.name));
-
-      defaultStationNames.forEach(name => {
-          if (!existingStationNames.has(name)) {
-              const newStation: Omit<Station, 'id'> = {
-                  name: name,
-                  services: serviceIds,
-                  status: 'closed',
-                  currentTicketId: null,
-              };
-              addDocumentNonBlocking(stationsCollection, newStation);
-              stationsAdded = true;
-          }
-      });
-
-      if (stationsAdded || servicesRestored) {
+      const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4', 'Window 5'];
+      const existingStationNames = new Set(stations?.map(s => s.name) || []);
+      
+      const stationsToAdd = defaultStationNames.filter(name => !existingStationNames.has(name));
+  
+      if (stationsToAdd.length > 0) {
+        const creationPromises = stationsToAdd.map(name => {
+            const newStation: Omit<Station, 'id'> = {
+                name: name,
+                services: serviceIds,
+                status: 'closed',
+                currentTicketId: null,
+            };
+            return addDoc(stationsCollection, newStation);
+        });
+        await Promise.all(creationPromises);
+      }
+  
+      if (stationsToAdd.length > 0 || currentServices.length === 0) {
           toast({ title: "Defaults Restored", description: "Any missing default stations or services have been recreated." });
       } else {
           toast({ title: "Nothing to Restore", description: "All default stations and services are already present." });
       }
     } catch (error: any) {
-      console.warn("Error restoring defaults:", error);
+      console.error("Error restoring defaults:", error);
       toast({
         variant: "destructive",
         title: "Restore Failed",
@@ -325,7 +323,7 @@ export function AdminClient() {
               {isHydrated && sortedStations.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-10">
                   <p>No stations configured.</p>
-                  <p className="text-sm mt-2">Click "Restore Defaults" to create Window 1-4.</p>
+                  <p className="text-sm mt-2">Click "Restore Defaults" to create Window 1-5.</p>
                 </div>
               )}
               {isHydrated &&
@@ -497,7 +495,7 @@ export function AdminClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore Default Settings?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will add any missing default stations (Window 1-4) and services (Registration, Payment, Certificate). It will NOT delete any stations or services you have created yourself.
+              This will add any missing default stations (Window 1-5) and services (Registration, Payment, Certificate). It will NOT delete any stations or services you have created yourself.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
