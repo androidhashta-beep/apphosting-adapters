@@ -85,26 +85,27 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        // This is a network connectivity error. We will log a helpful message
+        // but not throw an error, allowing the app to remain online in a degraded state.
         if (error.code === 'unavailable') {
           console.error(
-            `[Firebase Firestore] Network Error: Cannot connect to the Firestore server.
+            `[Firebase Firestore] Network Error: Cannot connect to the Firestore server at 10.30.0.250.
 
             >>> TROUBLESHOOTING CHECKLIST <<<
-            1. Is the server PC (IP: 10.30.0.250) turned on?
-            2. Is the 'firebase emulators:start' command still running in PowerShell on the server?
-            3. Are this device and the server on the same Wi-Fi network?
-            4. Is the Windows Firewall on the server blocking port 8080? You may need to run this PowerShell command as Administrator on the server:
-               New-NetFirewallRule -DisplayName "Firebase Emulators" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080,9099,4000
+            1. SERVER PC: Is the server PC (IP: 10.30.0.250) turned on and connected to the same Wi-Fi as this device?
+            2. SERVER PC: Is the 'firebase emulators:start' command still running in a PowerShell window?
+            3. SERVER PC: Did you run the firewall command? In PowerShell (as Admin): New-NetFirewallRule -DisplayName "Firebase Emulators" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080,9099,4000
 
-            This is a network configuration issue, not an application bug.`
+            This is a local network configuration issue, not an application bug.`
           );
-          setError(new Error("Network connection to database failed."));
+          // We set loading to false and data to null, but we don't set an error state.
+          // This prevents the application from crashing with an error overlay.
           setData(null);
           setIsLoading(false);
-          return;
+          return; // Stop further processing
         }
         
-        // This logic extracts the path from either a ref or a query
+        // Handle other errors (like permissions) by throwing a contextual error.
         const path: string =
           memoizedTargetRefOrQuery.type === 'collection'
             ? (memoizedTargetRefOrQuery as CollectionReference).path
