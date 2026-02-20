@@ -5,22 +5,16 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { toast } from '@/hooks/use-toast';
 
 const handleAuthError = (error: any, operation: string) => {
     if (error.code === 'auth/network-request-failed') {
-      console.warn(
-        `[Firebase Auth] Network Connection Blocked during ${operation}.
-
-        >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
-        The application code is correct, but your PC's security is preventing it from connecting to the local server. This is the final step to resolve the issue.
-
-        >>> ACTION REQUIRED ON YOUR PC <<<
-        1. Open your PC's firewall settings (e.g., search for 'Windows Defender Firewall').
-        2. Find the setting to 'Allow an app through firewall'.
-        3. Add your application's .exe file to the list of allowed apps. It is located in the 'out/make' folder inside your project.
-
-        This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
-      );
+      toast({
+            variant: "destructive",
+            title: "CRITICAL: Connection Blocked by Firewall",
+            description: `The '${operation}' operation failed because your PC's firewall is blocking the connection to the local database. Please allow the app through your firewall to continue.`,
+            duration: 20000,
+        });
     } else {
       console.warn(`[Firebase Auth] Error during ${operation}:`, error);
     }

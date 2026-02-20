@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { toast } from '@/hooks/use-toast';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -86,19 +87,12 @@ export function useCollection<T = any>(
       },
       (error: FirestoreError) => {
         if (error.code === 'unavailable') {
-          console.warn(
-            `[Firebase Firestore] Network Connection Blocked when listening to collection.
-
-            >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
-            The application code is correct, but your PC's security is preventing it from connecting to the local server. This is the final step to resolve the issue.
-
-            >>> ACTION REQUIRED ON YOUR PC <<<
-            1. Open your PC's firewall settings (e.g., search for 'Windows Defender Firewall').
-            2. Find the setting to 'Allow an app through firewall'.
-            3. Add your application's .exe file to the list of allowed apps. It is located in the 'out/make' folder inside your project.
-
-            This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
-          );
+          toast({
+              variant: "destructive",
+              title: "CRITICAL: Connection Blocked by Firewall",
+              description: "The application cannot connect to the local database because your PC's firewall is blocking it. Please allow the app through your firewall to continue.",
+              duration: 20000,
+          });
           setData(null);
           setIsLoading(false);
           setError(error);
