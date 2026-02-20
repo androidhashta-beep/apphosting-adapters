@@ -1,6 +1,6 @@
 'use client';
 
-import type { Station, TicketType, Ticket, Settings } from "@/lib/types";
+import type { TicketType, Ticket, Settings, Station } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -31,12 +31,12 @@ export function StationControlCard({
 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  const serviceForStation = useMemo(() => {
-    if (isLoadingSettings || !station.serviceId || !settings?.services) {
-      return null;
+  const servicesForStation = useMemo(() => {
+    if (isLoadingSettings || !station.serviceIds || station.serviceIds.length === 0 || !settings?.services) {
+      return [];
     }
-    return settings.services.find(s => s.id === station.serviceId) || null;
-  }, [isLoadingSettings, station.serviceId, settings?.services]);
+    return settings.services.filter(s => (station.serviceIds || []).includes(s.id));
+  }, [isLoadingSettings, station.serviceIds, settings?.services]);
   
   useEffect(() => {
     const handleVoicesChanged = () => {
@@ -185,25 +185,6 @@ export function StationControlCard({
     }
   };
 
-  const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
-    const waitingCount = waitingCounts[type] || 0;
-    const isQueueEmpty = waitingCount === 0;
-    const isDisabled = isClosed || !!station.currentTicketId;
-
-    return (
-        <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isDisabled}>
-            <div className="flex items-center gap-2">
-                {icon}
-                <span>{label}</span>
-            </div>
-            <span className={cn(
-                "text-primary-foreground rounded-full px-2 text-xs",
-                isQueueEmpty ? "bg-primary-foreground/20" : "bg-primary-foreground/40 font-bold"
-            )}>{waitingCount}</span>
-        </Button>
-    )
-  }
-
   return (
     <Card className={cn("flex flex-col", isClosed && "bg-muted/50")}>
       <CardHeader>
@@ -246,10 +227,27 @@ export function StationControlCard({
               <Button variant="ghost" className="w-full text-muted-foreground" disabled>
                   <Ban /> Station is closed
               </Button>
-            ) : serviceForStation ? (
-                getCallButton(serviceForStation.id, `Call ${serviceForStation.label}`, <Icon name={serviceForStation.icon} />)
+            ) : servicesForStation.length > 0 ? (
+                servicesForStation.map(service => {
+                    const waitingCount = waitingCounts[service.id] || 0;
+                    const isQueueEmpty = waitingCount === 0;
+                    const isDisabled = isClosed || !!station.currentTicketId;
+
+                    return (
+                        <Button key={service.id} onClick={() => callNext(service.id)} className="w-full justify-between" disabled={isDisabled}>
+                            <div className="flex items-center gap-2">
+                                <Icon name={service.icon} />
+                                <span>{`Call ${service.label}`}</span>
+                            </div>
+                            <span className={cn(
+                                "text-primary-foreground rounded-full px-2 text-xs",
+                                isQueueEmpty ? "bg-primary-foreground/20" : "bg-primary-foreground/40 font-bold"
+                            )}>{waitingCount}</span>
+                        </Button>
+                    );
+                })
             ) : (
-              <p className="text-sm text-center text-muted-foreground p-4">No service assigned.</p>
+              <p className="text-sm text-center text-muted-foreground p-4">No services assigned.</p>
             )}
           </div>
         )}

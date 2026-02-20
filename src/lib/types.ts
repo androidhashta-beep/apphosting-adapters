@@ -8,7 +8,7 @@ export type Service = {
 };
 
 export type ImagePlaceholder = {
-  id: string;
+  id:string;
   description: string;
   imageUrl: string;
   imageHint: string;
@@ -50,7 +50,7 @@ export type StationType = string;
 export type Station = {
   id: string;
   name: string;
-  serviceId?: string | null;
+  serviceIds?: string[];
   status: StationStatus;
   currentTicketId?: string | null;
 };
