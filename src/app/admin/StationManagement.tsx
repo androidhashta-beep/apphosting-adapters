@@ -140,13 +140,13 @@ export function StationManagement() {
             batch.delete(doc.ref);
         });
 
-        if (settings?.defaultConfiguration && settings.defaultConfiguration.stations.length > 0) {
+        if (settings?.defaultConfiguration?.stations?.length > 0) {
             const { services: defaultServices, stations: defaultStations } = settings.defaultConfiguration;
 
             const settingsDocRef = doc(firestore, 'settings', 'app');
-            batch.set(settingsDocRef, { services: defaultServices, defaultConfiguration: settings.defaultConfiguration }, { merge: true });
+            batch.set(settingsDocRef, { services: defaultServices || [], defaultConfiguration: settings.defaultConfiguration }, { merge: true });
 
-            defaultStations.forEach((station: Station) => {
+            (defaultStations || []).forEach((station: Station) => {
                 const stationRef = doc(firestore, 'stations', station.id);
                 batch.set(stationRef, station);
             });
