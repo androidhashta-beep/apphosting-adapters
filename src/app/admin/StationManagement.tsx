@@ -57,18 +57,18 @@ const handleFirestoreError = (error: any, toast: any, operation: string) => {
 }
 
 export function StationManagement() {
-  const { firestore } = useFirebase();
+  const { firestore, isUserLoading } = useFirebase();
   const { toast } = useToast();
 
-  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'settings', 'app') : null), [firestore]);
+  const settingsRef = useMemoFirebase(() => (firestore && !isUserLoading ? doc(firestore, 'settings', 'app') : null), [firestore, isUserLoading]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   
-  const stationsCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'stations') : null), [firestore]);
+  const stationsCollectionRef = useMemoFirebase(() => (firestore && !isUserLoading ? collection(firestore, 'stations') : null), [firestore, isUserLoading]);
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsCollectionRef);
 
   const [stationToDelete, setStationToDelete] = useState<Station | null>(null);
 
-  const isHydrated = !isLoadingSettings && !isLoadingStations;
+  const isHydrated = !isLoadingSettings && !isLoadingStations && !isUserLoading;
 
   const sortedStations = useMemo(() => {
     if (!stations) return [];

@@ -17,25 +17,25 @@ import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
 
 export function StaffClient() {
-  const { firestore } = useFirebase();
+  const { firestore, isUserLoading } = useFirebase();
 
   const settingsRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'settings', 'app') : null),
-    [firestore]
+    () => (firestore && !isUserLoading ? doc(firestore, 'settings', 'app') : null),
+    [firestore, isUserLoading]
   );
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
 
   const stationsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'stations') : null),
-    [firestore]
+    () => (firestore && !isUserLoading ? collection(firestore, 'stations') : null),
+    [firestore, isUserLoading]
   );
   const { data: stations, isLoading: isLoadingStations } =
     useCollection<Station>(stationsRef);
 
   const ticketsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'tickets') : null),
-    [firestore]
+    () => (firestore && !isUserLoading ? collection(firestore, 'tickets') : null),
+    [firestore, isUserLoading]
   );
   const { data: tickets, isLoading: isLoadingTickets } =
     useCollection<Ticket>(ticketsRef);
@@ -63,7 +63,7 @@ export function StaffClient() {
     ) || {};
 
   const isHydrated =
-    !isLoadingSettings && !isLoadingStations && !isLoadingTickets;
+    !isLoadingSettings && !isLoadingStations && !isLoadingTickets && !isUserLoading;
 
   if (!isHydrated) {
     return (

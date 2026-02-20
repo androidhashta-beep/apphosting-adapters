@@ -30,12 +30,12 @@ import { StationManagement } from './StationManagement'; // Import the new compo
 
 export function AdminClient() {
   const router = useRouter();
-  const { firestore } = useFirebase();
+  const { firestore, isUserLoading } = useFirebase();
   const { toast } = useToast();
 
   const settingsRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'settings', 'app') : null),
-    [firestore]
+    () => (firestore && !isUserLoading ? doc(firestore, 'settings', 'app') : null),
+    [firestore, isUserLoading]
   );
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
@@ -64,7 +64,7 @@ export function AdminClient() {
     }
   };
   
-  const isHydrated = !isLoadingSettings;
+  const isHydrated = !isLoadingSettings && !isUserLoading;
 
   return (
     <div className="flex flex-col h-screen">

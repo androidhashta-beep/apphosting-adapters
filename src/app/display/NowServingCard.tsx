@@ -5,13 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Station, Ticket } from "@/lib/types";
 import { useEffect, useState } from "react";
-import { useDoc, useFirebase } from "@/firebase";
+import { useDoc, useFirebase, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 export function NowServingCard({ station }: { station: Station }) {
-  const { firestore } = useFirebase();
+  const { firestore, isUserLoading } = useFirebase();
 
-  const ticketRef = station.currentTicketId ? doc(firestore, 'tickets', station.currentTicketId) : null;
+  const ticketRef = useMemoFirebase(
+      () => (station.currentTicketId && firestore && !isUserLoading ? doc(firestore, 'tickets', station.currentTicketId) : null),
+      [station.currentTicketId, firestore, isUserLoading]
+  );
   const { data: ticket } = useDoc<Ticket>(ticketRef);
 
   const [isAnimating, setIsAnimating] = useState(false);

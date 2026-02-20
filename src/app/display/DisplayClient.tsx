@@ -27,27 +27,27 @@ import {
 import { Separator } from '@/components/ui/separator';
 
 export function DisplayClient() {
-  const { firestore } = useFirebase();
+  const { firestore, isUserLoading } = useFirebase();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const router = useRouter();
 
   const settingsRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'settings', 'app') : null),
-    [firestore]
+    () => (firestore && !isUserLoading ? doc(firestore, 'settings', 'app') : null),
+    [firestore, isUserLoading]
   );
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
 
   const stationsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'stations') : null),
-    [firestore]
+    () => (firestore && !isUserLoading ? collection(firestore, 'stations') : null),
+    [firestore, isUserLoading]
   );
   const { data: stations, isLoading: isLoadingStations } =
     useCollection<Station>(stationsRef);
 
   const servingTicketsQuery = useMemoFirebase(
     () =>
-      firestore
+      firestore && !isUserLoading
         ? query(
             collection(firestore, 'tickets'),
             where('status', 'in', ['serving', 'served', 'skipped']),
@@ -55,14 +55,14 @@ export function DisplayClient() {
             limit(5)
           )
         : null,
-    [firestore]
+    [firestore, isUserLoading]
   );
   const { data: recentlyCalledTickets, isLoading: isLoadingTickets } =
     useCollection<Ticket>(servingTicketsQuery);
 
   const waitingTicketsQuery = useMemoFirebase(
     () =>
-      firestore
+      firestore && !isUserLoading
         ? query(
             collection(firestore, 'tickets'),
             where('status', '==', 'waiting'),
@@ -70,7 +70,7 @@ export function DisplayClient() {
             limit(10)
           )
         : null,
-    [firestore]
+    [firestore, isUserLoading]
   );
   const { data: waitingTickets, isLoading: isLoadingWaitingTickets } =
     useCollection<Ticket>(waitingTicketsQuery);
@@ -102,7 +102,8 @@ export function DisplayClient() {
     !isLoadingSettings &&
     !isLoadingStations &&
     !isLoadingTickets &&
-    !isLoadingWaitingTickets;
+    !isLoadingWaitingTickets &&
+    !isUserLoading;
 
   const adItems = settings?.placeholderImages || [];
   const backgroundMusic = settings?.backgroundMusic || [];

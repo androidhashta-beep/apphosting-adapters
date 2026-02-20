@@ -14,15 +14,15 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 
 export function KioskClient() {
-  const { firestore } = useFirebase();
-  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
+  const { firestore, isUserLoading } = useFirebase();
+  const settingsRef = useMemoFirebase(() => (firestore && !isUserLoading ? doc(firestore, "settings", "app") : null), [firestore, isUserLoading]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState<string | null>(null);
   
-  const ticketsCollection = useMemoFirebase(() => (firestore ? collection(firestore, 'tickets') : null), [firestore]);
+  const ticketsCollection = useMemoFirebase(() => (firestore && !isUserLoading ? collection(firestore, 'tickets') : null), [firestore, isUserLoading]);
 
 
   useEffect(() => {
@@ -136,7 +136,7 @@ export function KioskClient() {
       return settings?.services.find(s => s.id === ticket.type);
   }
 
-  const isHydrated = !isLoadingSettings;
+  const isHydrated = !isLoadingSettings && !isUserLoading;
 
   return (
     <>
