@@ -118,7 +118,7 @@ export function KioskClient() {
                 This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
             );
         } else {
-          console.error("Error getting ticket:", error);
+          console.warn("Error getting ticket:", error);
         }
 
         toast({

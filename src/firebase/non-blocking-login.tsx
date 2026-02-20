@@ -22,7 +22,7 @@ const handleAuthError = (error: any, operation: string) => {
         This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
       );
     } else {
-      console.error(`[Firebase Auth] Error during ${operation}:`, error);
+      console.warn(`[Firebase Auth] Error during ${operation}:`, error);
     }
 }
 

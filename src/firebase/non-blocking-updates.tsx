@@ -37,7 +37,7 @@ const handleFirestoreError = (error: any, operation: string, path: string, data?
             This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
         );
     } else {
-        console.error(`[Firebase Firestore] Error during non-blocking ${operation} on ${path}:`, error);
+        console.warn(`[Firebase Firestore] Error during non-blocking ${operation} on ${path}:`, error);
     }
 };
 

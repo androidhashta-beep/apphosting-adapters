@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import type { Station, TicketType, Ticket, Settings } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,7 +153,7 @@ export function StationControlCard({
                 This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
             );
         } else {
-            console.error("Error calling next ticket:", error);
+            console.warn("Error calling next ticket:", error);
         }
         toast({
             variant: "destructive",
