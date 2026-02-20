@@ -189,30 +189,33 @@ export function AdminClient() {
         const settingsDocRef = doc(firestore, 'settings', 'app');
         const stationsColRef = collection(firestore, 'stations');
 
+        const defaultServices: Service[] = [
+            { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
+            { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
+            { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
+            { id: 'information', label: 'Information', description: 'General inquiries and assistance.', icon: 'HelpCircle' },
+        ];
+        const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4', 'Window 5'];
+
         // --- Step 1: Ensure services exist by fetching fresh data ---
         const settingsSnap = await getDoc(settingsDocRef);
-        let currentServicesData = settingsSnap.exists() ? settingsSnap.data().services as Service[] : [];
+        const currentServicesData = settingsSnap.exists() ? settingsSnap.data().services as Service[] : [];
         let serviceIds: string[];
         let servicesCreated = false;
 
+        // If no services, create them.
         if (!currentServicesData || currentServicesData.length === 0) {
-            const defaultServices: Service[] = [
-                { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
-                { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
-                { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
-            ];
-            // Use await to ensure this completes before proceeding
             await setDoc(settingsDocRef, { services: defaultServices }, { merge: true });
             serviceIds = defaultServices.map(s => s.id);
             servicesCreated = true;
         } else {
+            // If services exist, just use their IDs.
             serviceIds = currentServicesData.map(s => s.id);
         }
 
         // --- Step 2: Create missing stations by fetching fresh data ---
         const stationsSnap = await getDocs(stationsColRef);
         const existingStationNames = new Set(stationsSnap.docs.map(d => d.data().name));
-        const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4', 'Window 5'];
         const stationsToAdd = defaultStationNames.filter(name => !existingStationNames.has(name));
 
         if (stationsToAdd.length > 0) {
@@ -221,7 +224,7 @@ export function AdminClient() {
                 const newStationRef = doc(stationsColRef); // Firestore generates ID
                 batch.set(newStationRef, {
                     name: name,
-                    services: serviceIds,
+                    services: serviceIds, // Assign all default services
                     status: 'closed',
                     currentTicketId: null,
                 });
@@ -232,9 +235,9 @@ export function AdminClient() {
         // --- Step 3: Give specific, accurate feedback ---
         let description = '';
         if (servicesCreated && stationsToAdd.length > 0) {
-            description = `Created default services and added ${stationsToAdd.length} missing default station(s).`;
+            description = `Created ${defaultServices.length} default services and added ${stationsToAdd.length} missing default station(s).`;
         } else if (servicesCreated) {
-            description = "Created default services. All default stations were already present.";
+            description = `Created ${defaultServices.length} default services. All default stations were already present.`;
         } else if (stationsToAdd.length > 0) {
             description = `Added ${stationsToAdd.length} missing default station(s).`;
         }
@@ -480,7 +483,7 @@ export function AdminClient() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore Default Settings?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will add any missing default stations (Window 1-5) and services (Registration, Payment, Certificate). It will NOT delete any stations or services you have created yourself.
+              This will add any missing default stations (Window 1-5) and services (Registration, Payment, Certificate, etc.). It will NOT delete any stations or services you have created yourself.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
