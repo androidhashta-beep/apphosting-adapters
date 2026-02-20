@@ -145,28 +145,20 @@ export function StationControlCard({
             });
         }
     } catch (error: any) {
+        console.error("Error calling next ticket:", error);
         if (error.code === 'unavailable') {
-            console.warn(
-                `[Firebase Firestore] Network Connection Blocked when calling next ticket.
-
-                >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
-                The application code is correct, but your PC's security is preventing it from connecting to the local server. This is the final step to resolve the issue.
-
-                >>> ACTION REQUIRED ON YOUR PC <<<
-                1. Open your PC's firewall settings (e.g., search for 'Windows Defender Firewall').
-                2. Find the setting to 'Allow an app through firewall'.
-                3. Add your application's .exe file to the list of allowed apps. It is located in the 'out/make' folder inside your project.
-
-                This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
-            );
+             toast({
+                variant: "destructive",
+                title: "Operation Failed: Call Next",
+                description: "Could not connect to the database. Please check your network connection and firewall settings.",
+            });
         } else {
-            console.warn("Error calling next ticket:", error);
+            toast({
+                variant: "destructive",
+                title: "Could not call ticket",
+                description: error.message || "An unexpected error occurred. Please try again.",
+            });
         }
-        toast({
-            variant: "destructive",
-            title: "Could not call ticket",
-            description: "Failed to connect to the server. Please check the connection.",
-        });
     }
   };
 

@@ -106,7 +106,7 @@ export function KioskClient() {
 
     } catch (error: any) {
         setIsPrinting(null); // Stop loading indicator on failure
-        console.warn("Error getting ticket:", error);
+        console.error("Error getting ticket:", error);
 
         if (error.code === 'permission-denied' && ticketsCollection && newTicketId) {
              const permissionError = new FirestorePermissionError({
@@ -116,26 +116,18 @@ export function KioskClient() {
             });
             errorEmitter.emit('permission-error', permissionError);
         } else if (error.code === 'unavailable') {
-             console.warn(
-                `[Firebase Firestore] Network Connection Blocked when getting ticket. The transaction could not complete.
-
-                >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
-                The application code is correct, but your PC's security is preventing it from connecting to the local server. This is the final step to resolve the issue.
-
-                >>> ACTION REQUIRED ON YOUR PC <<<
-                1. Open your PC's firewall settings (e.g., search for 'Windows Defender Firewall').
-                2. Find the setting to 'Allow an app through firewall'.
-                3. Add your application's .exe file to the list of allowed apps. It is located in the 'out/make' folder inside your project.
-
-                This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
-            );
+             toast({
+                variant: "destructive",
+                title: "Operation Failed: Get Ticket",
+                description: "Could not connect to the database. Please check your network connection and firewall settings.",
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Could not get ticket",
+                description: error.message || "An unexpected error occurred. Please try again.",
+            });
         }
-
-        toast({
-            variant: "destructive",
-            title: "Could not get ticket",
-            description: error.message || "Failed to connect to the server. Please check the connection and try again.",
-        });
     }
   };
 
