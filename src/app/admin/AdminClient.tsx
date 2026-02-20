@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -27,14 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { iconList } from '@/lib/icons';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -82,7 +73,6 @@ export function AdminClient() {
   }, [stations]);
 
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
-  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
   const [restoreDefaultsDialog, setRestoreDefaultsDialog] = useState(false);
 
   const [companyName, setCompanyName] = useState('');
@@ -217,54 +207,6 @@ export function AdminClient() {
         title: 'Settings Saved',
         description: 'Company name has been updated.',
       });
-    }
-  };
-
-  const handleServiceChange = (serviceId: string, field: 'label' | 'description' | 'icon', value: string) => {
-    if (!settingsRef || !settings?.services) return;
-    const updatedServices = settings.services.map(s =>
-      s.id === serviceId ? { ...s, [field]: value } : s
-    );
-    setDocumentNonBlocking(settingsRef, { services: updatedServices }, { merge: true });
-  };
-
-  const handleAddNewService = () => {
-    if (!settingsRef || !settings) return;
-    const newService: Service = {
-      id: `service-${Date.now()}`,
-      label: 'New Service',
-      description: 'Service description',
-      icon: 'Wrench',
-    };
-    const updatedServices = [...(settings.services || []), newService];
-    setDocumentNonBlocking(settingsRef, { services: updatedServices }, { merge: true });
-    toast({
-      title: 'Service Added',
-      description: 'A new service has been added. You can now edit its details.',
-    });
-  };
-
-  const handleRemoveService = () => {
-    if (serviceToDelete && settingsRef && settings?.services) {
-      const updatedServices = settings.services.filter(s => s.id !== serviceToDelete);
-      setDocumentNonBlocking(settingsRef, { services: updatedServices }, { merge: true });
-      
-      // Also remove this service from all stations
-      if (firestore && stations) {
-        stations.forEach(station => {
-          if (station.services.includes(serviceToDelete)) {
-            const stationRef = doc(firestore, 'stations', station.id);
-            const updatedStationServices = station.services.filter(sId => sId !== serviceToDelete);
-            updateDocumentNonBlocking(stationRef, { services: updatedStationServices });
-          }
-        });
-      }
-      
-      toast({
-        title: 'Service Removed',
-        description: 'The service has been removed from your settings and all stations.',
-      });
-      setServiceToDelete(null);
     }
   };
 
@@ -513,84 +455,6 @@ export function AdminClient() {
                   </Button>
                 </CardFooter>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Service Configuration</CardTitle>
-                  <CardDescription>
-                    Manage the services offered to students.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    {settings?.services?.map(service => (
-                      <div key={service.id} className="p-4 border rounded-lg space-y-3">
-                        <div className="flex justify-between items-start">
-                          <p className="font-medium">{service.label || "New Service"}</p>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive h-8 w-8 -mt-2 -mr-2"
-                            onClick={() => setServiceToDelete(service.id)}
-                            disabled={(settings.services || []).length <= 1}
-                            title={(settings.services || []).length <= 1 ? "Cannot delete the last service" : "Delete service"}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor={`service-label-${service.id}`}>Label</Label>
-                            <Input
-                              id={`service-label-${service.id}`}
-                              value={service.label}
-                              onChange={e => handleServiceChange(service.id, 'label', e.target.value)}
-                              placeholder="e.g., Registration"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor={`service-icon-${service.id}`}>Icon</Label>
-                            <Select
-                              value={service.icon}
-                              onValueChange={value => handleServiceChange(service.id, 'icon', value)}
-                            >
-                              <SelectTrigger id={`service-icon-${service.id}`}>
-                                <SelectValue placeholder="Select an icon" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {iconList.map(iconName => (
-                                  <SelectItem key={iconName} value={iconName}>
-                                    {iconName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`service-desc-${service.id}`}>Description</Label>
-                          <Input
-                            id={`service-desc-${service.id}`}
-                            value={service.description}
-                            onChange={e => handleServiceChange(service.id, 'description', e.target.value)}
-                            placeholder="A short description for the kiosk screen."
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {(!settings || !settings.services || settings.services.length === 0) && (
-                    <p className="text-sm text-muted-foreground text-center py-4">No services defined. Try adding one or restoring defaults.</p>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" onClick={handleAddNewService}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Service
-                  </Button>
-                </CardFooter>
-              </Card>
-
             </div>
             <div className="space-y-8">
               <CarouselSettings />
@@ -617,31 +481,6 @@ export function AdminClient() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteStation}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={!!serviceToDelete}
-        onOpenChange={(open) => !open && setServiceToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the service. This action cannot be undone. The service will be removed from all stations that handle it.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setServiceToDelete(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRemoveService}
               className="bg-destructive hover:bg-destructive/90"
             >
               Delete

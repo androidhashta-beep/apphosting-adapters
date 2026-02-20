@@ -61,7 +61,7 @@ export function KioskClient() {
 
         let newNumber = 1;
         if (!querySnapshot.empty) {
-            const lastTicket = querySnapshot.docs[0].data();
+            const lastTicket = querySnapshot.docs[0].data() as Ticket;
             const lastTicketNumberPart = lastTicket.ticketNumber?.split('-').pop() || '0';
             const lastTicketNumber = parseInt(lastTicketNumberPart, 10);
             if (!isNaN(lastTicketNumber)) {
@@ -86,14 +86,13 @@ export function KioskClient() {
         
         const newTicket: Ticket = {
             id: newTicketRef.id,
-            ...newTicketPayload
+            ...(newTicketPayload as Omit<Ticket, 'id'>),
         };
         setTicketToPrint(newTicket);
 
     } catch (error: any) {
         const isPermissionError = ticketsCollection && error.code === 'permission-denied';
-        const isNetworkError = error.code === 'unavailable';
-
+        
         if (isPermissionError) {
             const permissionError = new FirestorePermissionError({
                 path: ticketsCollection!.path,
@@ -101,7 +100,7 @@ export function KioskClient() {
                 requestResourceData: newTicketPayload,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else if (isNetworkError) {
+        } else if (error.code === 'unavailable') {
              console.warn(
                 `[Firebase Firestore] Network Connection Blocked when getting ticket.
 
@@ -156,7 +155,7 @@ export function KioskClient() {
                   <Button
                     key={service.id}
                     variant="outline"
-                    className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
+                    className="h-auto text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
                     onClick={() => handleGetTicket(service.id)}
                     disabled={!isHydrated || !!isPrinting}
                   >
@@ -172,13 +171,6 @@ export function KioskClient() {
                         ? 'Please wait...'
                         : service.label}
                     </span>
-                    <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
-                      {isPrinting === service.id
-                        ? 'Please wait a moment.'
-                        : !!isPrinting
-                        ? 'Another request is in progress.'
-                        : service.description}
-                    </p>
                   </Button>
                 ))
               ) : (
