@@ -7,9 +7,11 @@ import type { Ticket, Service, Settings } from "@/lib/types";
 import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
-import { useCollection, useDoc, useFirebase, addDocumentNonBlocking, useMemoFirebase } from "@/firebase";
-import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc } from "firebase/firestore";
+import { useDoc, useFirebase, useMemoFirebase } from "@/firebase";
+import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, addDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
 
 export function KioskClient() {
   const { firestore } = useFirebase();
@@ -41,6 +43,7 @@ export function KioskClient() {
     if (!firestore || !ticketsCollection || isPrinting) return;
   
     setIsPrinting(type);
+    let newTicketData: Omit<Ticket, 'id'> | null = null;
     try {
       // Determine the ticket number for the specific service
       const now = new Date();
@@ -70,27 +73,31 @@ export function KioskClient() {
       const servicePrefix = service?.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
       const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
 
-      const newTicketData = {
+      newTicketData = {
         ticketNumber,
         type,
         status: 'waiting' as const,
         createdAt: Timestamp.now(),
       };
 
-      // Await the creation to ensure the next call to this function sees the new ticket
-      const docRef = await addDocumentNonBlocking(ticketsCollection, newTicketData);
+      const docRef = await addDoc(ticketsCollection, newTicketData);
 
-      if (docRef) {
-          const fullTicket: Ticket = {
-              id: docRef.id,
-              ...newTicketData,
-          };
-          setTicketToPrint(fullTicket);
-      } else {
-        setIsPrinting(null);
-      }
+      const fullTicket: Ticket = {
+          id: docRef.id,
+          ...newTicketData,
+      };
+      setTicketToPrint(fullTicket);
     } catch (error: any) {
-        if (error.code === 'unavailable') {
+        console.error("Error getting ticket:", error);
+
+        if (ticketsCollection && error.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+                path: ticketsCollection.path,
+                operation: 'create',
+                requestResourceData: newTicketData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else if (error.code === 'unavailable') {
             console.error(
                 `[Firebase Firestore] Network Connection Blocked when getting ticket.
 
@@ -104,9 +111,8 @@ export function KioskClient() {
 
                 This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
             );
-        } else {
-            console.error("Error getting ticket:", error);
         }
+
         toast({
             variant: "destructive",
             title: "Could not get ticket",
