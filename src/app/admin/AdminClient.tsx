@@ -102,30 +102,27 @@ export function AdminClient() {
 
   useEffect(() => {
     if (settings && settingsRef && !isLoadingSettings && firestore) {
+      // Create a deep copy to avoid direct mutation of props/state
       let services = settings.services ? JSON.parse(JSON.stringify(settings.services)) : [];
       let needsUpdate = false;
 
+      // This function now only adds a service if it's missing. It won't update existing ones.
       const ensureService = (
         id: string,
         label: string,
         description: string,
-        icon: string,
-        forceLabel: boolean = false
+        icon: string
       ) => {
         let service = services.find((s: Service) => s.id === id);
         if (!service) {
           services.push({ id, label, description, icon });
           needsUpdate = true;
-        } else if (forceLabel && service.label !== label) {
-          service.label = label;
-          service.description = description;
-          service.icon = icon;
-          needsUpdate = true;
         }
       };
 
+      // Ensure core services exist without overwriting user customizations
       ensureService('enrollment', 'Enrollment', 'Student enrollment services.', 'UserPlus');
-      ensureService('payment', 'Cashier', 'Payment and cashiering services.', 'DollarSign', true);
+      ensureService('payment', 'Cashier', 'Payment and cashiering services.', 'DollarSign');
       ensureService('certificate', 'Certificate Claiming', 'Claiming of certificates.', 'Award');
 
       if (needsUpdate) {
