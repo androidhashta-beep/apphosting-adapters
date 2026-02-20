@@ -81,6 +81,7 @@ export function AdminClient() {
 
   const [newStationName, setNewStationName] = useState('');
   const [newStationType, setNewStationType] = useState<string>('');
+  const [isAddStationDialogOpen, setIsAddStationDialogOpen] = useState(false);
 
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
 
@@ -171,6 +172,7 @@ export function AdminClient() {
     };
     addDocumentNonBlocking(stationsCollection, newStation);
     setNewStationName('');
+    setIsAddStationDialogOpen(false);
   };
 
   const handleDeleteStation = () => {
@@ -299,141 +301,21 @@ export function AdminClient() {
       </header>
 
       <ScrollArea className="flex-grow">
-        <div className="grid grid-cols-1 items-start gap-8 p-6 lg:grid-cols-2">
-          <div className="space-y-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Company Settings</CardTitle>
-                <CardDescription>
-                  Set the name of your organization.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Label htmlFor="company-name">Company Name</Label>
-                <Input
-                  id="company-name"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  disabled={!isHydrated}
-                />
-              </CardContent>
-              <CardFooter>
-                <Button onClick={handleCompanyNameSave} disabled={!isHydrated}>
-                  Save
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Service Types</CardTitle>
-                <CardDescription>
-                  Manage the services offered at the kiosk.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {isHydrated &&
-                  settings?.services?.map((service) => (
-                    <div
-                      key={service.id}
-                      className="flex items-center justify-between p-3 rounded-md border bg-card"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon
-                          name={service.icon}
-                          className="h-5 w-5 text-muted-foreground"
-                        />
-                        <div>
-                          <p className="font-semibold">{service.label}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {service.description}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openServiceEditor(service)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setServiceToDelete(service)}
-                          disabled={(settings?.services?.length ?? 0) <= 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => openServiceEditor(null)}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add New Service
-                </Button>
-              </CardFooter>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Add Station</CardTitle>
-                <CardDescription>Create a new service station.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleAddStation} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="new-station-name">Station Name</Label>
-                    <Input
-                      id="new-station-name"
-                      value={newStationName}
-                      onChange={(e) => setNewStationName(e.target.value)}
-                      placeholder="e.g. Certificate Claim"
-                      required
-                      disabled={!isHydrated}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="new-station-type">Station Type</Label>
-                    <Select
-                      value={newStationType}
-                      onValueChange={(value: string) => setNewStationType(value)}
-                      disabled={!isHydrated}
-                    >
-                      <SelectTrigger id="new-station-type">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {settings?.services?.map((service) => (
-                          <SelectItem key={service.id} value={service.id}>
-                            {service.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={!isHydrated}>
-                    Add Station
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-            <CarouselSettings />
-          </div>
+        <div className="space-y-8 p-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Station Management</CardTitle>
-              <CardDescription>
-                Configure station status and operational modes.
-              </CardDescription>
+            <CardHeader className="flex-row items-center justify-between">
+              <div>
+                <CardTitle>Station Management</CardTitle>
+                <CardDescription>
+                  Configure station status and operational modes.
+                </CardDescription>
+              </div>
+              <Button onClick={() => setIsAddStationDialogOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Station
+              </Button>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {!isHydrated &&
                 [...Array(3)].map((_, i) => (
                   <div
@@ -443,6 +325,11 @@ export function AdminClient() {
                     <Skeleton className="h-full w-full" />
                   </div>
                 ))}
+              {isHydrated && stations?.length === 0 && (
+                 <div className="col-span-full text-center text-muted-foreground py-10">
+                  <p>No stations created yet. Click "Add Station" to begin.</p>
+                </div>
+              )}
               {isHydrated &&
                 stations?.map((station) => {
                   const isServing = !!station.currentTicketId;
@@ -533,10 +420,150 @@ export function AdminClient() {
                 })}
             </CardContent>
           </Card>
+          
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+            <div className="space-y-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Company Settings</CardTitle>
+                  <CardDescription>
+                    Set the name of your organization.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Label htmlFor="company-name">Company Name</Label>
+                  <Input
+                    id="company-name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    disabled={!isHydrated}
+                  />
+                </CardContent>
+                <CardFooter>
+                  <Button onClick={handleCompanyNameSave} disabled={!isHydrated}>
+                    Save
+                  </Button>
+                </CardFooter>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Service Types</CardTitle>
+                  <CardDescription>
+                    Manage the services offered at the kiosk.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {isHydrated &&
+                    settings?.services?.map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex items-center justify-between p-3 rounded-md border bg-card"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon
+                            name={service.icon}
+                            className="h-5 w-5 text-muted-foreground"
+                          />
+                          <div>
+                            <p className="font-semibold">{service.label}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {service.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openServiceEditor(service)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setServiceToDelete(service)}
+                            disabled={(settings?.services?.length ?? 0) <= 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => openServiceEditor(null)}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add New Service
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+            <div className="space-y-8">
+              <CarouselSettings />
+            </div>
+          </div>
         </div>
       </ScrollArea>
 
       {/* Dialogs */}
+      <AlertDialog
+        open={isAddStationDialogOpen}
+        onOpenChange={setIsAddStationDialogOpen}
+      >
+        <AlertDialogContent>
+          <form onSubmit={handleAddStation}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Add New Station</AlertDialogTitle>
+              <AlertDialogDescription>
+                Create a new service station.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4 space-y-4">
+              <div className="space-y-2">
+                  <Label htmlFor="new-station-name">Station Name</Label>
+                  <Input
+                    id="new-station-name"
+                    value={newStationName}
+                    onChange={(e) => setNewStationName(e.target.value)}
+                    placeholder="e.g. Counter 1"
+                    required
+                    disabled={!isHydrated}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-station-type">Station Type</Label>
+                  <Select
+                    value={newStationType}
+                    onValueChange={(value: string) => setNewStationType(value)}
+                    disabled={!isHydrated}
+                  >
+                    <SelectTrigger id="new-station-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {settings?.services?.map((service) => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+              <AlertDialogAction type="submit">Add Station</AlertDialogAction>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog
         open={isServiceEditorOpen}
         onOpenChange={setIsServiceEditorOpen}
