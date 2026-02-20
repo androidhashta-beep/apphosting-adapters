@@ -4,13 +4,13 @@ service cloud.firestore {
     // Settings: All authenticated users (kiosk, display, staff, admin) can read.
     // Staff/Admin can write. We'll just check for auth for now.
     match /settings/{settingId} {
-      allow read, write: if request.auth != null;
+      allow read, create, update, delete: if request.auth != null;
     }
 
     // Stations: All authenticated users can read.
     // Staff/Admin can write.
     match /stations/{stationId} {
-      allow read, write: if request.auth != null;
+      allow read, create, update, delete: if request.auth != null;
     }
 
     // Tickets: All authenticated users can read and create.
@@ -21,7 +21,7 @@ service cloud.firestore {
 
     // Counters: Kiosk (authenticated) needs to read/write in a transaction.
     match /counters/{counterId} {
-      allow read, write: if request.auth != null;
+      allow read, create, update, delete: if request.auth != null;
     }
   }
 }
