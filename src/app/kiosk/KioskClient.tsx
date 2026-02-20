@@ -40,7 +40,7 @@ export function KioskClient() {
   }, [ticketToPrint, settings, toast]);
   
   const handleGetTicket = async (type: string) => {
-    if (!firestore || !ticketsCollection || isPrinting) return;
+    if (!firestore || !ticketsCollection || isPrinting || !isUserLoading) return;
   
     setIsPrinting(type);
     let newTicketPayload: Omit<Ticket, 'id'> | null = null;
@@ -80,8 +80,7 @@ export function KioskClient() {
             // Update the counter atomically
             transaction.set(counterRef, { count: newNumber, lastReset: Timestamp.now() }, { merge: true });
 
-            const servicePrefix = service.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
-            const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
+            const ticketNumber = newNumber.toString();
 
             const finalTicketPayload = {
                 ticketNumber,
