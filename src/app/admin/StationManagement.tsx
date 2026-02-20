@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirebase, useDoc, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { doc, collection, writeBatch, getDocs, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { useFirebase, useDoc, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { doc, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Settings, Station, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,90 +43,59 @@ export function StationManagement() {
   }, [stations]);
 
   const handleAddStation = () => {
-    if (!stationsCollectionRef) return;
-    const newStationName = `Window ${ (stations?.length || 0) + 1 }`;
-    addDocumentNonBlocking(stationsCollectionRef, {
+    if (!firestore) return;
+    // Find the highest number in existing window names to avoid collisions
+    const maxNum = stations?.reduce((max, s) => {
+        const match = s.name.match(/(\d+)$/);
+        if (match) {
+            return Math.max(max, parseInt(match[1], 10));
+        }
+        return max;
+    }, 0) || 0;
+
+    const nextStationNumber = maxNum + 1;
+    const newStationId = `window-${nextStationNumber}`;
+    const newStationName = `Window ${nextStationNumber}`;
+    
+    const stationRef = doc(firestore, 'stations', newStationId);
+    setDocumentNonBlocking(stationRef, {
         name: newStationName,
         status: 'closed',
         serviceIds: [],
-    });
+    }, { merge: false });
+
     toast({ title: "Station Added", description: `Created station "${newStationName}".` });
   };
   
-  const handleRestoreDefaults = async () => {
+  const handleRestoreDefaults = () => {
       if (!firestore) return;
 
-      toast({ title: "Restoring Defaults", description: "Please wait..." });
+      toast({ title: "Restoring Defaults", description: "Applying default configuration..." });
+      
+      const defaultServices: Service[] = [
+        { id: 'registration', label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
+        { id: 'cashier', label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
+        { id: 'certificate-claiming', label: 'Certificate Claiming', description: 'Claiming of certificates', icon: 'Award' },
+        { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
+      ];
+      
+      const settingsDocRef = doc(firestore, 'settings', 'app');
+      setDocumentNonBlocking(settingsDocRef, { services: defaultServices }, { merge: true });
 
-      try {
-        const stationsCollection = collection(firestore, 'stations');
-        
-        const defaultServices: Omit<Service, 'id'>[] = [
-            { label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
-            { label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
-            { label: 'Certificate Claiming', description: 'Claiming of certificates', icon: 'Award' },
-            { label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
-        ];
-        
-        const settingsDocRef = doc(firestore, 'settings', 'app');
-        const batch = writeBatch(firestore);
-
-        const settingsSnapshot = await getDoc(settingsDocRef);
-        const currentServices = settingsSnapshot.exists() ? (settingsSnapshot.data()?.services || []) : [];
-        
-        const servicesToAdd = defaultServices.filter(ds => !currentServices.some(cs => cs.label === ds.label));
-        let finalServices = [...currentServices];
-        let servicesAddedCount = 0;
-
-        if (servicesToAdd.length > 0) {
-            const newServices = servicesToAdd.map(s => ({...s, id: s.label.toLowerCase().replace(/\s/g, '-')}));
-            finalServices = [...currentServices, ...newServices];
-            batch.set(settingsDocRef, { services: finalServices }, { merge: true });
-            servicesAddedCount = newServices.length;
-        }
-        
-        const currentStationsSnapshot = await getDocs(stationsCollection);
-        const existingStationNames = currentStationsSnapshot.docs.map(d => d.data().name);
-        
-        let stationsAddedCount = 0;
-        for (let i = 1; i <= 5; i++) {
-            const stationName = `Window ${i}`;
-            if (!existingStationNames.includes(stationName)) {
-                const newStationRef = doc(stationsCollection);
-                batch.set(newStationRef, {
-                    name: stationName,
-                    status: 'closed',
-                    serviceIds: [],
-                });
-                stationsAddedCount++;
-            }
-        }
-        
-        await batch.commit();
-        toast({
-            title: "Defaults Restored",
-            description: `Created ${servicesAddedCount} new service(s) and added ${stationsAddedCount} missing station(s).`
-        });
-
-      } catch (error: any) {
-          if (error.code === 'unavailable') {
-            console.warn(
-              `[Firebase Firestore] Network Connection Blocked while restoring defaults. This is often a local firewall issue.
-
-              >>> ACTION REQUIRED <<<
-              If you are running the packaged desktop app, your PC's firewall might be blocking it. Please 'Allow an app through firewall' for your application's .exe file.`
-            );
-            toast({
-              variant: 'destructive',
-              title: "Connection Error",
-              description: "Could not connect to the database. Please check your firewall settings and internet connection.",
-              duration: 10000,
-            });
-          } else {
-            console.error("Failed to restore defaults:", error);
-            toast({ variant: 'destructive', title: "Restore Failed", description: error.message });
-          }
+      for (let i = 1; i <= 5; i++) {
+        const stationId = `window-${i}`;
+        const stationRef = doc(firestore, 'stations', stationId);
+        setDocumentNonBlocking(stationRef, {
+            name: `Window ${i}`,
+            status: 'closed',
+            serviceIds: [],
+        }, { merge: false });
       }
+
+      toast({
+          title: "Defaults Restored",
+          description: `Created 4 default services and 5 default stations.`
+      });
   };
 
   const handleUpdateStationName = (stationId: string, newName: string) => {
