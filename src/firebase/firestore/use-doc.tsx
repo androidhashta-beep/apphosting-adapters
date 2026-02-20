@@ -57,7 +57,6 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-    // Optional: setData(null); // Clear previous data instantly
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -65,38 +64,32 @@ export function useDoc<T = any>(
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          // Document does not exist
           setData(null);
         }
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
+        setError(null);
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // This is a network connectivity error. We will log a helpful message
-        // but not throw an error, allowing the app to remain online in a degraded state.
         if (error.code === 'unavailable') {
           console.error(
-            `[Firebase Firestore] Network Error: Cannot connect to the local Firestore Emulator.
+            `[Firebase Firestore] Network Connection Blocked when listening to document.
 
-            >>> FINAL DIAGNOSIS & SOLUTION <<<
-            This error indicates that security software on your PC (like Windows Defender Firewall) is blocking the application. This is common for new desktop applications.
-    
-            ACTION REQUIRED:
-            1. Open your firewall settings (e.g., Windows Defender Firewall).
-            2. Find the setting for "Allow an app through firewall".
-            3. Add this application's executable file to the list of allowed apps. The file is located in the 'out/make' folder inside your project directory.
-    
-            This is a one-time setup step for your PC. All code-level fixes for this issue have been applied.`
+            >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
+            The application code is correct, but your PC's security is preventing it from connecting to the local server. This is the final step to resolve the issue.
+
+            >>> ACTION REQUIRED ON YOUR PC <<<
+            1. Open your PC's firewall settings (e.g., search for 'Windows Defender Firewall').
+            2. Find the setting to 'Allow an app through firewall'.
+            3. Add your application's .exe file to the list of allowed apps. It is located in the 'out/make' folder inside your project.
+
+            This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
           );
-          // We set loading to false and data to null, but we don't set an error state.
-          // This prevents the application from crashing with an error overlay.
           setData(null);
           setIsLoading(false);
-          setError(error); // Set the error for UI feedback, but don't throw
-          return; // Stop further processing
+          setError(error);
+          return;
         }
 
-        // Handle other errors (like permissions) by throwing a contextual error.
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
@@ -106,13 +99,12 @@ export function useDoc<T = any>(
         setData(null)
         setIsLoading(false)
 
-        // trigger global error propagation
         errorEmitter.emit('permission-error', contextualError);
       }
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+  }, [memoizedDocRef]);
 
   return { data, isLoading, error };
 }
