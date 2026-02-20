@@ -5,14 +5,14 @@ import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 export function initializeFirebase() {
-  // Hardcode a minimal config for emulator-only use.
-  // The actual values don't matter much when connecting to emulators,
-  // but they must be non-empty strings. This avoids the SDK getting
-  // confused by a production config when running in an Electron app.
+  // Hardcode a minimal, completely generic config for emulator-only use.
+  // This helps ensure the SDK doesn't make any assumptions about connecting
+  // to production services, which can be a source of issues in a
+  // firewalled desktop environment.
   const emulatorConfig = {
-      apiKey: "emulator-api-key",
-      authDomain: "localhost",
-      projectId: "studio-2232077555-525b9",
+      apiKey: "emulator-only",
+      authDomain: "localhost.firebaseapp.com",
+      projectId: "demo-local-project",
   };
 
   const app = getApps().length ? getApp() : initializeApp(emulatorConfig);
