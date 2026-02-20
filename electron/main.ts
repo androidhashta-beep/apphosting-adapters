@@ -18,12 +18,14 @@ function createWindow() {
     ? 'http://localhost:3000'
     : `file://${path.join(__dirname, '../../out/index.html')}`;
 
+  mainWindow.loadURL(url);
+
   if (isDev) {
-    mainWindow.loadURL(url);
     // Open DevTools automatically if in development
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadURL(url);
+    // Hide the menu bar in production for a cleaner look
+    mainWindow.setMenuBarVisibility(false);
   }
   
   // Maximize the window for a better kiosk/dashboard experience
