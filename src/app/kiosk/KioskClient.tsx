@@ -9,6 +9,7 @@ import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
 import { useCollection, useDoc, useFirebase, addDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
 
 export function KioskClient() {
   const { firestore } = useFirebase();
@@ -17,20 +18,29 @@ export function KioskClient() {
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState<string | null>(null);
   
   const ticketsCollection = useMemoFirebase(() => (firestore ? collection(firestore, 'tickets') : null), [firestore]);
 
 
   useEffect(() => {
     if (ticketToPrint) {
+      const service = settings?.services.find(s => s.id === ticketToPrint.type);
+      toast({
+          title: `Printing Ticket ${ticketToPrint.ticketNumber}`,
+          description: `Your ticket for ${service?.label || 'a service'} is printing.`,
+          duration: 5000,
+      });
       window.print();
       setTicketToPrint(null); // Reset after triggering print
+      setIsPrinting(null);
     }
-  }, [ticketToPrint]);
+  }, [ticketToPrint, settings, toast]);
   
   const handleGetTicket = async (type: string) => {
-    if (!firestore || !ticketsCollection) return;
+    if (!firestore || !ticketsCollection || isPrinting) return;
   
+    setIsPrinting(type);
     try {
       // Determine the ticket number for the specific service
       const now = new Date();
@@ -76,11 +86,8 @@ export function KioskClient() {
               ...newTicketData,
           };
           setTicketToPrint(fullTicket);
-          toast({
-              title: `Printing Ticket ${fullTicket.ticketNumber}`,
-              description: `Your ticket for ${service?.label || 'a service'} is printing.`,
-              duration: 5000,
-          });
+      } else {
+        setIsPrinting(null);
       }
     } catch (error: any) {
         if (error.code === 'unavailable') {
@@ -105,6 +112,7 @@ export function KioskClient() {
             title: "Could not get ticket",
             description: "Failed to connect to the server. Please check the connection and try again.",
         });
+        setIsPrinting(null);
     }
   };
 
@@ -138,12 +146,16 @@ export function KioskClient() {
                     variant="outline"
                     className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
                     onClick={() => handleGetTicket(service.id)}
-                    disabled={!isHydrated}
+                    disabled={!isHydrated || !!isPrinting}
                   >
-                    <Icon name={service.icon} className="h-8 w-8" />
-                    <span>{service.label}</span>
+                    {isPrinting === service.id ? (
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                        <Icon name={service.icon} className="h-8 w-8" />
+                    )}
+                    <span>{isPrinting === service.id ? 'Preparing Ticket...' : service.label}</span>
                     <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
-                      {service.description}
+                        {isPrinting === service.id ? 'Please wait a moment.' : service.description}
                     </p>
                   </Button>
                 ))
