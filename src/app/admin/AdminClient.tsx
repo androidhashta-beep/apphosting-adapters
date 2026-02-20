@@ -96,20 +96,23 @@ export function AdminClient() {
     }
   }, [settings, isLoadingSettings, settingsRef, firestore]);
   
-  // One-time effect to create default stations if none exist
+  // One-time effect to create default stations if they are missing
   useEffect(() => {
-    if (firestore && !isLoadingStations && stations?.length === 0 && stationsCollection && settings?.services && settings.services.length > 0) {
-      const defaultStations = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
+    if (firestore && !isLoadingStations && stations && stationsCollection && settings?.services && settings.services.length > 0) {
+      const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
+      const existingStationNames = new Set(stations.map(s => s.name));
       const allServiceIds = settings.services.map(s => s.id);
       
-      defaultStations.forEach(name => {
-        const newStation: Omit<Station, 'id'> = {
-          name: name,
-          services: allServiceIds,
-          status: 'closed',
-          currentTicketId: null,
-        };
-        addDocumentNonBlocking(stationsCollection, newStation);
+      defaultStationNames.forEach(name => {
+        if (!existingStationNames.has(name)) {
+          const newStation: Omit<Station, 'id'> = {
+            name: name,
+            services: allServiceIds,
+            status: 'closed',
+            currentTicketId: null,
+          };
+          addDocumentNonBlocking(stationsCollection, newStation);
+        }
       });
     }
   }, [firestore, isLoadingStations, stations, stationsCollection, settings]);
@@ -127,11 +130,12 @@ export function AdminClient() {
     const currentStation = stations.find(s => s.id === stationId);
     if (!currentStation) return;
   
+    const currentServices = currentStation.services || [];
     let updatedServices: string[];
     if (isAssigned) {
-      updatedServices = [...currentStation.services, serviceId];
+      updatedServices = [...currentServices, serviceId];
     } else {
-      updatedServices = currentStation.services.filter(id => id !== serviceId);
+      updatedServices = currentServices.filter(id => id !== serviceId);
     }
     updateDocumentNonBlocking(stationRef, { services: updatedServices });
   };
