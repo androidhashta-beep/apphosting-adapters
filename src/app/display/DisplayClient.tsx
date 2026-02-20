@@ -60,38 +60,38 @@ export function DisplayClient() {
   const router = useRouter();
 
   // --- Data Fetching ---
-  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'settings', 'app') : null), [firestore]);
+  const settingsRef = useMemoFirebase(() => (firestore && !isUserLoading ? doc(firestore, 'settings', 'app') : null), [firestore, isUserLoading]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
-  const stationsRef = useMemoFirebase(() => (firestore ? collection(firestore, 'stations') : null), [firestore]);
+  const stationsRef = useMemoFirebase(() => (firestore && !isUserLoading ? collection(firestore, 'stations') : null), [firestore, isUserLoading]);
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsRef);
 
   const servingTicketQuery = useMemoFirebase(
-    () => firestore ? query(collection(firestore, 'tickets'), where('status', '==', 'serving'), limit(1)) : null,
-    [firestore]
+    () => (firestore && !isUserLoading) ? query(collection(firestore, 'tickets'), where('status', '==', 'serving'), limit(1)) : null,
+    [firestore, isUserLoading]
   );
   const { data: servingTickets, isLoading: isLoadingServing } = useCollection<Ticket>(servingTicketQuery);
   const servingTicket = useMemo(() => (servingTickets && servingTickets.length > 0 ? servingTickets[0] : null), [servingTickets]);
 
   const historyTicketsQuery = useMemoFirebase(
-    () => firestore ? query(
+    () => (firestore && !isUserLoading) ? query(
         collection(firestore, 'tickets'),
         where('status', 'in', ['served', 'skipped']),
         orderBy('calledAt', 'desc'),
         limit(5)
       ) : null,
-    [firestore]
+    [firestore, isUserLoading]
   );
   const { data: historyTickets, isLoading: isLoadingHistory } = useCollection<Ticket>(historyTicketsQuery);
 
   const waitingTicketsQuery = useMemoFirebase(
-    () => firestore ? query(
+    () => (firestore && !isUserLoading) ? query(
         collection(firestore, 'tickets'),
         where('status', '==', 'waiting'),
         orderBy('createdAt', 'asc'),
         limit(10)
       ) : null,
-    [firestore]
+    [firestore, isUserLoading]
   );
   const { data: waitingTickets, isLoading: isLoadingWaiting } = useCollection<Ticket>(waitingTicketsQuery);
 
