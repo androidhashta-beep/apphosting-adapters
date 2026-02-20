@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, PlusCircle, RefreshCw, ServerCrash, Save } from 'lucide-react';
+import { Trash2, PlusCircle, RefreshCw, ServerCrash, Save, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -67,6 +67,7 @@ export function StationManagement() {
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsCollectionRef);
 
   const [stationToDelete, setStationToDelete] = useState<Station | null>(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
   const isHydrated = !isLoadingSettings && !isLoadingStations && !isUserLoading;
 
@@ -232,6 +233,43 @@ export function StationManagement() {
     }
   }
 
+  const confirmResetQueues = async () => {
+    if (!firestore) return;
+
+    toast({ title: "Resetting All Queues...", description: "Please wait." });
+
+    try {
+        const batch = writeBatch(firestore);
+
+        // 1. Delete all tickets
+        const ticketsSnapshot = await getDocs(collection(firestore, 'tickets'));
+        ticketsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+        // 2. Delete all counters
+        const countersSnapshot = await getDocs(collection(firestore, 'counters'));
+        countersSnapshot.forEach(doc => batch.delete(doc.ref));
+        
+        // 3. Reset all stations' currentTicketId
+        if (stations) {
+            stations.forEach(station => {
+                const stationRef = doc(firestore, 'stations', station.id);
+                batch.update(stationRef, { currentTicketId: null });
+            });
+        }
+
+        await batch.commit();
+
+        toast({
+            title: "All Queues Reset Successfully",
+            description: "All tickets and counters have been cleared.",
+        });
+    } catch (error: any) {
+        handleFirestoreError(error, toast, "Reset All Queues");
+    } finally {
+        setIsResetConfirmOpen(false);
+    }
+  }
+
   return (
     <>
       <Card>
@@ -297,15 +335,18 @@ export function StationManagement() {
               </div>
           ))}
         </CardContent>
-        <CardFooter className="border-t pt-6 flex flex-col sm:flex-row gap-2">
+        <CardFooter className="border-t pt-6 grid grid-cols-2 gap-2">
             <Button className="w-full" onClick={handleAddStation} disabled={!isHydrated}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Station
             </Button>
             <Button variant="outline" className="w-full" onClick={handleSaveAsDefault} disabled={!isHydrated}>
                 <Save className="mr-2 h-4 w-4" /> Save as Default
             </Button>
-            <Button variant="destructive" className="w-full" onClick={handleRestoreDefaults} disabled={!isHydrated}>
+            <Button variant="outline" className="w-full" onClick={handleRestoreDefaults} disabled={!isHydrated}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Restore Defaults
+            </Button>
+             <Button variant="destructive" className="w-full" onClick={() => setIsResetConfirmOpen(true)} disabled={!isHydrated}>
+                <ShieldAlert className="mr-2 h-4 w-4" /> Reset All Queues
             </Button>
         </CardFooter>
       </Card>
@@ -321,6 +362,21 @@ export function StationManagement() {
             <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setStationToDelete(null)}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={confirmDeleteStation} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This is a highly destructive action that cannot be undone. This will permanently delete <strong>all tickets</strong> and reset <strong>all queue counters</strong> to 1. Use this for a clean daily start.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmResetQueues} className="bg-destructive hover:bg-destructive/90">Yes, Reset Everything</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
