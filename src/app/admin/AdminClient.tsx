@@ -72,6 +72,18 @@ export function AdminClient() {
       setCompanyName(settings.companyName || '');
     }
   }, [settings]);
+
+  // One-time effect to create default services if they are missing
+  useEffect(() => {
+    if (settingsRef && !isLoadingSettings && (!settings || !settings.services || settings.services.length === 0)) {
+        const defaultServices: Service[] = [
+            { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
+            { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
+            { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
+        ];
+      setDocumentNonBlocking(settingsRef, { services: defaultServices }, { merge: true });
+    }
+  }, [settingsRef, isLoadingSettings, settings]);
   
   // One-time effect to create default stations if they are missing
   useEffect(() => {
@@ -125,12 +137,12 @@ export function AdminClient() {
   };
 
   const handleAutoAddStation = () => {
-    if (!stationsCollection || !stations || !settings?.services) {
+    if (!stationsCollection || !stations || !settings?.services || settings.services.length === 0) {
       toast({
         variant: 'destructive',
         title: 'Cannot Add Station',
         description:
-          'System is not ready. Please wait a moment and try again.',
+          'System is not ready. Please wait for services to initialize and try again.',
       });
       return;
     }
