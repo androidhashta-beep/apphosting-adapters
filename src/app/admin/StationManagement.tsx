@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 import { useState, useMemo } from 'react';
 import { useFirebase, useDoc, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { doc, collection, writeBatch, getDocs } from 'firebase/firestore';
+import { doc, collection, writeBatch, getDocs, getDoc } from 'firebase/firestore';
 import type { Settings, Station, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -71,7 +71,9 @@ export function StationManagement() {
         const settingsDocRef = doc(firestore, 'settings', 'app');
         const batch = writeBatch(firestore);
 
-        const currentServices = settings?.services || [];
+        const settingsSnapshot = await getDoc(settingsDocRef);
+        const currentServices = settingsSnapshot.exists() ? (settingsSnapshot.data()?.services || []) : [];
+        
         const servicesToAdd = defaultServices.filter(ds => !currentServices.some(cs => cs.label === ds.label));
         let finalServices = [...currentServices];
         let servicesAddedCount = 0;
@@ -109,8 +111,23 @@ export function StationManagement() {
         });
 
       } catch (error: any) {
-          console.error("Failed to restore defaults:", error);
-          toast({ variant: 'destructive', title: "Restore Failed", description: error.message });
+          if (error.code === 'unavailable') {
+            console.warn(
+              `[Firebase Firestore] Network Connection Blocked while restoring defaults. This is often a local firewall issue.
+
+              >>> ACTION REQUIRED <<<
+              If you are running the packaged desktop app, your PC's firewall might be blocking it. Please 'Allow an app through firewall' for your application's .exe file.`
+            );
+            toast({
+              variant: 'destructive',
+              title: "Connection Error",
+              description: "Could not connect to the database. Please check your firewall settings and internet connection.",
+              duration: 10000,
+            });
+          } else {
+            console.error("Failed to restore defaults:", error);
+            toast({ variant: 'destructive', title: "Restore Failed", description: error.message });
+          }
       }
   };
 
