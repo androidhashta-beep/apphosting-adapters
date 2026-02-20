@@ -72,6 +72,25 @@ export function useDoc<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
+        if (error.code === 'unavailable') {
+            console.error(
+              `[Firebase Firestore] Network Error: Cannot connect to the Firestore server.
+  
+              >>> TROUBLESHOOTING CHECKLIST <<<
+              1. Is the server PC (IP: 10.30.0.250) turned on?
+              2. Is the 'firebase emulators:start' command still running in PowerShell on the server?
+              3. Are this device and the server on the same Wi-Fi network?
+              4. Is the Windows Firewall on the server blocking port 8080? You may need to run this PowerShell command as Administrator on the server:
+                 New-NetFirewallRule -DisplayName "Firebase Emulators" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080,9099,4000
+  
+              This is a network configuration issue, not an application bug.`
+            );
+            setError(new Error("Network connection to database failed."));
+            setData(null);
+            setIsLoading(false);
+            return;
+        }
+
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,
