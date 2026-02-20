@@ -12,9 +12,8 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, ArrowLeft, PlusCircle, Edit } from 'lucide-react';
+import { Trash2, ArrowLeft, PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -32,14 +31,6 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
-import { Icon, iconList } from '@/lib/icons';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   useCollection,
   useDoc,
@@ -52,7 +43,6 @@ import {
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function AdminClient() {
   const router = useRouter();
@@ -79,10 +69,6 @@ export function AdminClient() {
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
 
   const [companyName, setCompanyName] = useState('');
-
-  const [isServiceEditorOpen, setIsServiceEditorOpen] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
-  const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -199,90 +185,6 @@ export function AdminClient() {
     }
   };
 
-  const handleSaveService = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!settings || !settingsRef) return;
-
-    const formData = new FormData(e.currentTarget);
-    const id = formData.get('id') as string;
-    const label = formData.get('label') as string;
-    const description = formData.get('description') as string;
-    const icon = formData.get('icon') as string;
-
-    if (!id || !label || !description || !icon) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please fill out all fields for the service.',
-      });
-      return;
-    }
-
-    const service: Service = {
-      id: id.toLowerCase().replace(/\s+/g, '-'),
-      label,
-      description,
-      icon,
-    };
-
-    let services = [...(settings.services || [])];
-    if (editingService) {
-      const index = services.findIndex((s) => s.id === editingService.id);
-      if (index > -1) services[index] = service;
-    } else {
-      if (services.some((s) => s.id === service.id)) {
-        toast({
-          variant: 'destructive',
-          title: 'ID already exists',
-          description: `Service ID "${service.id}" is already in use. Please choose a unique label.`,
-        });
-        return;
-      }
-      services.push(service);
-    }
-
-    setDocumentNonBlocking(settingsRef, { services }, { merge: true });
-    toast({
-      title: 'Service Saved',
-      description: `Service "${label}" has been saved.`,
-    });
-    setIsServiceEditorOpen(false);
-    setEditingService(null);
-  };
-
-  const openServiceEditor = (service: Service | null) => {
-    setEditingService(service);
-    setIsServiceEditorOpen(true);
-  };
-
-  const handleDeleteService = () => {
-    if (serviceToDelete && settingsRef && settings) {
-      const updatedServices = (settings.services || []).filter(
-        (s) => s.id !== serviceToDelete.id
-      );
-      setDocumentNonBlocking(
-        settingsRef,
-        { services: updatedServices },
-        { merge: true }
-      );
-
-      // Also remove this service from all stations
-      stations?.forEach((station) => {
-        if (station.services.includes(serviceToDelete.id) && firestore) {
-          const stationRef = doc(firestore, 'stations', station.id);
-          const newStationServices = station.services.filter(sId => sId !== serviceToDelete.id);
-          updateDocumentNonBlocking(stationRef, { services: newStationServices });
-        }
-      });
-
-      toast({
-        title: 'Service Removed',
-        description: `Service "${serviceToDelete.label}" has been removed.`,
-      });
-      setServiceToDelete(null);
-    }
-  };
-
   const isHydrated = !isLoadingSettings && !isLoadingStations;
 
   return (
@@ -310,197 +212,126 @@ export function AdminClient() {
       <ScrollArea className="flex-grow">
         <div className="space-y-8 p-6">
           <Card>
-            <Tabs defaultValue="stations">
-              <div className="flex flex-col sm:flex-row items-start justify-between gap-4 border-b p-6">
-                <div>
-                  <CardTitle>Station & Service Management</CardTitle>
+            <CardHeader className='flex-row items-center justify-between border-b'>
+              <div>
+                  <CardTitle>Station Management</CardTitle>
                   <CardDescription className="mt-1">
                     Configure stations and the services they provide.
                   </CardDescription>
-                </div>
-                <TabsList className="w-full sm:w-auto">
-                  <TabsTrigger value="stations" className="w-full sm:w-auto">
-                    Stations
-                  </TabsTrigger>
-                  <TabsTrigger value="services" className="w-full sm:w-auto">
-                    Services
-                  </TabsTrigger>
-                </TabsList>
               </div>
+              <Button onClick={() => setIsAddStationDialogOpen(true)}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Station
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {!isHydrated &&
+                [...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-[260px] w-full" />
+                ))}
+              {isHydrated && stations?.length === 0 && (
+                <div className="col-span-full text-center text-muted-foreground py-10">
+                  <p>No stations configured. Default stations will be created shortly.</p>
+                </div>
+              )}
+              {isHydrated &&
+                stations?.map((station) => {
+                  const isServing = !!station.currentTicketId;
+                  const isClosed = station.status === 'closed';
+                  const isDeleteDisabled = isServing && !isClosed;
+                  const assignedServices = (station.services || [])
+                    .map(
+                      (serviceId) =>
+                        settings?.services?.find((s) => s.id === serviceId)
+                          ?.label
+                    )
+                    .filter(Boolean)
+                    .join(', ');
 
-              <TabsContent value="stations">
-                <CardHeader>
-                  <div className="flex items-center justify-end">
-                    <Button onClick={() => setIsAddStationDialogOpen(true)}>
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add Station
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {!isHydrated &&
-                    [...Array(4)].map((_, i) => (
-                      <Skeleton key={i} className="h-[260px] w-full" />
-                    ))}
-                  {isHydrated && stations?.length === 0 && (
-                    <div className="col-span-full text-center text-muted-foreground py-10">
-                      <p>No stations configured. Default stations will be created shortly.</p>
-                    </div>
-                  )}
-                  {isHydrated &&
-                    stations?.map((station) => {
-                      const isServing = !!station.currentTicketId;
-                      const isClosed = station.status === 'closed';
-                      const isDeleteDisabled = isServing && !isClosed;
-                      const assignedServices = (station.services || [])
-                        .map(
-                          (serviceId) =>
-                            settings?.services?.find((s) => s.id === serviceId)
-                              ?.label
-                        )
-                        .filter(Boolean)
-                        .join(', ');
-
-                      return (
-                        <div
-                          key={station.id}
-                          className="space-y-4 rounded-md border p-4 flex flex-col"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="font-semibold">{station.name}</p>
-                              <p className="text-xs text-muted-foreground min-h-[2.5rem]">
-                                {assignedServices || 'No services assigned'}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setStationToDelete(station.id)}
-                              className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed -mr-2 -mt-2 shrink-0"
-                              disabled={isDeleteDisabled}
-                              title={
-                                isDeleteDisabled
-                                  ? 'Station is busy. Close it first.'
-                                  : 'Delete station'
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete</span>
-                            </Button>
-                          </div>
-                          <div className="space-y-2 flex-grow">
-                            <Label>Handled Services</Label>
-                            <div className="space-y-1">
-                              {settings?.services?.map((service) => (
-                                <div
-                                  key={service.id}
-                                  className="flex items-center gap-2"
-                                >
-                                  <Checkbox
-                                    id={`service-${station.id}-${service.id}`}
-                                    checked={(station.services || []).includes(service.id)}
-                                    onCheckedChange={(checked) =>
-                                      handleServiceAssignmentChange(
-                                        station.id,
-                                        service.id,
-                                        !!checked
-                                      )
-                                    }
-                                    disabled={isClosed}
-                                  />
-                                  <Label
-                                    htmlFor={`service-${station.id}-${service.id}`}
-                                    className="font-normal cursor-pointer text-sm"
-                                  >
-                                    {service.label}
-                                  </Label>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between rounded-lg border p-3 mt-auto">
-                            <div className="space-y-0.5">
-                              <Label
-                                htmlFor={`status-switch-${station.id}`}
-                                className="cursor-pointer"
-                              >
-                                Station Status
-                              </Label>
-                              <p className="text-xs text-muted-foreground">
-                                {isClosed
-                                  ? 'Station is offline.'
-                                  : 'Station is open for service.'}
-                              </p>
-                            </div>
-                            <Switch
-                              id={`status-switch-${station.id}`}
-                              checked={!isClosed}
-                              onCheckedChange={(checked) =>
-                                handleStatusChange(station.id, checked)
-                              }
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                </CardContent>
-              </TabsContent>
-
-              <TabsContent value="services">
-                <CardHeader>
-                  <div className="flex items-center justify-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => openServiceEditor(null)}
+                  return (
+                    <div
+                      key={station.id}
+                      className="space-y-4 rounded-md border p-4 flex flex-col"
                     >
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add New Service
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {isHydrated &&
-                    settings?.services?.map((service) => (
-                      <div
-                        key={service.id}
-                        className="flex items-center justify-between p-3 rounded-md border bg-card"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon
-                            name={service.icon}
-                            className="h-5 w-5 text-muted-foreground"
-                          />
-                          <div>
-                            <p className="font-semibold">{service.label}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {service.description}
-                            </p>
-                          </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">{station.name}</p>
+                          <p className="text-xs text-muted-foreground min-h-[2.5rem]">
+                            {assignedServices || 'No services assigned'}
+                          </p>
                         </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openServiceEditor(service)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setServiceToDelete(service)}
-                            disabled={(settings?.services?.length ?? 0) <= 1}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setStationToDelete(station.id)}
+                          className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed -mr-2 -mt-2 shrink-0"
+                          disabled={isDeleteDisabled}
+                          title={
+                            isDeleteDisabled
+                              ? 'Station is busy. Close it first.'
+                              : 'Delete station'
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </div>
+                      <div className="space-y-2 flex-grow">
+                        <Label>Handled Services</Label>
+                        <div className="space-y-1">
+                          {settings?.services?.map((service) => (
+                            <div
+                              key={service.id}
+                              className="flex items-center gap-2"
+                            >
+                              <Checkbox
+                                id={`service-${station.id}-${service.id}`}
+                                checked={(station.services || []).includes(service.id)}
+                                onCheckedChange={(checked) =>
+                                  handleServiceAssignmentChange(
+                                    station.id,
+                                    service.id,
+                                    !!checked
+                                  )
+                                }
+                                disabled={isClosed}
+                              />
+                              <Label
+                                htmlFor={`service-${station.id}-${service.id}`}
+                                className="font-normal cursor-pointer text-sm"
+                              >
+                                {service.label}
+                              </Label>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                </CardContent>
-              </TabsContent>
-            </Tabs>
+                      <div className="flex items-center justify-between rounded-lg border p-3 mt-auto">
+                        <div className="space-y-0.5">
+                          <Label
+                            htmlFor={`status-switch-${station.id}`}
+                            className="cursor-pointer"
+                          >
+                            Station Status
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            {isClosed
+                              ? 'Station is offline.'
+                              : 'Station is open for service.'}
+                          </p>
+                        </div>
+                        <Switch
+                          id={`status-switch-${station.id}`}
+                          checked={!isClosed}
+                          onCheckedChange={(checked) =>
+                            handleStatusChange(station.id, checked)
+                          }
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+            </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
@@ -512,7 +343,7 @@ export function AdminClient() {
                     Set the name of your organization.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   <Label htmlFor="company-name">Company Name</Label>
                   <Input
                     id="company-name"
@@ -569,86 +400,6 @@ export function AdminClient() {
       </AlertDialog>
 
       <AlertDialog
-        open={isServiceEditorOpen}
-        onOpenChange={setIsServiceEditorOpen}
-      >
-        <AlertDialogContent>
-          <form onSubmit={handleSaveService}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {editingService ? 'Edit Service' : 'Add New Service'}
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="service-label">Label</Label>
-                <Input
-                  id="service-label"
-                  name="label"
-                  defaultValue={editingService?.label}
-                  placeholder="e.g. Registration"
-                  required
-                />
-                <Input
-                  id="service-id"
-                  name="id"
-                  defaultValue={
-                    editingService?.id ||
-                    editingService?.label.toLowerCase().replace(/\s+/g, '-') ||
-                    ''
-                  }
-                  type="hidden"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="service-description">Description</Label>
-                <Textarea
-                  id="service-description"
-                  name="description"
-                  defaultValue={editingService?.description}
-                  placeholder="A short description for the kiosk screen."
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="service-icon">Icon</Label>
-                <Select
-                  name="icon"
-                  defaultValue={editingService?.icon || iconList[0]}
-                >
-                  <SelectTrigger id="service-icon">
-                    <SelectValue placeholder="Select an icon" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {iconList.map((iconName) => (
-                      <SelectItem key={iconName} value={iconName}>
-                        <div className="flex items-center gap-2">
-                          <Icon name={iconName} className="h-4 w-4" />
-                          <span>{iconName}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  This icon will be shown on the kiosk button.
-                </p>
-              </div>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                type="button"
-                onClick={() => setIsServiceEditorOpen(false)}
-              >
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction type="submit">Save Service</AlertDialogAction>
-            </AlertDialogFooter>
-          </form>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
         open={!!stationToDelete}
         onOpenChange={(open) => !open && setStationToDelete(null)}
       >
@@ -666,31 +417,6 @@ export function AdminClient() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteStation}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <AlertDialog
-        open={!!serviceToDelete}
-        onOpenChange={(open) => !open && setServiceToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the "{serviceToDelete?.label}" service
-              and remove it from any stations assigned to it. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setServiceToDelete(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteService}
               className="bg-destructive hover:bg-destructive/90"
             >
               Delete
