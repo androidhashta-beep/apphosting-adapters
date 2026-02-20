@@ -8,7 +8,7 @@ import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
 import { useDoc, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp, orderBy, limit, doc, getDocs, addDoc } from "firebase/firestore";
+import { collection, doc, runTransaction, Timestamp } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -43,66 +43,81 @@ export function KioskClient() {
     if (!firestore || !ticketsCollection || isPrinting) return;
   
     setIsPrinting(type);
-    let newTicketPayload: Omit<Ticket, 'id' | 'id'> | null = null;
+    let newTicketPayload: Omit<Ticket, 'id'> | null = null;
+    let newTicketId: string | null = null;
+
     try {
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
-
-        // 1. Read the last ticket number (this can be served from cache if offline)
-        const q = query(
-            ticketsCollection,
-            where("type", "==", type),
-            where("createdAt", ">=", startOfDayTimestamp),
-            orderBy("createdAt", "desc"),
-            limit(1)
-        );
-        const querySnapshot = await getDocs(q);
-
-        let newNumber = 1;
-        if (!querySnapshot.empty) {
-            const lastTicket = querySnapshot.docs[0].data() as Ticket;
-            const lastTicketNumberPart = lastTicket.ticketNumber?.split('-').pop() || '0';
-            const lastTicketNumber = parseInt(lastTicketNumberPart, 10);
-            if (!isNaN(lastTicketNumber)) {
-                newNumber = lastTicketNumber + 1;
+        const newTicket = await runTransaction(firestore, async (transaction) => {
+            const service = settings?.services.find(s => s.id === type);
+            if (!service) {
+                throw new Error(`Service with type '${type}' not found.`);
             }
-        }
-        
-        // 2. Prepare the new ticket
-        const service = settings?.services.find(s => s.id === type);
-        const servicePrefix = service?.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
-        const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
 
-        newTicketPayload = {
-            ticketNumber,
-            type,
-            status: 'waiting' as const,
-            createdAt: Timestamp.now(),
-        };
+            const counterRef = doc(firestore, "counters", type);
+            // The new ticket will get a random ID from the SDK, so we create a reference for it beforehand
+            const newTicketRef = doc(ticketsCollection);
+            newTicketId = newTicketRef.id;
 
-        // 3. Write the new ticket (this will be queued if offline)
-        const newTicketRef = await addDoc(ticketsCollection, newTicketPayload);
-        
-        const newTicket: Ticket = {
-            id: newTicketRef.id,
-            ...(newTicketPayload as Omit<Ticket, 'id'>),
-        };
-        setTicketToPrint(newTicket);
+            const counterDoc = await transaction.get(counterRef);
+
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            let newNumber = 1;
+            // Check if counter exists and if it was reset today
+            if (counterDoc.exists()) {
+                const counterData = counterDoc.data();
+                const lastResetDate = counterData.lastReset.toDate();
+                if (lastResetDate < startOfToday) {
+                    // It's a new day, reset the counter
+                    newNumber = 1;
+                } else {
+                    // It's the same day, increment
+                    newNumber = counterData.count + 1;
+                }
+            }
+            
+            // Update the counter atomically
+            transaction.set(counterRef, { count: newNumber, lastReset: Timestamp.now() }, { merge: true });
+
+            const servicePrefix = service.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
+            const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
+
+            const finalTicketPayload = {
+                ticketNumber,
+                type,
+                status: 'waiting' as const,
+                createdAt: Timestamp.now(),
+            };
+            newTicketPayload = finalTicketPayload; // Capture for potential error reporting
+
+            // Create the new ticket atomically
+            transaction.set(newTicketRef, finalTicketPayload);
+            
+            // Return the complete ticket object for the UI
+            return {
+                id: newTicketRef.id,
+                ...finalTicketPayload,
+            };
+        });
+
+        // If transaction is successful, trigger the print
+        setTicketToPrint(newTicket as Ticket);
 
     } catch (error: any) {
-        const isPermissionError = ticketsCollection && error.code === 'permission-denied';
-        
-        if (isPermissionError) {
-            const permissionError = new FirestorePermissionError({
-                path: ticketsCollection!.path,
+        setIsPrinting(null); // Stop loading indicator on failure
+        console.warn("Error getting ticket:", error);
+
+        if (error.code === 'permission-denied' && ticketsCollection && newTicketId) {
+             const permissionError = new FirestorePermissionError({
+                path: `tickets/${newTicketId}`,
                 operation: 'create',
                 requestResourceData: newTicketPayload,
             });
             errorEmitter.emit('permission-error', permissionError);
         } else if (error.code === 'unavailable') {
              console.warn(
-                `[Firebase Firestore] Network Connection Blocked when getting ticket.
+                `[Firebase Firestore] Network Connection Blocked when getting ticket. The transaction could not complete.
 
                 >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
                 The application code is correct, but your PC's security is preventing it from connecting to the local server. This is the final step to resolve the issue.
@@ -114,16 +129,13 @@ export function KioskClient() {
 
                 This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
             );
-        } else {
-          console.warn("Error getting ticket:", error);
         }
 
         toast({
             variant: "destructive",
             title: "Could not get ticket",
-            description: "Failed to connect to the server. Please check the connection and try again.",
+            description: error.message || "Failed to connect to the server. Please check the connection and try again.",
         });
-        setIsPrinting(null);
     }
   };
 
@@ -142,7 +154,7 @@ export function KioskClient() {
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-foreground">Get Your Ticket</h2>
               <p className="text-muted-foreground mt-2">
-                Please select the service you need. Your ticket will be printed automatically.
+                Please select a service.
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -164,13 +176,18 @@ export function KioskClient() {
                     ) : (
                         <Icon name={service.icon} className="h-8 w-8" />
                     )}
-                    <span>
-                      {isPrinting === service.id
-                        ? 'Preparing Ticket...'
-                        : !!isPrinting
-                        ? 'Please wait...'
-                        : service.label}
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-2xl">
+                          {isPrinting === service.id
+                            ? 'Preparing Ticket...'
+                            : !!isPrinting
+                            ? 'Please wait...'
+                            : service.label}
+                        </span>
+                        {!!isPrinting && isPrinting !== service.id && (
+                           <span className="text-sm font-normal text-muted-foreground">Another request is in progress.</span>
+                        )}
+                    </div>
                   </Button>
                 ))
               ) : (
