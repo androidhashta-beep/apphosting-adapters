@@ -32,13 +32,14 @@ export function KioskClient() {
     if (!firestore || !ticketsCollection) return;
   
     try {
-      // Determine the ticket number
+      // Determine the ticket number for the specific service
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
 
       const q = query(
         ticketsCollection,
+        where("type", "==", type),
         where("createdAt", ">=", startOfDayTimestamp),
         orderBy("createdAt", "desc"),
         limit(1)
@@ -48,11 +49,16 @@ export function KioskClient() {
       let newNumber = 1;
       if (!querySnapshot.empty) {
         const lastTicket = querySnapshot.docs[0].data();
-        const lastTicketNumber = parseInt(lastTicket.ticketNumber, 10);
+        // Robustly parse number part, e.g., from "ENROLL-001"
+        const lastTicketNumberPart = lastTicket.ticketNumber?.split('-').pop() || '0';
+        const lastTicketNumber = parseInt(lastTicketNumberPart, 10);
         newNumber = lastTicketNumber + 1;
       }
 
-      const ticketNumber = `${newNumber}`;
+      const service = settings?.services.find(s => s.id === type);
+      // Create a prefix, e.g., "ENRO" from "Enrollment"
+      const servicePrefix = service?.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
+      const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
 
       const newTicketData = {
         ticketNumber,
@@ -61,22 +67,21 @@ export function KioskClient() {
         createdAt: Timestamp.now(),
       };
 
-      const docRefPromise = addDocumentNonBlocking(ticketsCollection, newTicketData);
+      // Await the creation to ensure the next call to this function sees the new ticket
+      const docRef = await addDocumentNonBlocking(ticketsCollection, newTicketData);
 
-      docRefPromise.then(docRef => {
-          if (!docRef) return;
+      if (docRef) {
           const fullTicket: Ticket = {
               id: docRef.id,
               ...newTicketData,
           };
           setTicketToPrint(fullTicket);
-          const service = settings?.services.find(s => s.id === type);
           toast({
               title: `Printing Ticket ${fullTicket.ticketNumber}`,
               description: `Your ticket for ${service?.label || 'a service'} is printing.`,
               duration: 5000,
           });
-      });
+      }
     } catch (error: any) {
         if (error.code === 'unavailable') {
             console.error(
