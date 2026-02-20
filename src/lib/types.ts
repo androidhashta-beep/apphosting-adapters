@@ -22,11 +22,28 @@ export type AudioTrack = {
     url: string;
 };
 
+export type StationStatus = 'open' | 'closed';
+export type StationType = string;
+
+export type Station = {
+  id: string;
+  name: string;
+  serviceIds: string[];
+  status: StationStatus;
+  currentTicketId?: string | null;
+};
+
+export type DefaultConfiguration = {
+    services: Service[];
+    stations: Station[];
+};
+
 export type Settings = {
   companyName: string;
   services: Service[];
   placeholderImages: ImagePlaceholder[];
   backgroundMusic: AudioTrack[];
+  defaultConfiguration?: DefaultConfiguration;
 };
 
 export type TicketType = string;
@@ -42,15 +59,4 @@ export type Ticket = {
   servedBy?: string; // stationId
   calledAt?: Timestamp | null;
   servedAt?: Timestamp | null;
-};
-
-export type StationStatus = 'open' | 'closed';
-export type StationType = string;
-
-export type Station = {
-  id: string;
-  name: string;
-  serviceIds: string[];
-  status: StationStatus;
-  currentTicketId?: string | null;
 };

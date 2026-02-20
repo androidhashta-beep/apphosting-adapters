@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, PlusCircle, RefreshCw, ServerCrash } from 'lucide-react';
+import { Trash2, PlusCircle, RefreshCw, ServerCrash, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -103,6 +103,25 @@ export function StationManagement() {
     }
   };
   
+  const handleSaveAsDefault = async () => {
+    if (!firestore || !settingsRef || !stations || !settings) return;
+
+    const defaultConfiguration = {
+        services: settings.services || [],
+        stations: stations || [],
+    };
+
+    try {
+        await updateDoc(settingsRef, { defaultConfiguration });
+        toast({
+            title: "Default Configuration Saved",
+            description: "The current station and service setup is now the new default.",
+        });
+    } catch (error: any) {
+        handleFirestoreError(error, toast, "Save as Default");
+    }
+  };
+
   const handleRestoreDefaults = async () => {
     if (!firestore) return;
 
@@ -116,34 +135,52 @@ export function StationManagement() {
             batch.delete(doc.ref);
         });
 
-        const defaultServices: Service[] = [
-            { id: 'registration', label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
-            { id: 'cashier', label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
-            { id: 'certificate-claiming', label: 'Certificate Claiming', description: 'Claiming of certificates', icon: 'Award' },
-            { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
-        ];
-        
-        const settingsDocRef = doc(firestore, 'settings', 'app');
-        batch.set(settingsDocRef, { services: defaultServices }, { merge: true });
+        if (settings?.defaultConfiguration && settings.defaultConfiguration.stations.length > 0) {
+            const { services: defaultServices, stations: defaultStations } = settings.defaultConfiguration;
 
-        for (let i = 1; i <= 5; i++) {
-            const stationId = `window-${i}`;
-            const stationRef = doc(firestore, 'stations', stationId);
-            batch.set(stationRef, {
-                id: stationId,
-                name: `Window ${i}`,
-                status: 'closed',
-                serviceIds: [],
+            const settingsDocRef = doc(firestore, 'settings', 'app');
+            batch.set(settingsDocRef, { services: defaultServices, defaultConfiguration: settings.defaultConfiguration }, { merge: true });
+
+            defaultStations.forEach((station: Station) => {
+                const stationRef = doc(firestore, 'stations', station.id);
+                batch.set(stationRef, station);
+            });
+
+            await batch.commit();
+
+            toast({
+                title: "Custom Defaults Restored",
+                description: `Configuration restored to your saved default.`
+            });
+        } else {
+            const defaultServices: Service[] = [
+                { id: 'registration', label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
+                { id: 'cashier', label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
+                { id: 'certificate-claiming', label: 'Certificate Claiming', description: 'Claiming of certificates', icon: 'Award' },
+                { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
+            ];
+            
+            const settingsDocRef = doc(firestore, 'settings', 'app');
+            batch.set(settingsDocRef, { services: defaultServices }, { merge: true });
+
+            for (let i = 1; i <= 5; i++) {
+                const stationId = `window-${i}`;
+                const stationRef = doc(firestore, 'stations', stationId);
+                batch.set(stationRef, {
+                    id: stationId,
+                    name: `Window ${i}`,
+                    status: 'closed',
+                    serviceIds: [],
+                });
+            }
+            
+            await batch.commit();
+
+            toast({
+                title: "Defaults Restored",
+                description: `Removed old config and created 4 default services and 5 default stations.`
             });
         }
-        
-        await batch.commit();
-
-        toast({
-            title: "Defaults Restored",
-            description: `Removed old config and created 4 default services and 5 default stations.`
-        });
-
     } catch (error: any) {
         handleFirestoreError(error, toast, 'Restore Defaults');
     }
@@ -260,7 +297,10 @@ export function StationManagement() {
             <Button className="w-full" onClick={handleAddStation} disabled={!isHydrated}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Station
             </Button>
-            <Button variant="outline" className="w-full" onClick={handleRestoreDefaults} disabled={!isHydrated}>
+            <Button variant="outline" className="w-full" onClick={handleSaveAsDefault} disabled={!isHydrated}>
+                <Save className="mr-2 h-4 w-4" /> Save as Default
+            </Button>
+            <Button variant="destructive" className="w-full" onClick={handleRestoreDefaults} disabled={!isHydrated}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Restore Defaults
             </Button>
         </CardFooter>
