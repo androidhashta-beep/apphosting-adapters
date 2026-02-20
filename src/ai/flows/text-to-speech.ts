@@ -83,7 +83,6 @@ const textToSpeechFlow = ai.defineFlow(
         media: 'data:audio/wav;base64,' + (await toWav(audioBuffer)),
         };
     } catch (error: any) {
-        console.error("Error in textToSpeechFlow:", error);
         return { error: error.message || "An unknown TTS error occurred." };
     }
   }

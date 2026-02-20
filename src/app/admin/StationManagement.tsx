@@ -44,8 +44,7 @@ const handleFirestoreError = (error: any, toast: any, operation: string) => {
         title = "Permission Denied";
         description = "You do not have permission to perform this action. Check your security rules.";
     } else {
-        // Only log unexpected errors to the console
-        console.error(`Error during ${operation}:`, error);
+        // Generic fallback for other errors.
         title = `Operation Failed: ${operation}`;
         description = "An unexpected error occurred. Please try again.";
     }

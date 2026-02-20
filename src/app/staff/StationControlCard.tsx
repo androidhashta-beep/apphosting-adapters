@@ -153,7 +153,6 @@ export function StationControlCard({
                 duration: 20000,
             });
         } else {
-            console.error("Error calling next ticket:", error);
             toast({
                 variant: "destructive",
                 title: "Could not call ticket",

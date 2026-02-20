@@ -122,7 +122,6 @@ export function KioskClient() {
             });
             errorEmitter.emit('permission-error', permissionError);
         } else {
-            console.error("Error getting ticket:", error);
             toast({
                 variant: "destructive",
                 title: "Could not get ticket",
