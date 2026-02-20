@@ -249,11 +249,11 @@ export function StationControlCard({
                 case 'payment-only':
                    const paymentService = settings.services.find(s => s.id === 'payment');
                    if (!paymentService) return null;
-                   return getCallButton('payment', 'Call Payment', <Icon name={paymentService.icon} />);
+                   return getCallButton('payment', `Call ${paymentService.label}`, <Icon name={paymentService.icon} />);
                 case 'certificate-only':
                   const certService = settings.services.find(s => s.id === 'certificate');
                   if (!certService) return null;
-                  return getCallButton('certificate', 'Call Certificate', <Icon name={certService.icon} />);
+                  return getCallButton('certificate', `Call ${certService.label}`, <Icon name={certService.icon} />);
                 case 'regular':
                 default:
                   const service = settings.services.find(s => s.id === station.type);

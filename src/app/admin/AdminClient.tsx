@@ -99,6 +99,40 @@ export function AdminClient() {
     }
   }, [settings, newStationType]);
 
+  useEffect(() => {
+    if (settings && settingsRef && !isLoadingSettings && firestore) {
+      let services = settings.services ? JSON.parse(JSON.stringify(settings.services)) : [];
+      let needsUpdate = false;
+
+      const ensureService = (
+        id: string,
+        label: string,
+        description: string,
+        icon: string,
+        forceLabel: boolean = false
+      ) => {
+        let service = services.find((s: Service) => s.id === id);
+        if (!service) {
+          services.push({ id, label, description, icon });
+          needsUpdate = true;
+        } else if (forceLabel && service.label !== label) {
+          service.label = label;
+          service.description = description;
+          service.icon = icon;
+          needsUpdate = true;
+        }
+      };
+
+      ensureService('enrollment', 'Enrollment', 'Student enrollment services.', 'UserPlus');
+      ensureService('payment', 'Cashier', 'Payment and cashiering services.', 'DollarSign', true);
+      ensureService('certificate', 'Certificate Claiming', 'Claiming of certificates.', 'Award');
+
+      if (needsUpdate) {
+        setDocumentNonBlocking(settingsRef, { services: services }, { merge: true });
+      }
+    }
+  }, [settings, isLoadingSettings, settingsRef, firestore]);
+
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');

@@ -20,7 +20,7 @@ const SuggestStationAssignmentsInputSchema = z.object({
     .number()
     .int()
     .min(0)
-    .describe('The current number of students waiting for payment services.'),
+    .describe('The current number of students waiting for cashier services.'),
   certificateQueueLength: z
     .number()
     .int()
@@ -35,7 +35,7 @@ const SuggestStationAssignmentsInputSchema = z.object({
     .number()
     .int()
     .min(0)
-    .describe('The number of available staff/stations for payment services.'),
+    .describe('The number of available staff/stations for cashier services.'),
   availableCertificateStations: z
     .number()
     .int()
@@ -53,9 +53,9 @@ const SuggestStationAssignmentsOutputSchema = z.object({
     .array(
       z.object({
         stationType: z
-          .enum(['Enrollment', 'Payment', 'Combined', 'Certificate'])
+          .enum(['Enrollment', 'Cashier', 'Combined', 'Certificate'])
           .describe(
-            "The type of station being suggested for assignment (e.g., 'Enrollment', 'Payment', 'Combined', 'Certificate')."
+            "The type of station being suggested for assignment (e.g., 'Enrollment', 'Cashier', 'Combined', 'Certificate')."
           ),
         assignment: z
           .enum(['Regular', 'All-in-one', 'Closed', 'Payment-only', 'Enrollment-only', 'Certificate-only'])
