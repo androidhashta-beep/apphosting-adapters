@@ -72,7 +72,7 @@ export function AdminClient() {
 
   useEffect(() => {
     if (settings) {
-      setCompanyName(settings.companyName);
+      setCompanyName(settings.companyName || '');
     }
   }, [settings]);
 
