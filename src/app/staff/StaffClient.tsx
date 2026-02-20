@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { StationControlCard } from './StationControlCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +39,13 @@ export function StaffClient() {
   );
   const { data: tickets, isLoading: isLoadingTickets } =
     useCollection<Ticket>(ticketsRef);
+    
+  const sortedStations = useMemo(() => {
+    if (!stations) return [];
+    return [...stations].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true })
+    );
+  }, [stations]);
 
   const getWaitingCount = (type: string): number => {
     if (!tickets) return 0;
@@ -82,7 +90,7 @@ export function StaffClient() {
     );
   }
 
-  if (isHydrated && (!stations || stations.length === 0)) {
+  if (isHydrated && (!sortedStations || sortedStations.length === 0)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Card className="max-w-lg text-center">
@@ -127,7 +135,7 @@ export function StaffClient() {
         ))}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stations?.map((station) => {
+        {sortedStations?.map((station) => {
           const ticket = tickets?.find((t) => t.id === station.currentTicketId);
           return (
             <StationControlCard

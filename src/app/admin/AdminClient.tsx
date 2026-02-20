@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Station, Service, Settings } from '@/lib/types';
 import {
@@ -62,6 +62,13 @@ export function AdminClient() {
   );
   const { data: stations, isLoading: isLoadingStations } =
     useCollection<Station>(stationsCollection);
+    
+  const sortedStations = useMemo(() => {
+    if (!stations) return [];
+    return [...stations].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true })
+    );
+  }, [stations]);
 
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
 
@@ -240,13 +247,13 @@ export function AdminClient() {
                 [...Array(4)].map((_, i) => (
                   <Skeleton key={i} className="h-[260px] w-full" />
                 ))}
-              {isHydrated && stations?.length === 0 && (
+              {isHydrated && sortedStations.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-10">
                   <p>No stations configured. Default stations will be created shortly.</p>
                 </div>
               )}
               {isHydrated &&
-                stations?.map((station) => {
+                sortedStations.map((station) => {
                   const isServing = !!station.currentTicketId;
                   const isClosed = station.status === 'closed';
                   const isDeleteDisabled = isServing && !isClosed;
