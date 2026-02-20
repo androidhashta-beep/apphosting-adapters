@@ -53,6 +53,7 @@ const handleFirestoreError = (error: any, toast: any, operation: string) => {
         variant: "destructive",
         title: title,
         description: description,
+        duration: 20000,
     });
 }
 

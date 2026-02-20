@@ -112,6 +112,7 @@ export function KioskClient() {
                 variant: "destructive",
                 title: "CRITICAL: Connection Blocked by Firewall",
                 description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall.",
+                duration: 20000,
             });
         } else if (error.code === 'permission-denied' && ticketsCollection && newTicketId) {
              const permissionError = new FirestorePermissionError({
