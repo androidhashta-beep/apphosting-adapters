@@ -144,20 +144,10 @@ export function KioskClient() {
 
   const isHydrated = !isLoadingSettings && !isUserLoading;
 
-    const sampleTicket: Ticket = {
-      id: 'sample-1',
-      ticketNumber: "101",
-      type: 'registration',
-      status: 'waiting',
-      createdAt: Timestamp.fromDate(new Date("2024-07-29T10:30:00")),
-  };
-
-  const sampleService = settings?.services?.find(s => s.id === 'registration') || settings?.services?.[0];
-
   return (
     <>
-      <div className="grid md:grid-cols-2 gap-8 items-start">
-        <Card className="w-full max-w-4xl md:col-span-1">
+      <div className="flex justify-center">
+        <Card className="w-full max-w-4xl">
           <CardContent className="p-8">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-foreground">Get Your Ticket</h2>
@@ -209,14 +199,6 @@ export function KioskClient() {
             </div>
           </CardContent>
         </Card>
-        
-        <div className="flex flex-col items-center justify-start pt-8 md:pt-0">
-            <h3 className="text-2xl font-semibold mb-4 text-foreground">Ticket Preview</h3>
-            <div className="bg-white p-1 rounded-lg shadow-2xl border w-[320px]">
-                <PrintableTicket ticket={sampleTicket} companyName={settings?.companyName || "Your Company"} service={sampleService} />
-            </div>
-        </div>
-
       </div>
       <div className="printable-area">
         <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings?.companyName || ''} service={getPrintableService(ticketToPrint)} />
