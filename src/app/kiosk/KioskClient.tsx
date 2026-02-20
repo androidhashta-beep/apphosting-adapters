@@ -40,7 +40,7 @@ export function KioskClient() {
   }, [ticketToPrint, settings, toast]);
   
   const handleGetTicket = async (type: string) => {
-    if (!firestore || !ticketsCollection || isPrinting || !isUserLoading) return;
+    if (!firestore || !ticketsCollection || isPrinting || isUserLoading) return;
   
     setIsPrinting(type);
     let newTicketPayload: Omit<Ticket, 'id'> | null = null;
@@ -53,7 +53,8 @@ export function KioskClient() {
                 throw new Error(`Service with type '${type}' not found.`);
             }
 
-            const counterRef = doc(firestore, "counters", type);
+            // Use a single, global counter for all tickets.
+            const counterRef = doc(firestore, "counters", "main-queue");
             const newTicketRef = doc(ticketsCollection);
             newTicketId = newTicketRef.id;
 
