@@ -27,7 +27,7 @@ export function KioskClient() {
 
   useEffect(() => {
     if (ticketToPrint) {
-      const service = settings?.services.find(s => s.id === ticketToPrint.type);
+      const service = settings?.services?.find(s => s.id === ticketToPrint.type);
       toast({
           title: `Printing Ticket ${ticketToPrint.ticketNumber}`,
           description: `Your ticket for ${service?.label || 'a service'} is printing.`,
@@ -55,7 +55,7 @@ export function KioskClient() {
 
     try {
         const newTicket = await runTransaction(firestore, async (transaction) => {
-            const service = settings?.services.find(s => s.id === type);
+            const service = settings?.services?.find(s => s.id === type);
             if (!service) {
                 throw new Error(`Service with type '${type}' not found.`);
             }
@@ -139,7 +139,7 @@ export function KioskClient() {
 
   const getPrintableService = (ticket: Ticket | null): Service | undefined => {
       if (!ticket) return undefined;
-      return settings?.services.find(s => s.id === ticket.type);
+      return settings?.services?.find(s => s.id === ticket.type);
   }
 
   const isHydrated = !isLoadingSettings && !isUserLoading;

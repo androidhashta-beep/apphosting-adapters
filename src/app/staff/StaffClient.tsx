@@ -54,7 +54,7 @@ export function StaffClient() {
   };
 
   const waitingCounts =
-    settings?.services.reduce(
+    settings?.services?.reduce(
       (acc, service) => {
         acc[service.id] = getWaitingCount(service.id);
         return acc;
@@ -120,7 +120,7 @@ export function StaffClient() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {settings?.services.map((service) => (
+        {(settings?.services || []).map((service) => (
           <Card key={service.id}>
             <CardHeader>
               <CardTitle>{service.label} Queue</CardTitle>

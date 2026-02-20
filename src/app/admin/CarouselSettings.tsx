@@ -81,10 +81,10 @@ export function CarouselSettings() {
     if (!itemToDelete || !settings || !settingsRef) return;
     
     if (itemToDelete.type === 'music') {
-        const backgroundMusic = settings.backgroundMusic.filter(item => item.id !== itemToDelete.id);
+        const backgroundMusic = (settings.backgroundMusic || []).filter(item => item.id !== itemToDelete.id);
         setDocumentNonBlocking(settingsRef, { backgroundMusic }, { merge: true });
     } else {
-        const placeholderImages = settings.placeholderImages.filter(item => item.id !== itemToDelete.id);
+        const placeholderImages = (settings.placeholderImages || []).filter(item => item.id !== itemToDelete.id);
         setDocumentNonBlocking(settingsRef, { placeholderImages }, { merge: true });
     }
     
