@@ -12,7 +12,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, ArrowLeft, PlusCircle } from 'lucide-react';
+import { Trash2, ArrowLeft, PlusCircle, RotateCcw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -71,6 +71,7 @@ export function AdminClient() {
   }, [stations]);
 
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
+  const [restoreDefaultsDialog, setRestoreDefaultsDialog] = useState(false);
 
   const [companyName, setCompanyName] = useState('');
 
@@ -79,40 +80,6 @@ export function AdminClient() {
       setCompanyName(settings.companyName || '');
     }
   }, [settings]);
-
-  // One-time effect to create default services if they are missing
-  useEffect(() => {
-    if (settingsRef && !isLoadingSettings && (!settings || !settings.services || settings.services.length === 0)) {
-        const defaultServices: Service[] = [
-            { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
-            { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
-            { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
-        ];
-      setDocumentNonBlocking(settingsRef, { services: defaultServices }, { merge: true });
-    }
-  }, [settingsRef, isLoadingSettings, settings]);
-  
-  // One-time effect to create default stations if they are missing
-  useEffect(() => {
-    if (firestore && !isLoadingStations && stations && stationsCollection && settings?.services && settings.services.length > 0) {
-      const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
-      const existingStationNames = new Set(stations.map(s => s.name));
-      const allServiceIds = settings.services.map(s => s.id);
-      
-      defaultStationNames.forEach(name => {
-        if (!existingStationNames.has(name)) {
-          const newStation: Omit<Station, 'id'> = {
-            name: name,
-            services: allServiceIds,
-            status: 'closed',
-            currentTicketId: null,
-          };
-          addDocumentNonBlocking(stationsCollection, newStation);
-        }
-      });
-    }
-  }, [firestore, isLoadingStations, stations, stationsCollection, settings]);
-
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -144,12 +111,20 @@ export function AdminClient() {
   };
 
   const handleAutoAddStation = () => {
-    if (!stationsCollection || !stations || !settings?.services || settings.services.length === 0) {
+    if (!stationsCollection || !stations || !settings?.services) {
       toast({
         variant: 'destructive',
         title: 'Cannot Add Station',
         description:
           'System is not ready. Please wait for services to initialize and try again.',
+      });
+      return;
+    }
+    if (settings.services.length === 0) {
+      toast({
+          variant: "destructive",
+          title: "No Services Found",
+          description: "Please restore default services before adding a station.",
       });
       return;
     }
@@ -203,6 +178,51 @@ export function AdminClient() {
     }
   };
 
+  const handleRestoreDefaults = () => {
+    if (!firestore || !settingsRef || !stationsCollection || !stations) return;
+    let servicesRestored = false;
+
+    // Restore default services if missing
+    if (!settings || !settings.services || settings.services.length === 0) {
+        const defaultServices: Service[] = [
+            { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
+            { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
+            { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
+        ];
+        setDocumentNonBlocking(settingsRef, { services: defaultServices }, { merge: true });
+        servicesRestored = true;
+    }
+    
+    const currentServices = settings?.services || [];
+    const serviceIds = currentServices.length > 0 ? currentServices.map(s => s.id) : ['registration', 'payment', 'certificate'];
+
+    // Restore default stations if missing
+    const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
+    const existingStationNames = new Set(stations.map(s => s.name));
+
+    let stationsAdded = false;
+    defaultStationNames.forEach(name => {
+        if (!existingStationNames.has(name)) {
+            const newStation: Omit<Station, 'id'> = {
+                name: name,
+                services: serviceIds,
+                status: 'closed',
+                currentTicketId: null,
+            };
+            addDocumentNonBlocking(stationsCollection, newStation);
+            stationsAdded = true;
+        }
+    });
+
+    if (stationsAdded || servicesRestored) {
+        toast({ title: "Defaults Restored", description: "Any missing default stations or services have been recreated." });
+    } else {
+        toast({ title: "Nothing to Restore", description: "All default stations and services are already present." });
+    }
+    
+    setRestoreDefaultsDialog(false);
+  };
+
   const isHydrated = !isLoadingSettings && !isLoadingStations;
 
   return (
@@ -230,17 +250,23 @@ export function AdminClient() {
       <ScrollArea className="flex-grow">
         <div className="space-y-8 p-6">
           <Card>
-            <CardHeader className='flex-row items-center justify-between border-b'>
+            <CardHeader className='flex-row flex-wrap items-center justify-between gap-4 border-b'>
               <div>
                   <CardTitle>Station Management</CardTitle>
                   <CardDescription className="mt-1">
                     Configure stations and the services they provide.
                   </CardDescription>
               </div>
-              <Button onClick={handleAutoAddStation}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Station
-              </Button>
+              <div className='flex gap-2 flex-wrap'>
+                <Button onClick={handleAutoAddStation}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Station
+                </Button>
+                 <Button onClick={() => setRestoreDefaultsDialog(true)} variant="outline">
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Restore Defaults
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {!isHydrated &&
@@ -249,7 +275,8 @@ export function AdminClient() {
                 ))}
               {isHydrated && sortedStations.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-10">
-                  <p>No stations configured. Default stations will be created shortly.</p>
+                  <p>No stations configured.</p>
+                  <p className="text-sm mt-2">Click "Restore Defaults" to create Window 1-4.</p>
                 </div>
               )}
               {isHydrated &&
@@ -322,6 +349,9 @@ export function AdminClient() {
                               </Label>
                             </div>
                           ))}
+                           {(!settings || !settings.services || settings.services.length === 0) && (
+                            <p className="text-xs text-muted-foreground pt-1">No services defined. Try restoring defaults.</p>
+                           )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between rounded-lg border p-3 mt-auto">
@@ -405,6 +435,26 @@ export function AdminClient() {
               className="bg-destructive hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={restoreDefaultsDialog}
+        onOpenChange={setRestoreDefaultsDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restore Default Settings?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will add any missing default stations (Window 1-4) and services (Registration, Payment, Certificate). It will NOT delete any stations or services you have created yourself.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreDefaults}>
+              Restore
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
