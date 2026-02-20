@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Station, Service, Settings } from '@/lib/types';
 import {
@@ -56,8 +56,6 @@ export function AdminClient() {
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
     
-  const hasAttemptedServiceRestore = useRef(false);
-
   const stationsCollection = useMemoFirebase(
     () => (firestore ? collection(firestore, 'stations') : null),
     [firestore]
@@ -82,31 +80,6 @@ export function AdminClient() {
       setCompanyName(settings.companyName || '');
     }
   }, [settings]);
-
-  useEffect(() => {
-    if (
-      !isLoadingSettings &&
-      settings &&
-      (!settings.services || settings.services.length === 0) &&
-      settingsRef &&
-      !hasAttemptedServiceRestore.current
-    ) {
-      hasAttemptedServiceRestore.current = true; 
-
-      const defaultServices: Service[] = [
-        { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
-        { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
-        { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
-      ];
-      
-      setDocumentNonBlocking(settingsRef, { services: defaultServices }, { merge: true });
-      
-      toast({
-        title: "Default Services Restored",
-        description: "The standard services have been added to your configuration.",
-      });
-    }
-  }, [settings, isLoadingSettings, settingsRef, toast]);
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -148,15 +121,10 @@ export function AdminClient() {
     }
 
     if (!settings?.services || settings.services.length === 0) {
-      const description =
-        !settings && !isLoadingSettings
-          ? "Application settings are missing. Please use 'Restore Defaults' first."
-          : 'No services are configured. Please add a service or use "Restore Defaults" to add them.';
-      
       toast({
           variant: "destructive",
           title: "Cannot Add Station",
-          description: description,
+          description: "No services are configured. Please use 'Restore Defaults' to create the default services first.",
       });
       return;
     }
@@ -260,9 +228,18 @@ export function AdminClient() {
             await batch.commit();
         }
         
-        // --- Step 3: Give feedback ---
-        if (stationsToAdd.length > 0 || servicesCreated) {
-            toast({ title: "Defaults Restored", description: "Any missing default stations or services have been recreated." });
+        // --- Step 3: Give specific feedback ---
+        let description = '';
+        if (servicesCreated && stationsToAdd.length > 0) {
+            description = `Created default services and added ${stationsToAdd.length} missing default station(s).`;
+        } else if (servicesCreated) {
+            description = "Created default services. All default stations were already present.";
+        } else if (stationsToAdd.length > 0) {
+            description = `Added ${stationsToAdd.length} missing default station(s).`;
+        }
+        
+        if (description) {
+            toast({ title: "Defaults Restored", description });
         } else {
             toast({ title: "Nothing to Restore", description: "All default stations and services are already present." });
         }
@@ -324,7 +301,7 @@ export function AdminClient() {
             </CardHeader>
             <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {!isHydrated &&
-                [...Array(4)].map((_, i) => (
+                [...Array(5)].map((_, i) => (
                   <Skeleton key={i} className="h-[260px] w-full" />
                 ))}
               {isHydrated && sortedStations.length === 0 && (
