@@ -52,7 +52,7 @@ export function StationControlCard({
     
     window.speechSynthesis.cancel();
 
-    const service = settings.services.find(s => s.id === ticketType);
+    const service = settings.services?.find(s => s.id === ticketType);
     const serviceLabel = service ? service.label : ticketType;
 
     const text = `Customer number ${ticketNumber}, For ${serviceLabel} please go to ${stationName}.`;
@@ -243,20 +243,20 @@ export function StationControlCard({
                 case 'all-in-one':
                   return (
                     <div className="w-full space-y-2">
-                      {settings.services.map(service => getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />))}
+                      {settings.services?.map(service => getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />))}
                     </div>
                   );
                 case 'payment-only':
-                   const paymentService = settings.services.find(s => s.id === 'payment');
+                   const paymentService = settings.services?.find(s => s.id === 'payment');
                    if (!paymentService) return null;
                    return getCallButton('payment', `Call ${paymentService.label}`, <Icon name={paymentService.icon} />);
                 case 'certificate-only':
-                  const certService = settings.services.find(s => s.id === 'certificate');
+                  const certService = settings.services?.find(s => s.id === 'certificate');
                   if (!certService) return null;
                   return getCallButton('certificate', `Call ${certService.label}`, <Icon name={certService.icon} />);
                 case 'regular':
                 default:
-                  const service = settings.services.find(s => s.id === station.type);
+                  const service = settings.services?.find(s => s.id === station.type);
                   if (!service) return null;
                   return getCallButton(station.type, `Call Next ${service.label}`, <Megaphone />);
               }

@@ -93,7 +93,7 @@ export function AdminClient() {
   useEffect(() => {
     if (settings) {
       setCompanyName(settings.companyName);
-      if (settings.services.length > 0 && !newStationType) {
+      if (settings.services?.length > 0 && !newStationType) {
         setNewStationType(settings.services[0].id);
       }
     }
@@ -217,7 +217,7 @@ export function AdminClient() {
       icon,
     };
 
-    let services = [...settings.services];
+    let services = [...(settings.services || [])];
     if (editingService) {
       const index = services.findIndex((s) => s.id === editingService.id);
       if (index > -1) services[index] = service;
@@ -249,7 +249,7 @@ export function AdminClient() {
 
   const handleDeleteService = () => {
     if (serviceToDelete && settingsRef && settings) {
-      const updatedServices = settings.services.filter(
+      const updatedServices = (settings.services || []).filter(
         (s) => s.id !== serviceToDelete.id
       );
       setDocumentNonBlocking(
@@ -332,7 +332,7 @@ export function AdminClient() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {isHydrated &&
-                  settings?.services.map((service) => (
+                  settings?.services?.map((service) => (
                     <div
                       key={service.id}
                       className="flex items-center justify-between p-3 rounded-md border bg-card"
@@ -362,7 +362,7 @@ export function AdminClient() {
                           size="icon"
                           className="text-destructive hover:text-destructive"
                           onClick={() => setServiceToDelete(service)}
-                          disabled={settings?.services.length <= 1}
+                          disabled={(settings?.services?.length ?? 0) <= 1}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -410,7 +410,7 @@ export function AdminClient() {
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {settings?.services.map((service) => (
+                        {settings?.services?.map((service) => (
                           <SelectItem key={service.id} value={service.id}>
                             {service.label}
                           </SelectItem>
@@ -449,7 +449,7 @@ export function AdminClient() {
                   const isClosed = station.status === 'closed';
                   const isDeleteDisabled = isServing && !isClosed;
                   const serviceType =
-                    settings?.services.find((s) => s.id === station.type)
+                    settings?.services?.find((s) => s.id === station.type)
                       ?.label || station.type;
 
                   return (
