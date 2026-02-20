@@ -72,29 +72,6 @@ export function AdminClient() {
       setCompanyName(settings.companyName || '');
     }
   }, [settings]);
-
-  // One-time effect to ensure core services exist
-  useEffect(() => {
-    if (settingsRef && !isLoadingSettings && firestore) {
-      const currentServices = settings?.services ? JSON.parse(JSON.stringify(settings.services)) : [];
-      let needsUpdate = false;
-  
-      const ensureService = (id: string, label: string, description: string, icon: string) => {
-        if (!currentServices.some((s: Service) => s.id === id)) {
-          currentServices.push({ id, label, description, icon });
-          needsUpdate = true;
-        }
-      };
-  
-      ensureService('registration', 'Registration', 'Student registration services.', 'UserPlus');
-      ensureService('payment', 'Cashier', 'Payment and cashiering services.', 'DollarSign');
-      ensureService('certificate', 'Certificate Claiming', 'Claiming of certificates.', 'Award');
-  
-      if (needsUpdate) {
-        setDocumentNonBlocking(settingsRef, { services: currentServices }, { merge: true });
-      }
-    }
-  }, [settings, isLoadingSettings, settingsRef, firestore]);
   
   // One-time effect to create default stations if they are missing
   useEffect(() => {
