@@ -2,8 +2,8 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 export function initializeFirebase() {
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
@@ -11,8 +11,13 @@ export function initializeFirebase() {
   const auth = getAuth(app);
   const firestore = getFirestore(app);
 
-  // NOTE: We are now using the live, cloud-hosted Firebase backend.
-  // The local emulator setup has been removed to simplify deployment.
+  if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
+    console.log("Connecting to local Firebase emulators...");
+    // NOTE: The IP address '10.30.0.250' is a placeholder.
+    // This must be replaced with the actual IP address of the server PC running the emulators.
+    connectAuthEmulator(auth, 'http://10.30.0.250:9099', { disableWarnings: true });
+    connectFirestoreEmulator(firestore, '10.30.0.250', 8080);
+  }
   
   return {
     firebaseApp: app,
