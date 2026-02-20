@@ -1,13 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * For local/offline development, allow all reads and writes.
-     * This is safe because the emulator is only accessible on the local network.
-     */
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
