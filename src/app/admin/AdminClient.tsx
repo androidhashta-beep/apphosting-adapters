@@ -63,9 +63,6 @@ export function AdminClient() {
   const { data: stations, isLoading: isLoadingStations } =
     useCollection<Station>(stationsCollection);
 
-  const [newStationName, setNewStationName] = useState('');
-  const [isAddStationDialogOpen, setIsAddStationDialogOpen] = useState(false);
-
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
 
   const [companyName, setCompanyName] = useState('');
@@ -79,7 +76,7 @@ export function AdminClient() {
   // One-time effect to ensure core services exist
   useEffect(() => {
     if (settingsRef && !isLoadingSettings && firestore) {
-      let currentServices = settings?.services ? JSON.parse(JSON.stringify(settings.services)) : [];
+      const currentServices = settings?.services ? JSON.parse(JSON.stringify(settings.services)) : [];
       let needsUpdate = false;
   
       const ensureService = (id: string, label: string, description: string, icon: string) => {
@@ -146,25 +143,46 @@ export function AdminClient() {
     updateDocumentNonBlocking(stationRef, { status: newStatus });
   };
 
-  const handleAddStation = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStationName.trim() || !stationsCollection) {
+  const handleAutoAddStation = () => {
+    if (!stationsCollection || !stations || !settings?.services) {
       toast({
         variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please provide a station name.',
+        title: 'Cannot Add Station',
+        description:
+          'System is not ready. Please wait a moment and try again.',
       });
       return;
     }
+
+    let maxNumber = 0;
+    let namePrefix = 'Window';
+    stations.forEach((station) => {
+      const match = station.name.match(/^(Window|Counter)\s+(\d+)$/i);
+      if (match) {
+        const number = parseInt(match[2], 10);
+        if (number > maxNumber) {
+          maxNumber = number;
+          namePrefix = match[1];
+        }
+      }
+    });
+
+    const newStationName = `${namePrefix} ${maxNumber + 1}`;
+    const allServiceIds = settings.services.map((s) => s.id);
+
     const newStation: Omit<Station, 'id'> = {
       name: newStationName,
-      services: [],
+      services: allServiceIds,
       status: 'closed',
       currentTicketId: null,
     };
+
     addDocumentNonBlocking(stationsCollection, newStation);
-    setNewStationName('');
-    setIsAddStationDialogOpen(false);
+
+    toast({
+      title: 'Station Added',
+      description: `${newStationName} has been created.`,
+    });
   };
 
   const handleDeleteStation = () => {
@@ -219,7 +237,7 @@ export function AdminClient() {
                     Configure stations and the services they provide.
                   </CardDescription>
               </div>
-              <Button onClick={() => setIsAddStationDialogOpen(true)}>
+              <Button onClick={handleAutoAddStation}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Station
               </Button>
@@ -365,39 +383,6 @@ export function AdminClient() {
           </div>
         </div>
       </ScrollArea>
-
-      {/* Dialogs */}
-      <AlertDialog
-        open={isAddStationDialogOpen}
-        onOpenChange={setIsAddStationDialogOpen}
-      >
-        <AlertDialogContent>
-          <form onSubmit={handleAddStation}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Add New Station</AlertDialogTitle>
-              <AlertDialogDescription>
-                Create a new service station (e.g., "Window 5").
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-station-name">Station Name</Label>
-                <Input
-                  id="new-station-name"
-                  value={newStationName}
-                  onChange={(e) => setNewStationName(e.target.value)}
-                  placeholder="e.g. Counter 5"
-                  required
-                />
-              </div>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
-              <AlertDialogAction type="submit">Add Station</AlertDialogAction>
-            </AlertDialogFooter>
-          </form>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog
         open={!!stationToDelete}
