@@ -8,7 +8,7 @@ import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
 import { useDoc, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, query, where, getDocs, Timestamp, orderBy, limit, doc, addDoc } from "firebase/firestore";
+import { collection, query, where, Timestamp, orderBy, limit, doc, runTransaction } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -43,50 +43,58 @@ export function KioskClient() {
     if (!firestore || !ticketsCollection || isPrinting) return;
   
     setIsPrinting(type);
-    let newTicketData: Omit<Ticket, 'id'> | null = null;
+    let newTicketDataForError: Omit<Ticket, 'id'> | null = null;
     try {
-      // Determine the ticket number for the specific service
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
+      const newTicket = await runTransaction(firestore, async (transaction) => {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
 
-      const q = query(
-        ticketsCollection,
-        where("type", "==", type),
-        where("createdAt", ">=", startOfDayTimestamp),
-        orderBy("createdAt", "desc"),
-        limit(1)
-      );
+        const q = query(
+          ticketsCollection,
+          where("type", "==", type),
+          where("createdAt", ">=", startOfDayTimestamp),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
 
-      const querySnapshot = await getDocs(q);
-      let newNumber = 1;
-      if (!querySnapshot.empty) {
-        const lastTicket = querySnapshot.docs[0].data();
-        // Robustly parse number part, e.g., from "ENROLL-001"
-        const lastTicketNumberPart = lastTicket.ticketNumber?.split('-').pop() || '0';
-        const lastTicketNumber = parseInt(lastTicketNumberPart, 10);
-        newNumber = lastTicketNumber + 1;
+        const querySnapshot = await transaction.get(q);
+        let newNumber = 1;
+        if (!querySnapshot.empty) {
+          const lastTicket = querySnapshot.docs[0].data();
+          const lastTicketNumberPart = lastTicket.ticketNumber?.split('-').pop() || '0';
+          const lastTicketNumber = parseInt(lastTicketNumberPart, 10);
+          if (!isNaN(lastTicketNumber)) {
+            newNumber = lastTicketNumber + 1;
+          }
+        }
+
+        const service = settings?.services.find(s => s.id === type);
+        const servicePrefix = service?.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
+        const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
+
+        const newTicketPayload: Omit<Ticket, 'id'> = {
+          ticketNumber,
+          type,
+          status: 'waiting' as const,
+          createdAt: Timestamp.now(),
+        };
+
+        newTicketDataForError = newTicketPayload;
+
+        const newTicketRef = doc(ticketsCollection);
+        transaction.set(newTicketRef, newTicketPayload);
+
+        return {
+          id: newTicketRef.id,
+          ...newTicketPayload,
+        };
+      });
+
+      if (newTicket) {
+        setTicketToPrint(newTicket as Ticket);
       }
 
-      const service = settings?.services.find(s => s.id === type);
-      // Create a prefix, e.g., "ENRO" from "Enrollment"
-      const servicePrefix = service?.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
-      const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
-
-      newTicketData = {
-        ticketNumber,
-        type,
-        status: 'waiting' as const,
-        createdAt: Timestamp.now(),
-      };
-
-      const docRef = await addDoc(ticketsCollection, newTicketData);
-
-      const fullTicket: Ticket = {
-          id: docRef.id,
-          ...newTicketData,
-      };
-      setTicketToPrint(fullTicket);
     } catch (error: any) {
         console.error("Error getting ticket:", error);
 
@@ -94,7 +102,7 @@ export function KioskClient() {
             const permissionError = new FirestorePermissionError({
                 path: ticketsCollection.path,
                 operation: 'create',
-                requestResourceData: newTicketData,
+                requestResourceData: newTicketDataForError,
             });
             errorEmitter.emit('permission-error', permissionError);
         } else if (error.code === 'unavailable') {
