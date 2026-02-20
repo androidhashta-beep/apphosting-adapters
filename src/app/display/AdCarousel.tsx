@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Autoplay from "embla-carousel-autoplay";
 import { type EmblaCarouselType } from 'embla-carousel-react'
-import { Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Icon } from "@/lib/icons";
 
 import {
   Carousel,
@@ -222,13 +222,13 @@ export function AdCarousel({ adItems = [], backgroundMusic = [] }: { adItems: Im
       <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
         {backgroundMusic.length > 0 && (
             <Button variant="outline" size="icon" onClick={toggleMute} className="bg-background/50 hover:bg-background/80">
-                {isBgMuted ? <VolumeX /> : <Volume2 />}
+                {isBgMuted ? <Icon name="VolumeX" /> : <Icon name="Volume2" />}
                 <span className="sr-only">Toggle Background Music</span>
             </Button>
         )}
         {canAutoplay && (
             <Button variant="outline" size="icon" onClick={togglePlay} className="bg-background/50 hover:bg-background/80">
-                {isPlaying ? <Pause /> : <Play />}
+                {isPlaying ? <Icon name="Pause" /> : <Icon name="Play" />}
                 <span className="sr-only">Toggle Autoplay</span>
             </Button>
         )}

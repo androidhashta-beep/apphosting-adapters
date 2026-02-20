@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Ticket, Award, Building, DollarSign, BookOpen, HelpCircle, UserPlus, Settings, Wrench, Package, ShieldCheck } from 'lucide-react';
+import { User, Ticket, Award, Building, DollarSign, BookOpen, HelpCircle, UserPlus, Settings, Wrench, Package, ShieldCheck, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
 export const iconMap: { [key: string]: React.FC<LucideProps> } = {
@@ -15,6 +15,10 @@ export const iconMap: { [key: string]: React.FC<LucideProps> } = {
   Wrench,
   Package,
   ShieldCheck,
+  Play,
+  Pause,
+  Volume2,
+  VolumeX,
   HelpCircle,
 };
 
