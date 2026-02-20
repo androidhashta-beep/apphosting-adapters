@@ -142,7 +142,7 @@ export function KioskClient() {
       ticketNumber: "101",
       type: 'registration',
       status: 'waiting',
-      createdAt: Timestamp.now(),
+      createdAt: Timestamp.fromDate(new Date("2024-07-29T10:30:00")),
   };
 
   const sampleService = settings?.services?.find(s => s.id === 'registration') || settings?.services?.[0];
