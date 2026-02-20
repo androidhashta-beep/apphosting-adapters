@@ -1,8 +1,20 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirebase, useDoc, useCollection, updateDocumentNonBlocking, setDocumentNonBlocking, deleteDocumentNonBlocking, useMemoFirebase } from '@/firebase';
-import { doc, collection, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import {
+  doc,
+  collection,
+  writeBatch,
+  runTransaction,
+  arrayUnion,
+  arrayRemove,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  query,
+  collectionGroup
+} from 'firebase/firestore';
 import type { Settings, Station, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +35,21 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 
+const handleFirestoreError = (error: any, toast: any, operation: string) => {
+    console.error(`Error during ${operation}:`, error);
+    let description = "An unexpected error occurred. Please try again.";
+    if (error.code === 'unavailable') {
+        description = "Could not connect to the database. Please check your network connection and firewall settings."
+    } else if (error.code === 'permission-denied') {
+        description = "You do not have permission to perform this action."
+    }
+    toast({
+        variant: "destructive",
+        title: `Operation Failed: ${operation}`,
+        description: description,
+    });
+}
+
 export function StationManagement() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
@@ -42,87 +69,123 @@ export function StationManagement() {
     return [...stations].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   }, [stations]);
 
-  const handleAddStation = () => {
+  const handleAddStation = async () => {
     if (!firestore) return;
-    // Find the highest number in existing window names to avoid collisions
-    const maxNum = stations?.reduce((max, s) => {
-        const match = s.name.match(/(\d+)$/);
-        if (match) {
-            return Math.max(max, parseInt(match[1], 10));
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const stationsCollection = collection(firestore, 'stations');
+            const stationDocs = await getDocs(stationsCollection);
+            
+            const maxNum = stationDocs.docs.reduce((max, stationDoc) => {
+                const match = stationDoc.data().name.match(/(\d+)$/);
+                if (match) {
+                    return Math.max(max, parseInt(match[1], 10));
+                }
+                return max;
+            }, 0);
+
+            const nextStationNumber = maxNum + 1;
+            const newStationId = `window-${nextStationNumber}`;
+            const newStationName = `Window ${nextStationNumber}`;
+            
+            const stationRef = doc(firestore, 'stations', newStationId);
+            transaction.set(stationRef, {
+                name: newStationName,
+                status: 'closed',
+                serviceIds: [],
+            });
+        });
+        toast({ title: "Station Added", description: "A new station has been created." });
+    } catch (error: any) {
+        handleFirestoreError(error, toast, 'Add Station');
+    }
+  };
+  
+  const handleRestoreDefaults = async () => {
+    if (!firestore) return;
+
+    toast({ title: "Restoring Defaults", description: "Applying default configuration..." });
+      
+    try {
+        const batch = writeBatch(firestore);
+
+        // 1. Define Default Services
+        const defaultServices: Service[] = [
+            { id: 'registration', label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
+            { id: 'cashier', label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
+            { id: 'certificate-claiming', label: 'Certificate Claiming', description: 'Claiming of certificates', icon: 'Award' },
+            { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
+        ];
+        
+        // 2. Set Default Services
+        const settingsDocRef = doc(firestore, 'settings', 'app');
+        batch.set(settingsDocRef, { services: defaultServices }, { merge: true });
+
+        // 3. Create 5 Default Stations
+        for (let i = 1; i <= 5; i++) {
+            const stationId = `window-${i}`;
+            const stationRef = doc(firestore, 'stations', stationId);
+            batch.set(stationRef, {
+                name: `Window ${i}`,
+                status: 'closed',
+                serviceIds: [],
+            });
         }
-        return max;
-    }, 0) || 0;
+        
+        // 4. Atomically commit all changes
+        await batch.commit();
 
-    const nextStationNumber = maxNum + 1;
-    const newStationId = `window-${nextStationNumber}`;
-    const newStationName = `Window ${nextStationNumber}`;
-    
-    const stationRef = doc(firestore, 'stations', newStationId);
-    setDocumentNonBlocking(stationRef, {
-        name: newStationName,
-        status: 'closed',
-        serviceIds: [],
-    }, { merge: false });
+        toast({
+            title: "Defaults Restored",
+            description: `Created 4 default services and 5 default stations.`
+        });
 
-    toast({ title: "Station Added", description: `Created station "${newStationName}".` });
+    } catch (error: any) {
+        handleFirestoreError(error, toast, 'Restore Defaults');
+    }
+  };
+
+  const handleUpdateStationName = async (stationId: string, newName: string) => {
+    if (!firestore) return;
+    if (!newName.trim()) {
+        toast({ variant: 'destructive', title: "Invalid Name", description: "Station name cannot be empty." });
+        return;
+    }
+    const stationRef = doc(firestore, 'stations', stationId);
+    try {
+        await updateDoc(stationRef, { name: newName });
+        toast({ title: "Station Updated", description: "Station name has been changed." });
+    } catch (error) {
+        handleFirestoreError(error, toast, "Update Station Name");
+    }
   };
   
-  const handleRestoreDefaults = () => {
-      if (!firestore) return;
-
-      toast({ title: "Restoring Defaults", description: "Applying default configuration..." });
-      
-      const defaultServices: Service[] = [
-        { id: 'registration', label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
-        { id: 'cashier', label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
-        { id: 'certificate-claiming', label: 'Certificate Claiming', description: 'Claiming of certificates', icon: 'Award' },
-        { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
-      ];
-      
-      const settingsDocRef = doc(firestore, 'settings', 'app');
-      setDocumentNonBlocking(settingsDocRef, { services: defaultServices }, { merge: true });
-
-      for (let i = 1; i <= 5; i++) {
-        const stationId = `window-${i}`;
-        const stationRef = doc(firestore, 'stations', stationId);
-        setDocumentNonBlocking(stationRef, {
-            name: `Window ${i}`,
-            status: 'closed',
-            serviceIds: [],
-        }, { merge: false });
-      }
-
-      toast({
-          title: "Defaults Restored",
-          description: `Created 4 default services and 5 default stations.`
-      });
-  };
-
-  const handleUpdateStationName = (stationId: string, newName: string) => {
-      if (!firestore) return;
-      if (!newName.trim()) {
-          toast({ variant: 'destructive', title: "Invalid Name", description: "Station name cannot be empty." });
-          return;
-      }
-      const stationRef = doc(firestore, 'stations', stationId);
-      updateDocumentNonBlocking(stationRef, { name: newName });
-  };
-  
-  const handleServiceSelectionChange = (stationId: string, serviceId: string, isSelected: boolean) => {
+  const handleServiceSelectionChange = async (stationId: string, serviceId: string, isSelected: boolean) => {
     if (!firestore) return;
     const stationRef = doc(firestore, 'stations', stationId);
     
-    updateDocumentNonBlocking(stationRef, {
-      serviceIds: isSelected ? arrayUnion(serviceId) : arrayRemove(serviceId)
-    });
+    try {
+        await updateDoc(stationRef, {
+            serviceIds: isSelected ? arrayUnion(serviceId) : arrayRemove(serviceId)
+        });
+        toast({ title: "Station Updated", description: "Service assignment has been changed."});
+    } catch (error) {
+        handleFirestoreError(error, toast, "Update Service Assignment");
+    }
   };
 
-  const confirmDeleteStation = () => {
+  const confirmDeleteStation = async () => {
     if (!stationToDelete || !firestore) return;
     const stationRef = doc(firestore, 'stations', stationToDelete.id);
-    deleteDocumentNonBlocking(stationRef);
-    toast({ title: 'Station Deleted', description: `"${stationToDelete.name}" has been removed.` });
-    setStationToDelete(null);
+    try {
+        await deleteDoc(stationRef);
+        toast({ title: 'Station Deleted', description: `"${stationToDelete.name}" has been removed.` });
+        setStationToDelete(null);
+    } catch (error) {
+        handleFirestoreError(error, toast, "Delete Station");
+        setStationToDelete(null);
+    }
   }
 
   return (
@@ -183,7 +246,7 @@ export function StationManagement() {
                                   </div>
                               ))
                           ) : (
-                              <p className="text-sm text-muted-foreground p-2">No services have been configured yet.</p>
+                              <p className="text-sm text-muted-foreground p-2">No services found. Try restoring defaults.</p>
                           )}
                       </div>
                   </div>
