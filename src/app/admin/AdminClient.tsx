@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { StationMode, Station, Service, Settings } from '@/lib/types';
+import type { Station, Service, Settings } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -12,22 +12,11 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Trash2,
-  ArrowLeft,
-  PlusCircle,
-  Edit,
-} from 'lucide-react';
+import { Trash2, ArrowLeft, PlusCircle, Edit } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +34,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Icon, iconList } from '@/lib/icons';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   useCollection,
   useDoc,
   useFirebase,
@@ -57,7 +53,6 @@ import {
 import { collection, doc } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
 
 export function AdminClient() {
   const router = useRouter();
@@ -79,7 +74,6 @@ export function AdminClient() {
     useCollection<Station>(stationsCollection);
 
   const [newStationName, setNewStationName] = useState('');
-  const [newStationType, setNewStationType] = useState<string>('');
   const [isAddStationDialogOpen, setIsAddStationDialogOpen] = useState(false);
 
   const [stationToDelete, setStationToDelete] = useState<string | null>(null);
@@ -93,39 +87,50 @@ export function AdminClient() {
   useEffect(() => {
     if (settings) {
       setCompanyName(settings.companyName);
-      if (settings.services?.length > 0 && !newStationType) {
-        setNewStationType(settings.services[0].id);
-      }
     }
-  }, [settings, newStationType]);
+  }, [settings]);
 
+  // One-time effect to ensure core services exist
   useEffect(() => {
-    if (settings && settingsRef && !isLoadingSettings && firestore) {
-      let services = settings.services ? JSON.parse(JSON.stringify(settings.services)) : [];
+    if (settingsRef && !isLoadingSettings && firestore) {
+      let currentServices = settings?.services ? JSON.parse(JSON.stringify(settings.services)) : [];
       let needsUpdate = false;
-
-      const ensureService = (
-        id: string,
-        label: string,
-        description: string,
-        icon: string
-      ) => {
-        let service = services.find((s: Service) => s.id === id);
-        if (!service) {
-          services.push({ id, label, description, icon });
+  
+      const ensureService = (id: string, label: string, description: string, icon: string) => {
+        if (!currentServices.some((s: Service) => s.id === id)) {
+          currentServices.push({ id, label, description, icon });
           needsUpdate = true;
         }
       };
-
+  
       ensureService('enrollment', 'Enrollment', 'Student enrollment services.', 'UserPlus');
       ensureService('payment', 'Cashier', 'Payment and cashiering services.', 'DollarSign');
       ensureService('certificate', 'Certificate Claiming', 'Claiming of certificates.', 'Award');
-
+  
       if (needsUpdate) {
-        setDocumentNonBlocking(settingsRef, { services: services }, { merge: true });
+        setDocumentNonBlocking(settingsRef, { services: currentServices }, { merge: true });
       }
     }
   }, [settings, isLoadingSettings, settingsRef, firestore]);
+  
+  // One-time effect to create default stations if none exist
+  useEffect(() => {
+    if (firestore && !isLoadingStations && stations?.length === 0 && stationsCollection && settings?.services && settings.services.length > 0) {
+      const defaultStations = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
+      const allServiceIds = settings.services.map(s => s.id);
+      
+      defaultStations.forEach(name => {
+        const newStation: Omit<Station, 'id'> = {
+          name: name,
+          services: allServiceIds,
+          status: 'closed',
+          currentTicketId: null,
+        };
+        addDocumentNonBlocking(stationsCollection, newStation);
+      });
+    }
+  }, [firestore, isLoadingStations, stations, stationsCollection, settings]);
+
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -133,10 +138,19 @@ export function AdminClient() {
     router.push('/');
   };
 
-  const handleModeChange = (stationId: string, mode: StationMode) => {
-    if (!firestore) return;
+  const handleServiceAssignmentChange = (stationId: string, serviceId: string, isAssigned: boolean) => {
+    if (!firestore || !stations) return;
     const stationRef = doc(firestore, 'stations', stationId);
-    updateDocumentNonBlocking(stationRef, { mode });
+    const currentStation = stations.find(s => s.id === stationId);
+    if (!currentStation) return;
+  
+    let updatedServices: string[];
+    if (isAssigned) {
+      updatedServices = [...currentStation.services, serviceId];
+    } else {
+      updatedServices = currentStation.services.filter(id => id !== serviceId);
+    }
+    updateDocumentNonBlocking(stationRef, { services: updatedServices });
   };
 
   const handleStatusChange = (stationId: string, checked: boolean) => {
@@ -148,19 +162,18 @@ export function AdminClient() {
 
   const handleAddStation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStationName.trim() || !newStationType || !stationsCollection) {
+    if (!newStationName.trim() || !stationsCollection) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Please provide a station name and select a type.',
+        description: 'Please provide a station name.',
       });
       return;
     }
     const newStation: Omit<Station, 'id'> = {
       name: newStationName,
-      type: newStationType,
+      services: [],
       status: 'closed',
-      mode: 'regular',
       currentTicketId: null,
     };
     addDocumentNonBlocking(stationsCollection, newStation);
@@ -253,17 +266,18 @@ export function AdminClient() {
         { merge: true }
       );
 
-      // Also remove stations of this type
+      // Also remove this service from all stations
       stations?.forEach((station) => {
-        if (station.type === serviceToDelete.id && firestore) {
+        if (station.services.includes(serviceToDelete.id) && firestore) {
           const stationRef = doc(firestore, 'stations', station.id);
-          deleteDocumentNonBlocking(stationRef);
+          const newStationServices = station.services.filter(sId => sId !== serviceToDelete.id);
+          updateDocumentNonBlocking(stationRef, { services: newStationServices });
         }
       });
 
       toast({
         title: 'Service Removed',
-        description: `Service "${serviceToDelete.label}" and its associated stations have been removed.`,
+        description: `Service "${serviceToDelete.label}" has been removed.`,
       });
       setServiceToDelete(null);
     }
@@ -305,33 +319,32 @@ export function AdminClient() {
                   </CardDescription>
                 </div>
                 <TabsList className="w-full sm:w-auto">
-                  <TabsTrigger value="stations" className="w-full sm:w-auto">Stations</TabsTrigger>
-                  <TabsTrigger value="services" className="w-full sm:w-auto">Services</TabsTrigger>
+                  <TabsTrigger value="stations" className="w-full sm:w-auto">
+                    Stations
+                  </TabsTrigger>
+                  <TabsTrigger value="services" className="w-full sm:w-auto">
+                    Services
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
               <TabsContent value="stations">
                 <CardHeader>
-                    <div className="flex items-center justify-end">
-                        <Button onClick={() => setIsAddStationDialogOpen(true)}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Station
-                        </Button>
-                    </div>
+                  <div className="flex items-center justify-end">
+                    <Button onClick={() => setIsAddStationDialogOpen(true)}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add Station
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {!isHydrated &&
-                    [...Array(3)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between p-2 rounded-md border h-[180px]"
-                      >
-                        <Skeleton className="h-full w-full" />
-                      </div>
+                    [...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-[260px] w-full" />
                     ))}
                   {isHydrated && stations?.length === 0 && (
-                     <div className="col-span-full text-center text-muted-foreground py-10">
-                      <p>No stations created yet. Click "Add Station" to begin.</p>
+                    <div className="col-span-full text-center text-muted-foreground py-10">
+                      <p>No stations configured. Default stations will be created shortly.</p>
                     </div>
                   )}
                   {isHydrated &&
@@ -339,20 +352,25 @@ export function AdminClient() {
                       const isServing = !!station.currentTicketId;
                       const isClosed = station.status === 'closed';
                       const isDeleteDisabled = isServing && !isClosed;
-                      const serviceType =
-                        settings?.services?.find((s) => s.id === station.type)
-                          ?.label || station.type;
+                      const assignedServices = (station.services || [])
+                        .map(
+                          (serviceId) =>
+                            settings?.services?.find((s) => s.id === serviceId)
+                              ?.label
+                        )
+                        .filter(Boolean)
+                        .join(', ');
 
                       return (
                         <div
                           key={station.id}
-                          className="space-y-3 rounded-md border p-4"
+                          className="space-y-4 rounded-md border p-4 flex flex-col"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <p className="font-semibold">{station.name}</p>
-                              <p className="text-sm text-muted-foreground capitalize">
-                                {serviceType}
+                              <p className="text-xs text-muted-foreground min-h-[2.5rem]">
+                                {assignedServices || 'No services assigned'}
                               </p>
                             </div>
                             <Button
@@ -371,33 +389,37 @@ export function AdminClient() {
                               <span className="sr-only">Delete</span>
                             </Button>
                           </div>
-                          <div className="space-y-2">
-                            <Label>Operational Mode</Label>
-                            <Select
-                              value={station.mode}
-                              onValueChange={(value: StationMode) =>
-                                handleModeChange(station.id, value)
-                              }
-                              disabled={isClosed}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select mode" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="regular">Regular</SelectItem>
-                                <SelectItem value="all-in-one">
-                                  All-in-One
-                                </SelectItem>
-                                <SelectItem value="payment-only">
-                                  Payment-only (Legacy)
-                                </SelectItem>
-                                <SelectItem value="certificate-only">
-                                  Certificate-only (Legacy)
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
+                          <div className="space-y-2 flex-grow">
+                            <Label>Handled Services</Label>
+                            <div className="space-y-1">
+                              {settings?.services?.map((service) => (
+                                <div
+                                  key={service.id}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Checkbox
+                                    id={`service-${station.id}-${service.id}`}
+                                    checked={(station.services || []).includes(service.id)}
+                                    onCheckedChange={(checked) =>
+                                      handleServiceAssignmentChange(
+                                        station.id,
+                                        service.id,
+                                        !!checked
+                                      )
+                                    }
+                                    disabled={isClosed}
+                                  />
+                                  <Label
+                                    htmlFor={`service-${station.id}-${service.id}`}
+                                    className="font-normal cursor-pointer text-sm"
+                                  >
+                                    {service.label}
+                                  </Label>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between rounded-lg border p-3">
+                          <div className="flex items-center justify-between rounded-lg border p-3 mt-auto">
                             <div className="space-y-0.5">
                               <Label
                                 htmlFor={`status-switch-${station.id}`}
@@ -428,13 +450,13 @@ export function AdminClient() {
               <TabsContent value="services">
                 <CardHeader>
                   <div className="flex items-center justify-end">
-                      <Button
-                        variant="outline"
-                        onClick={() => openServiceEditor(null)}
-                      >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add New Service
-                      </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => openServiceEditor(null)}
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Add New Service
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -480,7 +502,7 @@ export function AdminClient() {
               </TabsContent>
             </Tabs>
           </Card>
-          
+
           <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
             <div className="space-y-8">
               <Card>
@@ -523,40 +545,20 @@ export function AdminClient() {
             <AlertDialogHeader>
               <AlertDialogTitle>Add New Station</AlertDialogTitle>
               <AlertDialogDescription>
-                Create a new service station.
+                Create a new service station (e.g., "Window 5").
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-4 space-y-4">
               <div className="space-y-2">
-                  <Label htmlFor="new-station-name">Station Name</Label>
-                  <Input
-                    id="new-station-name"
-                    value={newStationName}
-                    onChange={(e) => setNewStationName(e.target.value)}
-                    placeholder="e.g. Counter 1"
-                    required
-                    disabled={!isHydrated}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-station-type">Station Type</Label>
-                  <Select
-                    value={newStationType}
-                    onValueChange={(value: string) => setNewStationType(value)}
-                    disabled={!isHydrated}
-                  >
-                    <SelectTrigger id="new-station-type">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {settings?.services?.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
-                          {service.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Label htmlFor="new-station-name">Station Name</Label>
+                <Input
+                  id="new-station-name"
+                  value={newStationName}
+                  onChange={(e) => setNewStationName(e.target.value)}
+                  placeholder="e.g. Counter 5"
+                  required
+                />
+              </div>
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
@@ -680,7 +682,7 @@ export function AdminClient() {
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the "{serviceToDelete?.label}" service
-              and any stations assigned to it. This action cannot be undone.
+              and remove it from any stations assigned to it. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

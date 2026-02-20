@@ -45,14 +45,12 @@ export type Ticket = {
 };
 
 export type StationStatus = 'open' | 'closed';
-export type StationMode = 'regular' | 'all-in-one' | 'payment-only' | 'certificate-only';
 export type StationType = string;
 
 export type Station = {
   id: string;
   name: string;
-  type: StationType;
+  services: string[];
   status: StationStatus;
-  mode: StationMode;
   currentTicketId?: string | null;
 };

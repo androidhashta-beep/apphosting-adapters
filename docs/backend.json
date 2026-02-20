@@ -116,8 +116,12 @@
         "name": {
           "type": "string"
         },
-        "type": {
-          "type": "string"
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of service IDs this station can handle."
         },
         "status": {
           "type": "string",
@@ -126,24 +130,14 @@
             "closed"
           ]
         },
-        "mode": {
-          "type": "string",
-          "enum": [
-            "regular",
-            "all-in-one",
-            "payment-only",
-            "certificate-only"
-          ]
-        },
         "currentTicketId": {
           "type": "string"
         }
       },
       "required": [
         "name",
-        "type",
-        "status",
-        "mode"
+        "services",
+        "status"
       ]
     },
     "Ticket": {

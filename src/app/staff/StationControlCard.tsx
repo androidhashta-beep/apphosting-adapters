@@ -1,6 +1,6 @@
 "use client";
 
-import type { Station, StationStatus, TicketType, Ticket, Settings } from "@/lib/types";
+import type { Station, TicketType, Ticket, Settings } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -166,7 +166,7 @@ export function StationControlCard({
   const handleStatusChange = (checked: boolean) => {
     if (firestore) {
       const stationRef = doc(firestore, 'stations', station.id);
-      const newStatus: StationStatus = checked ? 'open' : 'closed';
+      const newStatus = checked ? 'open' : 'closed';
       
       if (newStatus === 'closed' && station.currentTicketId && ticket) {
         const ticketRef = doc(firestore, 'tickets', ticket.id);
@@ -212,9 +212,6 @@ export function StationControlCard({
             <Label htmlFor={`status-${station.id}`}>{isClosed ? "Closed" : "Open"}</Label>
           </div>
         </CardTitle>
-        <CardDescription>
-          Mode: <span className="font-semibold capitalize">{station.mode}</span>
-        </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col items-center justify-center gap-4">
         <p className="text-sm text-muted-foreground">Now Serving</p>
@@ -237,36 +234,26 @@ export function StationControlCard({
             </Button>
           </>
         ) : (
-          <>
-            {settings && (() => {
-              switch (station.mode) {
-                case 'all-in-one':
-                  return (
-                    <div className="w-full space-y-2">
-                      {settings.services?.map(service => getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />))}
-                    </div>
-                  );
-                case 'payment-only':
-                   const paymentService = settings.services?.find(s => s.id === 'payment');
-                   if (!paymentService) return null;
-                   return getCallButton('payment', `Call ${paymentService.label}`, <Icon name={paymentService.icon} />);
-                case 'certificate-only':
-                  const certService = settings.services?.find(s => s.id === 'certificate');
-                  if (!certService) return null;
-                  return getCallButton('certificate', `Call ${certService.label}`, <Icon name={certService.icon} />);
-                case 'regular':
-                default:
-                  const service = settings.services?.find(s => s.id === station.type);
-                  if (!service) return null;
-                  return getCallButton(station.type, `Call Next ${service.label}`, <Megaphone />);
-              }
-            })()}
-            {!isClosed && (
+          <div className="w-full space-y-2">
+            {!isLoadingSettings && station.services?.length > 0 ? (
+              station.services.map(serviceId => {
+                const service = settings?.services?.find(s => s.id === serviceId);
+                if (!service) return null;
+                return getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />);
+              })
+            ) : isClosed ? (
+              <Button variant="ghost" className="w-full text-muted-foreground" disabled>
+                  <Ban /> Station is closed
+              </Button>
+            ) : (
+              <p className="text-sm text-center text-muted-foreground p-4">No services assigned to this station.</p>
+            )}
+            {!isClosed && !ticket && (
               <Button variant="ghost" className="w-full text-muted-foreground" disabled>
                 <Ban /> No ticket serving
               </Button>
             )}
-          </>
+          </div>
         )}
       </CardFooter>
     </Card>
