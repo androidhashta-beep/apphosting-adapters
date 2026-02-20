@@ -33,9 +33,16 @@ export function KioskClient() {
           description: `Your ticket for ${service?.label || 'a service'} is printing.`,
           duration: 5000,
       });
-      window.print();
-      setTicketToPrint(null); // Reset after triggering print
-      setIsPrinting(null);
+
+      // A brief delay to allow React to re-render the printable component with the new ticket data
+      // before the browser's print dialog is opened.
+      const timer = setTimeout(() => {
+        window.print();
+        setTicketToPrint(null); // Reset after triggering print
+        setIsPrinting(null);
+      }, 100); // 100ms is usually sufficient for the DOM to update.
+
+      return () => clearTimeout(timer); // Cleanup the timer if the component unmounts
     }
   }, [ticketToPrint, settings, toast]);
   
