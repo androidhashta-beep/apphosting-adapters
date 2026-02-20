@@ -73,7 +73,7 @@ export function StationManagement() {
         const stationsCollection = collection(firestore, 'stations');
         
         await runTransaction(firestore, async (transaction) => {
-            // Read all existing station documents within the transaction
+            // Read all existing station documents *within* the transaction
             const stationSnapshot = await transaction.get(stationsCollection);
             
             const maxNum = stationSnapshot.docs.reduce((max, stationDoc) => {
