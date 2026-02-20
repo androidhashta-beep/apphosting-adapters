@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, PlusCircle, RefreshCw, ServerCrash } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -22,6 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function StationManagement() {
   const { firestore } = useFirebase();
@@ -48,7 +48,7 @@ export function StationManagement() {
     addDocumentNonBlocking(stationsCollectionRef, {
         name: newStationName,
         status: 'closed',
-        services: [],
+        serviceId: null,
     });
     toast({ title: "Station Added", description: `Created station "${newStationName}".` });
   };
@@ -85,8 +85,6 @@ export function StationManagement() {
             servicesAddedCount = newServices.length;
         }
         
-        const serviceIds = finalServices.map(s => s.id);
-
         const currentStationsSnapshot = await getDocs(stationsCollection);
         const existingStationNames = currentStationsSnapshot.docs.map(d => d.data().name);
         
@@ -98,7 +96,7 @@ export function StationManagement() {
                 batch.set(newStationRef, {
                     name: stationName,
                     status: 'closed',
-                    services: serviceIds,
+                    serviceId: null,
                 });
                 stationsAddedCount++;
             }
@@ -141,18 +139,11 @@ export function StationManagement() {
       updateDocumentNonBlocking(stationRef, { name: newName });
   };
   
-  const handleServiceToggle = (stationId: string, serviceId: string, isChecked: boolean) => {
+  const handleServiceChange = (stationId: string, newServiceId: string) => {
       if (!firestore) return;
-      const station = stations?.find(s => s.id === stationId);
-      if (!station) return;
-      
-      const currentServices = station.services || [];
-      const newServices = isChecked
-        ? [...currentServices, serviceId]
-        : currentServices.filter(id => id !== serviceId);
-        
       const stationRef = doc(firestore, 'stations', stationId);
-      updateDocumentNonBlocking(stationRef, { services: newServices });
+      const serviceIdToSave = newServiceId === 'null' ? null : newServiceId;
+      updateDocumentNonBlocking(stationRef, { serviceId: serviceIdToSave });
   };
 
   const confirmDeleteStation = () => {
@@ -202,19 +193,26 @@ export function StationManagement() {
                       </Button>
                   </div>
                   <div>
-                      <Label className="text-sm font-medium mb-2 block">Rendered Services</Label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                          {settings?.services?.length > 0 ? settings.services.map(service => (
-                              <div key={service.id} className="flex items-center space-x-2">
-                                  <Checkbox
-                                      id={`${station.id}-${service.id}`}
-                                      checked={station.services.includes(service.id)}
-                                      onCheckedChange={(checked) => handleServiceToggle(station.id, service.id, !!checked)}
-                                  />
-                                  <Label htmlFor={`${station.id}-${service.id}`} className="font-normal cursor-pointer">{service.label}</Label>
-                              </div>
-                          )) : <p className='text-sm text-muted-foreground col-span-full'>No services configured. Please restore defaults.</p>}
-                      </div>
+                      <Label className="text-sm font-medium mb-2 block">Rendered Service</Label>
+                      <Select
+                          value={station.serviceId || 'null'}
+                          onValueChange={(value) => handleServiceChange(station.id, value)}
+                          disabled={isLoadingSettings || !settings?.services || settings.services.length === 0}
+                      >
+                          <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select a service..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="null">
+                                  <span className="text-muted-foreground">-- Not Assigned --</span>
+                              </SelectItem>
+                              {settings?.services?.map(service => (
+                                  <SelectItem key={service.id} value={service.id}>
+                                      {service.label}
+                                  </SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
                   </div>
               </div>
           ))}

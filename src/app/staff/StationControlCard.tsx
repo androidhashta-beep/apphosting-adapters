@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Megaphone, Check, SkipForward, Ban, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/lib/icons";
 import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
@@ -30,6 +30,13 @@ export function StationControlCard({
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  const serviceForStation = useMemo(() => {
+    if (isLoadingSettings || !station.serviceId || !settings?.services) {
+      return null;
+    }
+    return settings.services.find(s => s.id === station.serviceId) || null;
+  }, [isLoadingSettings, station.serviceId, settings?.services]);
   
   useEffect(() => {
     const handleVoicesChanged = () => {
@@ -235,23 +242,14 @@ export function StationControlCard({
           </>
         ) : (
           <div className="w-full space-y-2">
-            {!isLoadingSettings && station.services?.length > 0 ? (
-              station.services.map(serviceId => {
-                const service = settings?.services?.find(s => s.id === serviceId);
-                if (!service) return null;
-                return getCallButton(service.id, `Call ${service.label}`, <Icon name={service.icon} />);
-              })
-            ) : isClosed ? (
+            {isClosed ? (
               <Button variant="ghost" className="w-full text-muted-foreground" disabled>
                   <Ban /> Station is closed
               </Button>
+            ) : serviceForStation ? (
+                getCallButton(serviceForStation.id, `Call ${serviceForStation.label}`, <Icon name={serviceForStation.icon} />)
             ) : (
-              <p className="text-sm text-center text-muted-foreground p-4">No services assigned to this station.</p>
-            )}
-            {!isClosed && !ticket && (
-              <Button variant="ghost" className="w-full text-muted-foreground" disabled>
-                <Ban /> No ticket serving
-              </Button>
+              <p className="text-sm text-center text-muted-foreground p-4">No service assigned.</p>
             )}
           </div>
         )}

@@ -50,7 +50,7 @@ export type StationType = string;
 export type Station = {
   id: string;
   name: string;
-  services: string[];
+  serviceId?: string | null;
   status: StationStatus;
   currentTicketId?: string | null;
 };
