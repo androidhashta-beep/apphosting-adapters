@@ -6,20 +6,24 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Stations: Allow authenticated users to list the collection, and get/write individual documents.
+    // Stations: Allow authenticated users to access.
     match /stations/{stationId} {
-      allow get, write: if request.auth != null;
+      // Allow individual doc reads (get) and all writes (create, update, delete)
+      allow read, write: if request.auth != null;
     }
     match /stations {
-      allow list: if request.auth != null;
+        // Allow collection reads (list)
+        allow read: if request.auth != null;
     }
 
-    // Tickets: Allow authenticated users to list the collection, and get/write individual documents.
+    // Tickets: Allow authenticated users to access.
     match /tickets/{ticketId} {
-      allow get, write: if request.auth != null;
+      // Allow individual doc reads (get) and all writes (update, delete)
+      allow read, write: if request.auth != null;
     }
     match /tickets {
-      allow list: if request.auth != null;
+      // Allow collection reads (list) and creating new tickets (addDoc)
+      allow read, create: if request.auth != null;
     }
 
     // Counters: Allow any authenticated user to read and write.
