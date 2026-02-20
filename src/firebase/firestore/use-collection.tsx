@@ -92,9 +92,8 @@ export function useCollection<T = any>(
             `[Firebase Firestore] Network Error: Cannot connect to the local Firestore Emulator.
 
             >>> TROUBLESHOOTING CHECKLIST <<<
-            1. Is this the same PC where the emulators are running? If not, update '127.0.0.1' in src/firebase/index.ts to the server's IP address.
-            2. Is the 'firebase emulators:start' command still running in a PowerShell window? It should show "All emulators ready".
-            3. Could a firewall or antivirus on this PC be blocking the application from accessing 127.0.0.1 on port 8080 (Firestore)?
+            1. Is the 'firebase emulators:start' command still running in a PowerShell window? It should show "All emulators ready".
+            2. Could a firewall or antivirus on this PC be blocking the application from accessing 127.0.0.1 on port 8080 (Firestore)?
 
             This is a local network configuration issue, not an application bug.`
           );
