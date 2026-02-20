@@ -8,7 +8,7 @@ import { useState, useRef, useEffect } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
 import { useDoc, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp, orderBy, limit, doc, runTransaction } from "firebase/firestore";
+import { collection, query, where, Timestamp, orderBy, limit, doc, getDocs, addDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -43,68 +43,66 @@ export function KioskClient() {
     if (!firestore || !ticketsCollection || isPrinting) return;
   
     setIsPrinting(type);
-    let newTicketDataForError: Omit<Ticket, 'id'> | null = null;
+    let newTicketPayload: Omit<Ticket, 'id' | 'id'> | null = null;
     try {
-      const newTicket = await runTransaction(firestore, async (transaction) => {
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
 
+        // 1. Read the last ticket number (this can be served from cache if offline)
         const q = query(
-          ticketsCollection,
-          where("type", "==", type),
-          where("createdAt", ">=", startOfDayTimestamp),
-          orderBy("createdAt", "desc"),
-          limit(1)
+            ticketsCollection,
+            where("type", "==", type),
+            where("createdAt", ">=", startOfDayTimestamp),
+            orderBy("createdAt", "desc"),
+            limit(1)
         );
+        const querySnapshot = await getDocs(q);
 
-        const querySnapshot = await transaction.get(q);
         let newNumber = 1;
         if (!querySnapshot.empty) {
-          const lastTicket = querySnapshot.docs[0].data();
-          const lastTicketNumberPart = lastTicket.ticketNumber?.split('-').pop() || '0';
-          const lastTicketNumber = parseInt(lastTicketNumberPart, 10);
-          if (!isNaN(lastTicketNumber)) {
-            newNumber = lastTicketNumber + 1;
-          }
+            const lastTicket = querySnapshot.docs[0].data();
+            const lastTicketNumberPart = lastTicket.ticketNumber?.split('-').pop() || '0';
+            const lastTicketNumber = parseInt(lastTicketNumberPart, 10);
+            if (!isNaN(lastTicketNumber)) {
+                newNumber = lastTicketNumber + 1;
+            }
         }
-
+        
+        // 2. Prepare the new ticket
         const service = settings?.services.find(s => s.id === type);
         const servicePrefix = service?.label.substring(0, 4).toUpperCase().replace(/\s+/g, '') || "TKT";
         const ticketNumber = `${servicePrefix}-${newNumber.toString().padStart(3, '0')}`;
 
-        const newTicketPayload: Omit<Ticket, 'id'> = {
-          ticketNumber,
-          type,
-          status: 'waiting' as const,
-          createdAt: Timestamp.now(),
+        newTicketPayload = {
+            ticketNumber,
+            type,
+            status: 'waiting' as const,
+            createdAt: Timestamp.now(),
         };
 
-        newTicketDataForError = newTicketPayload;
-
-        const newTicketRef = doc(ticketsCollection);
-        transaction.set(newTicketRef, newTicketPayload);
-
-        return {
-          id: newTicketRef.id,
-          ...newTicketPayload,
+        // 3. Write the new ticket (this will be queued if offline)
+        const newTicketRef = await addDoc(ticketsCollection, newTicketPayload);
+        
+        const newTicket: Ticket = {
+            id: newTicketRef.id,
+            ...newTicketPayload
         };
-      });
-
-      if (newTicket) {
-        setTicketToPrint(newTicket as Ticket);
-      }
+        setTicketToPrint(newTicket);
 
     } catch (error: any) {
-        if (ticketsCollection && error.code === 'permission-denied') {
+        const isPermissionError = ticketsCollection && error.code === 'permission-denied';
+        const isNetworkError = error.code === 'unavailable';
+
+        if (isPermissionError) {
             const permissionError = new FirestorePermissionError({
-                path: ticketsCollection.path,
+                path: ticketsCollection!.path,
                 operation: 'create',
-                requestResourceData: newTicketDataForError,
+                requestResourceData: newTicketPayload,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else if (error.code === 'unavailable') {
-            console.warn(
+        } else if (isNetworkError) {
+             console.warn(
                 `[Firebase Firestore] Network Connection Blocked when getting ticket.
 
                 >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
