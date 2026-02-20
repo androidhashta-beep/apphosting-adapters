@@ -12,7 +12,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/lib/icons";
 import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, doc, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
+import { collection, doc, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export function StationControlCard({ 
@@ -114,28 +114,35 @@ export function StationControlCard({
   };
 
   const callNext = async (ticketType: TicketType) => {
-    if (!firestore || station.status === 'closed' || station.currentTicketId) {
+    if (!firestore || isUserLoading || station.status === 'closed' || station.currentTicketId) {
       return;
     }
 
     try {
         const ticketsCollection = collection(firestore, "tickets");
+        // We fetch all waiting tickets for the type and sort on the client
+        // to avoid needing a composite index on the database.
         const q = query(
-        ticketsCollection,
-        where("type", "==", ticketType),
-        where("status", "==", "waiting"),
-        orderBy("createdAt"),
-        limit(1)
+            ticketsCollection,
+            where("type", "==", ticketType),
+            where("status", "==", "waiting")
         );
 
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            const nextTicket = querySnapshot.docs[0];
+            // Sort documents by createdAt timestamp client-side
+            const sortedDocs = querySnapshot.docs.sort((a, b) => {
+                const timeA = a.data().createdAt as Timestamp;
+                const timeB = b.data().createdAt as Timestamp;
+                return timeA.toMillis() - timeB.toMillis();
+            });
+
+            const nextTicketDoc = sortedDocs[0];
             const stationRef = doc(firestore, 'stations', station.id);
-            const ticketRef = doc(firestore, 'tickets', nextTicket.id);
+            const ticketRef = doc(firestore, 'tickets', nextTicketDoc.id);
             
-            updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicket.id });
+            updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicketDoc.id });
             updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
         } else {
             toast({
@@ -149,7 +156,7 @@ export function StationControlCard({
              toast({
                 variant: "destructive",
                 title: "CRITICAL: Connection Blocked by Firewall",
-                description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall.",
+                description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall to continue.",
                 duration: 20000,
             });
         } else {
