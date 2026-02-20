@@ -34,16 +34,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const handleFirestoreError = (error: any, toast: any, operation: string) => {
-    console.error(`Error during ${operation}:`, error);
-    let title = `Operation Failed: ${operation}`;
-    let description = "An unexpected error occurred. Please try again.";
-    
+    let title;
+    let description;
+
     if (error.code === 'unavailable' || error.code === 'network-request-failed') {
         title = "CRITICAL: Connection Blocked by Firewall";
         description = "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall.";
     } else if (error.code === 'permission-denied') {
         title = "Permission Denied";
         description = "You do not have permission to perform this action. Check your security rules.";
+    } else {
+        // Only log unexpected errors to the console
+        console.error(`Error during ${operation}:`, error);
+        title = `Operation Failed: ${operation}`;
+        description = "An unexpected error occurred. Please try again.";
     }
     toast({
         variant: "destructive",

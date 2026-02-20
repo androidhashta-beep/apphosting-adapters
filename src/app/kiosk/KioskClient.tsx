@@ -106,22 +106,22 @@ export function KioskClient() {
 
     } catch (error: any) {
         setIsPrinting(null); // Stop loading indicator on failure
-        console.error("Error getting ticket:", error);
-
-        if (error.code === 'permission-denied' && ticketsCollection && newTicketId) {
+        
+        if (error.code === 'unavailable' || error.code === 'network-request-failed') {
+             toast({
+                variant: "destructive",
+                title: "CRITICAL: Connection Blocked by Firewall",
+                description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall.",
+            });
+        } else if (error.code === 'permission-denied' && ticketsCollection && newTicketId) {
              const permissionError = new FirestorePermissionError({
                 path: `tickets/${newTicketId}`,
                 operation: 'create',
                 requestResourceData: newTicketPayload,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else if (error.code === 'unavailable' || error.code === 'network-request-failed') {
-             toast({
-                variant: "destructive",
-                title: "CRITICAL: Connection Blocked by Firewall",
-                description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall.",
-            });
         } else {
+            console.error("Error getting ticket:", error);
             toast({
                 variant: "destructive",
                 title: "Could not get ticket",

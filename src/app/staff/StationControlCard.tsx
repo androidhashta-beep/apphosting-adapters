@@ -145,7 +145,6 @@ export function StationControlCard({
             });
         }
     } catch (error: any) {
-        console.error("Error calling next ticket:", error);
         if (error.code === 'unavailable' || error.code === 'network-request-failed') {
              toast({
                 variant: "destructive",
@@ -153,6 +152,7 @@ export function StationControlCard({
                 description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall.",
             });
         } else {
+            console.error("Error calling next ticket:", error);
             toast({
                 variant: "destructive",
                 title: "Could not call ticket",
