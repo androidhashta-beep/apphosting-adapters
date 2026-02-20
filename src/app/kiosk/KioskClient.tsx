@@ -115,11 +115,11 @@ export function KioskClient() {
                 requestResourceData: newTicketPayload,
             });
             errorEmitter.emit('permission-error', permissionError);
-        } else if (error.code === 'unavailable') {
+        } else if (error.code === 'unavailable' || error.code === 'network-request-failed') {
              toast({
                 variant: "destructive",
-                title: "Operation Failed: Get Ticket",
-                description: "Could not connect to the database. Please check your network connection and firewall settings.",
+                title: "CRITICAL: Connection Blocked by Firewall",
+                description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall.",
             });
         } else {
             toast({
