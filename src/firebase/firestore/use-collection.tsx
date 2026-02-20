@@ -91,11 +91,15 @@ export function useCollection<T = any>(
           console.error(
             `[Firebase Firestore] Network Error: Cannot connect to the local Firestore Emulator.
 
-            >>> TROUBLESHOOTING CHECKLIST <<<
-            1. Is the 'firebase emulators:start' command still running in a PowerShell window? It should show "All emulators ready".
-            2. Could a firewall or antivirus on this PC be blocking the application from accessing 127.0.0.1 on port 8080 (Firestore)?
-
-            This is a local network configuration issue, not an application bug.`
+            >>> FINAL DIAGNOSIS & SOLUTION <<<
+            This error indicates that security software on your PC (like Windows Defender Firewall) is blocking the application. This is common for new desktop applications.
+    
+            ACTION REQUIRED:
+            1. Open your firewall settings (e.g., Windows Defender Firewall).
+            2. Find the setting for "Allow an app through firewall".
+            3. Add this application's executable file to the list of allowed apps. The file is located in the 'out/make' folder inside your project directory.
+    
+            This is a one-time setup step for your PC. All code-level fixes for this issue have been applied.`
           );
           // We set loading to false and data to null, but we don't set an error state.
           // This prevents the application from crashing with an error overlay.

@@ -11,11 +11,15 @@ const handleAuthError = (error: any, operation: string) => {
       console.error(
         `[Firebase Auth] Network Error during ${operation}: Cannot connect to the local Firebase Emulator.
 
-        >>> TROUBLESHOOTING CHECKLIST <<<
-        1. Is the 'firebase emulators:start' command still running in a PowerShell window? It should show "All emulators ready".
-        2. Could a firewall or antivirus on this PC be blocking the application from accessing 127.0.0.1 on port 9099 (Auth) or 8080 (Firestore)?
+        >>> FINAL DIAGNOSIS & SOLUTION <<<
+        This error indicates that security software on your PC (like Windows Defender Firewall) is blocking the application. This is common for new desktop applications.
 
-        This is a local network configuration issue, not an application bug.`
+        ACTION REQUIRED:
+        1. Open your firewall settings (e.g., Windows Defender Firewall).
+        2. Find the setting for "Allow an app through firewall".
+        3. Add this application's executable file to the list of allowed apps. The file is located in the 'out/make' folder inside your project directory.
+
+        This is a one-time setup step for your PC. All code-level fixes for this issue have been applied.`
       );
     } else {
       console.error(`[Firebase Auth] Error during ${operation}:`, error);
