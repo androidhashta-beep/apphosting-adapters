@@ -1,39 +1,34 @@
-# Smart Queueing System
+# NaviQueue Pro
 
-This is a Next.js & Electron desktop application for a smart queueing system, built in Firebase Studio.
+This is a Next.js application for a smart queueing system, built in Firebase Studio.
 
 ## Getting Started
 
-To run the application in development mode, which includes hot-reloading for both the web content and the Electron app, use the following command:
+To run the application in development mode, use the following command:
 
 ```bash
-npm run electron:dev
+npm run dev
 ```
 
-This will start the Next.js development server and then launch the Electron window.
+This will start the Next.js development server. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
 ## Deployment
 
-This application is built as a desktop app using Electron. You can create distributable packages for Windows, macOS, and Linux using the provided scripts.
+This is a standard Next.js application and can be deployed to any platform that supports Next.js.
 
-### Packaging the Application
+### Firebase App Hosting
 
-To bundle your application into a folder for your operating system (without creating an installer), run:
+This project is pre-configured for deployment with Firebase App Hosting. To deploy, you can connect your repository to a Firebase project.
 
-```bash
-npm run electron:package
-```
+### Other Platforms
 
-This command first builds the Next.js static files (`npm run build`) and then uses Electron Forge to package them into an application. The output will be in a new `out` directory at the project root (e.g., `out/nextn-desktop-win32-x64`).
+You can also deploy this application to other services like Vercel, Netlify, or your own server.
 
-### Creating an Installer
-
-To create a full installer for your application (e.g., an `.exe` for Windows or a `.dmg` for macOS), run:
-
-```bash
-npm run electron:make
-```
-
-This command also builds the Next.js project first. Electron Forge will then create the installers in the `out/make` directory.
-
-After running this command, you can find the distributable files and share them with your users.
+1.  Build the application for production:
+    ```bash
+    npm run build
+    ```
+2.  Start the production server:
+    ```bash
+    npm run start
+    ```
