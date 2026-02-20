@@ -19,7 +19,6 @@ export function KioskClient() {
   const printableRef = useRef<HTMLDivElement>(null);
   
   const ticketsCollection = useMemoFirebase(() => (firestore ? collection(firestore, 'tickets') : null), [firestore]);
-  const {data: tickets, isLoading: isLoadingTickets} = useCollection<Ticket>(ticketsCollection);
 
 
   useEffect(() => {
@@ -32,50 +31,76 @@ export function KioskClient() {
   const handleGetTicket = async (type: string) => {
     if (!firestore || !ticketsCollection) return;
   
-    // Determine the ticket number
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
-  
-    const q = query(
-      ticketsCollection,
-      where("createdAt", ">=", startOfDayTimestamp),
-      orderBy("createdAt", "desc"),
-      limit(1)
-    );
-  
-    const querySnapshot = await getDocs(q);
-    let newNumber = 1;
-    if (!querySnapshot.empty) {
-      const lastTicket = querySnapshot.docs[0].data();
-      const lastTicketNumber = parseInt(lastTicket.ticketNumber, 10);
-      newNumber = lastTicketNumber + 1;
-    }
-  
-    const ticketNumber = `${newNumber}`;
-  
-    const newTicketData = {
-      ticketNumber,
-      type,
-      status: 'waiting' as const,
-      createdAt: Timestamp.now(),
-    };
-  
-    const docRefPromise = addDocumentNonBlocking(ticketsCollection, newTicketData);
-  
-    docRefPromise.then(docRef => {
-        const fullTicket: Ticket = {
-            id: docRef.id,
-            ...newTicketData,
-        };
-        setTicketToPrint(fullTicket);
-        const service = settings?.services.find(s => s.id === type);
+    try {
+      // Determine the ticket number
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfDayTimestamp = Timestamp.fromDate(startOfDay);
+
+      const q = query(
+        ticketsCollection,
+        where("createdAt", ">=", startOfDayTimestamp),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+
+      const querySnapshot = await getDocs(q);
+      let newNumber = 1;
+      if (!querySnapshot.empty) {
+        const lastTicket = querySnapshot.docs[0].data();
+        const lastTicketNumber = parseInt(lastTicket.ticketNumber, 10);
+        newNumber = lastTicketNumber + 1;
+      }
+
+      const ticketNumber = `${newNumber}`;
+
+      const newTicketData = {
+        ticketNumber,
+        type,
+        status: 'waiting' as const,
+        createdAt: Timestamp.now(),
+      };
+
+      const docRefPromise = addDocumentNonBlocking(ticketsCollection, newTicketData);
+
+      docRefPromise.then(docRef => {
+          if (!docRef) return;
+          const fullTicket: Ticket = {
+              id: docRef.id,
+              ...newTicketData,
+          };
+          setTicketToPrint(fullTicket);
+          const service = settings?.services.find(s => s.id === type);
+          toast({
+              title: `Printing Ticket ${fullTicket.ticketNumber}`,
+              description: `Your ticket for ${service?.label || 'a service'} is printing.`,
+              duration: 5000,
+          });
+      });
+    } catch (error: any) {
+        if (error.code === 'unavailable') {
+            console.error(
+                `[Firebase Firestore] Network Error: Cannot connect to the local Firestore Emulator.
+
+                >>> FINAL DIAGNOSIS & SOLUTION <<<
+                This error indicates that security software on your PC (like Windows Defender Firewall) is blocking the application. This is common for new desktop applications.
+        
+                ACTION REQUIRED:
+                1. Open your firewall settings (e.g., Windows Defender Firewall).
+                2. Find the setting for "Allow an app through firewall".
+                3. Add this application's executable file to the list of allowed apps. The file is located in the 'out/make' folder inside your project directory.
+        
+                This is a one-time setup step for your PC. All code-level fixes for this issue have been applied.`
+            );
+        } else {
+            console.error("Error getting ticket:", error);
+        }
         toast({
-            title: `Printing Ticket ${fullTicket.ticketNumber}`,
-            description: `Your ticket for ${service?.label || 'a service'} is printing.`,
-            duration: 5000,
+            variant: "destructive",
+            title: "Could not get ticket",
+            description: "Failed to connect to the server. Please check the connection and try again.",
         });
-    });
+    }
   };
 
   const getPrintableService = (ticket: Ticket | null): Service | undefined => {

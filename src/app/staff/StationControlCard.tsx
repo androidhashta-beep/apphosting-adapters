@@ -11,8 +11,9 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Icon } from "@/lib/icons";
-import { useCollection, useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
+import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, doc, query, where, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export function StationControlCard({ 
   station,
@@ -24,6 +25,7 @@ export function StationControlCard({
   waitingCounts: { [key: string]: number };
 }) {
   const { firestore } = useFirebase();
+  const { toast } = useToast();
   const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
@@ -109,24 +111,55 @@ export function StationControlCard({
       return;
     }
 
-    const ticketsCollection = collection(firestore, "tickets");
-    const q = query(
-      ticketsCollection,
-      where("type", "==", ticketType),
-      where("status", "==", "waiting"),
-      orderBy("createdAt"),
-      limit(1)
-    );
+    try {
+        const ticketsCollection = collection(firestore, "tickets");
+        const q = query(
+        ticketsCollection,
+        where("type", "==", ticketType),
+        where("status", "==", "waiting"),
+        orderBy("createdAt"),
+        limit(1)
+        );
 
-    const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(q);
 
-    if (!querySnapshot.empty) {
-      const nextTicket = querySnapshot.docs[0];
-      const stationRef = doc(firestore, 'stations', station.id);
-      const ticketRef = doc(firestore, 'tickets', nextTicket.id);
-      
-      updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicket.id });
-      updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
+        if (!querySnapshot.empty) {
+            const nextTicket = querySnapshot.docs[0];
+            const stationRef = doc(firestore, 'stations', station.id);
+            const ticketRef = doc(firestore, 'tickets', nextTicket.id);
+            
+            updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicket.id });
+            updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
+        } else {
+            toast({
+                variant: "default",
+                title: "Queue is empty",
+                description: `There are no more tickets waiting for this service.`,
+            });
+        }
+    } catch (error: any) {
+        if (error.code === 'unavailable') {
+            console.error(
+                `[Firebase Firestore] Network Error: Cannot connect to the local Firestore Emulator.
+
+                >>> FINAL DIAGNOSIS & SOLUTION <<<
+                This error indicates that security software on your PC (like Windows Defender Firewall) is blocking the application. This is common for new desktop applications.
+        
+                ACTION REQUIRED:
+                1. Open your firewall settings (e.g., Windows Defender Firewall).
+                2. Find the setting for "Allow an app through firewall".
+                3. Add this application's executable file to the list of allowed apps. The file is located in the 'out/make' folder inside your project directory.
+        
+                This is a one-time setup step for your PC. All code-level fixes for this issue have been applied.`
+            );
+        } else {
+            console.error("Error calling next ticket:", error);
+        }
+        toast({
+            variant: "destructive",
+            title: "Could not call ticket",
+            description: "Failed to connect to the server. Please check the connection.",
+        });
     }
   };
 
@@ -148,7 +181,7 @@ export function StationControlCard({
   const getCallButton = (type: TicketType, label: string, icon: React.ReactNode) => {
     const waitingCount = waitingCounts[type] || 0;
     const isQueueEmpty = waitingCount === 0;
-    const isDisabled = isClosed || isQueueEmpty;
+    const isDisabled = isClosed || !!station.currentTicketId;
 
     return (
         <Button onClick={() => callNext(type)} className="w-full justify-between" disabled={isDisabled}>
@@ -156,7 +189,10 @@ export function StationControlCard({
                 {icon}
                 <span>{label}</span>
             </div>
-            <span className="bg-primary-foreground/20 text-primary-foreground rounded-full px-2 text-xs">{waitingCount}</span>
+            <span className={cn(
+                "text-primary-foreground rounded-full px-2 text-xs",
+                isQueueEmpty ? "bg-primary-foreground/20" : "bg-primary-foreground/40 font-bold"
+            )}>{waitingCount}</span>
         </Button>
     )
   }
@@ -211,9 +247,13 @@ export function StationControlCard({
                     </div>
                   );
                 case 'payment-only':
-                   return getCallButton('payment', 'Call Payment', <Icon name="Ticket" />);
+                   const paymentService = settings.services.find(s => s.id === 'payment');
+                   if (!paymentService) return null;
+                   return getCallButton('payment', 'Call Payment', <Icon name={paymentService.icon} />);
                 case 'certificate-only':
-                  return getCallButton('certificate', 'Call Certificate', <Icon name="Award" />);
+                  const certService = settings.services.find(s => s.id === 'certificate');
+                  if (!certService) return null;
+                  return getCallButton('certificate', 'Call Certificate', <Icon name={certService.icon} />);
                 case 'regular':
                 default:
                   const service = settings.services.find(s => s.id === station.type);

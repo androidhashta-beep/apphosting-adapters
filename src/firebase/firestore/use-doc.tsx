@@ -92,6 +92,7 @@ export function useDoc<T = any>(
           // This prevents the application from crashing with an error overlay.
           setData(null);
           setIsLoading(false);
+          setError(error); // Set the error for UI feedback, but don't throw
           return; // Stop further processing
         }
 
