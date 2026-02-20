@@ -137,10 +137,20 @@ export function KioskClient() {
 
   const isHydrated = !isLoadingSettings && !isUserLoading;
 
+    const sampleTicket: Ticket = {
+      id: 'sample-1',
+      ticketNumber: "101",
+      type: 'registration',
+      status: 'waiting',
+      createdAt: Timestamp.now(),
+  };
+
+  const sampleService = settings?.services?.find(s => s.id === 'registration') || settings?.services?.[0];
+
   return (
     <>
-      <div className="flex flex-col items-center justify-center">
-        <Card className="w-full max-w-4xl">
+      <div className="grid md:grid-cols-2 gap-8 items-start">
+        <Card className="w-full max-w-4xl md:col-span-1">
           <CardContent className="p-8">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-foreground">Get Your Ticket</h2>
@@ -148,9 +158,9 @@ export function KioskClient() {
                 Please select a service.
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {!isHydrated ? (
-                Array.from({ length: 3 }).map((_, i) => (
+                Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
                 ))
               ) : settings?.services && settings.services.length > 0 ? (
@@ -182,7 +192,7 @@ export function KioskClient() {
                   </Button>
                 ))
               ) : (
-                <div className="md:col-span-3 text-center text-muted-foreground py-10">
+                <div className="sm:col-span-2 text-center text-muted-foreground py-10">
                   <p className="text-lg font-semibold">No Services Available</p>
                   <p>
                     This kiosk is not yet configured. Please contact an administrator.
@@ -192,6 +202,14 @@ export function KioskClient() {
             </div>
           </CardContent>
         </Card>
+        
+        <div className="flex flex-col items-center justify-start pt-8 md:pt-0">
+            <h3 className="text-2xl font-semibold mb-4 text-foreground">Ticket Preview</h3>
+            <div className="bg-white p-1 rounded-lg shadow-2xl border w-[320px]">
+                <PrintableTicket ticket={sampleTicket} companyName={settings?.companyName || "Your Company"} service={sampleService} />
+            </div>
+        </div>
+
       </div>
       <div className="printable-area">
         <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings?.companyName || ''} service={getPrintableService(ticketToPrint)} />
