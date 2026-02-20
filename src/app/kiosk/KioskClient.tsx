@@ -159,9 +159,19 @@ export function KioskClient() {
                     ) : (
                         <Icon name={service.icon} className="h-8 w-8" />
                     )}
-                    <span>{isPrinting === service.id ? 'Preparing Ticket...' : service.label}</span>
+                    <span>
+                      {isPrinting === service.id
+                        ? 'Preparing Ticket...'
+                        : !!isPrinting
+                        ? 'Please wait...'
+                        : service.label}
+                    </span>
                     <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
-                        {isPrinting === service.id ? 'Please wait a moment.' : service.description}
+                      {isPrinting === service.id
+                        ? 'Please wait a moment.'
+                        : !!isPrinting
+                        ? 'Another request is in progress.'
+                        : service.description}
                     </p>
                   </Button>
                 ))
