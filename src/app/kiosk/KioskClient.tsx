@@ -96,8 +96,6 @@ export function KioskClient() {
       }
 
     } catch (error: any) {
-        console.error("Error getting ticket:", error);
-
         if (ticketsCollection && error.code === 'permission-denied') {
             const permissionError = new FirestorePermissionError({
                 path: ticketsCollection.path,
@@ -106,7 +104,7 @@ export function KioskClient() {
             });
             errorEmitter.emit('permission-error', permissionError);
         } else if (error.code === 'unavailable') {
-            console.error(
+            console.warn(
                 `[Firebase Firestore] Network Connection Blocked when getting ticket.
 
                 >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
@@ -119,6 +117,8 @@ export function KioskClient() {
 
                 This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
             );
+        } else {
+          console.error("Error getting ticket:", error);
         }
 
         toast({

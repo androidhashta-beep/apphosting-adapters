@@ -139,7 +139,7 @@ export function StationControlCard({
         }
     } catch (error: any) {
         if (error.code === 'unavailable') {
-            console.error(
+            console.warn(
                 `[Firebase Firestore] Network Connection Blocked when calling next ticket.
 
                 >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<

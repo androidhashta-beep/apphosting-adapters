@@ -71,7 +71,7 @@ export function useDoc<T = any>(
       },
       (error: FirestoreError) => {
         if (error.code === 'unavailable') {
-          console.error(
+          console.warn(
             `[Firebase Firestore] Network Connection Blocked when listening to document.
 
             >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<

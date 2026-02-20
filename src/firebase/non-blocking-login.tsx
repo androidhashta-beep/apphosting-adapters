@@ -8,7 +8,7 @@ import {
 
 const handleAuthError = (error: any, operation: string) => {
     if (error.code === 'auth/network-request-failed') {
-      console.error(
+      console.warn(
         `[Firebase Auth] Network Connection Blocked during ${operation}.
 
         >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
