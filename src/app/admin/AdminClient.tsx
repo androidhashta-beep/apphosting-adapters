@@ -103,7 +103,7 @@ export function AdminClient() {
         }
       };
   
-      ensureService('enrollment', 'Enrollment', 'Student enrollment services.', 'UserPlus');
+      ensureService('registration', 'Registration', 'Student registration services.', 'UserPlus');
       ensureService('payment', 'Cashier', 'Payment and cashiering services.', 'DollarSign');
       ensureService('certificate', 'Certificate Claiming', 'Claiming of certificates.', 'Award');
   
@@ -586,7 +586,7 @@ export function AdminClient() {
                   id="service-label"
                   name="label"
                   defaultValue={editingService?.label}
-                  placeholder="e.g. Enrollment"
+                  placeholder="e.g. Registration"
                   required
                 />
                 <Input

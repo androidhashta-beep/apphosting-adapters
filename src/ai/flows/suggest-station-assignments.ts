@@ -11,11 +11,11 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SuggestStationAssignmentsInputSchema = z.object({
-  enrollmentQueueLength: z
+  registrationQueueLength: z
     .number()
     .int()
     .min(0)
-    .describe('The current number of students waiting for enrollment services.'),
+    .describe('The current number of students waiting for registration services.'),
   paymentQueueLength: z
     .number()
     .int()
@@ -26,11 +26,11 @@ const SuggestStationAssignmentsInputSchema = z.object({
     .int()
     .min(0)
     .describe('The current number of students waiting for certificate claiming.'),
-  availableEnrollmentStations: z
+  availableRegistrationStations: z
     .number()
     .int()
     .min(0)
-    .describe('The number of available staff/stations for enrollment services.'),
+    .describe('The number of available staff/stations for registration services.'),
   availablePaymentStations: z
     .number()
     .int()
@@ -53,14 +53,14 @@ const SuggestStationAssignmentsOutputSchema = z.object({
     .array(
       z.object({
         stationType: z
-          .enum(['Enrollment', 'Cashier', 'Combined', 'Certificate'])
+          .enum(['Registration', 'Cashier', 'Combined', 'Certificate'])
           .describe(
-            "The type of station being suggested for assignment (e.g., 'Enrollment', 'Cashier', 'Combined', 'Certificate')."
+            "The type of station being suggested for assignment (e.g., 'Registration', 'Cashier', 'Combined', 'Certificate')."
           ),
         assignment: z
-          .enum(['Regular', 'All-in-one', 'Closed', 'Payment-only', 'Enrollment-only', 'Certificate-only'])
+          .enum(['Regular', 'All-in-one', 'Closed', 'Payment-only', 'Registration-only', 'Certificate-only'])
           .describe(
-            "The suggested assignment for the station (e.g., 'Regular', 'All-in-one', 'Closed'). 'All-in-one' means handling enrollment, payment, and certificate services. 'Payment-only' or 'Enrollment-only' is for a combined station that temporarily focuses on one type of service."
+            "The suggested assignment for the station (e.g., 'Regular', 'All-in-one', 'Closed'). 'All-in-one' means handling registration, payment, and certificate services. 'Payment-only' or 'Registration-only' is for a combined station that temporarily focuses on one type of service."
           ),
         reason: z
           .string()
@@ -92,17 +92,17 @@ const prompt = ai.definePrompt({
   prompt: `You are an expert operations manager for a school's seafaring training center, specializing in optimizing student flow through queue management.
 
 Based on the current real-time queue lengths and available staff, suggest optimal station assignments to efficiently manage student flow and reduce waiting times. Consider options such as:
--   Designating specific counters as 'All-in-one' (handling enrollment, payment, and certificate services).
+-   Designating specific counters as 'All-in-one' (handling registration, payment, and certificate services).
 -   Combining roles if appropriate.
 -   Closing stations if they are not needed.
 
 Current Queue Status:
--   Enrollment Queue Length: {{{enrollmentQueueLength}}}
+-   Registration Queue Length: {{{registrationQueueLength}}}
 -   Payment Queue Length: {{{paymentQueueLength}}}
 -   Certificate Queue Length: {{{certificateQueueLength}}}
 
 Available Staff/Stations:
--   Available Enrollment Stations: {{{availableEnrollmentStations}}}
+-   Available Registration Stations: {{{availableRegistrationStations}}}
 -   Available Payment Stations: {{{availablePaymentStations}}}
 -   Available Certificate Stations: {{{availableCertificateStations}}}
 
