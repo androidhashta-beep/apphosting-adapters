@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,24 +97,34 @@ export function KioskClient() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {isHydrated && settings?.services.map(service => (
-                <Button
-                  key={service.id}
-                  variant="outline"
-                  className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
-                  onClick={() => handleGetTicket(service.id)}
-                  disabled={!isHydrated}
-                >
-                  <Icon name={service.icon} className="h-8 w-8" />
-                  <span>{service.label}</span>
-                  <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
-                    {service.description}
+              {!isHydrated ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
+                ))
+              ) : settings?.services && settings.services.length > 0 ? (
+                settings.services.map((service) => (
+                  <Button
+                    key={service.id}
+                    variant="outline"
+                    className="h-auto min-h-40 text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
+                    onClick={() => handleGetTicket(service.id)}
+                    disabled={!isHydrated}
+                  >
+                    <Icon name={service.icon} className="h-8 w-8" />
+                    <span>{service.label}</span>
+                    <p className="text-sm font-normal normal-case text-muted-foreground mt-1 px-2">
+                      {service.description}
+                    </p>
+                  </Button>
+                ))
+              ) : (
+                <div className="md:col-span-3 text-center text-muted-foreground py-10">
+                  <p className="text-lg font-semibold">No Services Available</p>
+                  <p>
+                    This kiosk is not yet configured. Please contact an administrator.
                   </p>
-                </Button>
-              ))}
-               {!isHydrated && Array.from({length: 3}).map((_, i) => (
-                    <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
-                ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
