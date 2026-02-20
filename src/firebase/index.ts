@@ -23,9 +23,9 @@ export function initializeFirebase() {
   // This application is designed for OFFLINE use.
   // It will ALWAYS connect to the local emulators, regardless of environment.
   // IMPORTANT: If you run the packaged application on a different computer
-  // than the one running the emulators, replace 'localhost' below
+  // than the one running the emulators, replace '127.0.0.1' below
   // with the IP address of the server PC.
-  const EMULATOR_HOST = 'localhost'; 
+  const EMULATOR_HOST = '127.0.0.1'; 
 
   console.log(`[Firebase Init] Attempting to connect to emulators at ${EMULATOR_HOST}`);
   
