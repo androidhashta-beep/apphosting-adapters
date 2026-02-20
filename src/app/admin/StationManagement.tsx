@@ -11,9 +11,6 @@ import {
   arrayRemove,
   updateDoc,
   deleteDoc,
-  getDocs,
-  query,
-  collectionGroup
 } from 'firebase/firestore';
 import type { Settings, Station, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -73,11 +70,13 @@ export function StationManagement() {
     if (!firestore) return;
 
     try {
+        const stationsCollection = collection(firestore, 'stations');
+        
         await runTransaction(firestore, async (transaction) => {
-            const stationsCollection = collection(firestore, 'stations');
-            const stationDocs = await getDocs(stationsCollection);
+            // Read all existing station documents within the transaction
+            const stationSnapshot = await transaction.get(stationsCollection);
             
-            const maxNum = stationDocs.docs.reduce((max, stationDoc) => {
+            const maxNum = stationSnapshot.docs.reduce((max, stationDoc) => {
                 const match = stationDoc.data().name.match(/(\d+)$/);
                 if (match) {
                     return Math.max(max, parseInt(match[1], 10));
