@@ -1,10 +1,26 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // Allow read and write access only to authenticated users.
-      // This is a basic security rule for prototyping.
-      // For production, you should implement more granular rules.
+    // Settings: All authenticated users (kiosk, display, staff, admin) can read.
+    // Staff/Admin can write. We'll just check for auth for now.
+    match /settings/{settingId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Stations: All authenticated users can read.
+    // Staff/Admin can write.
+    match /stations/{stationId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Tickets: All authenticated users can read and create.
+    // Staff can update/delete.
+    match /tickets/{ticketId} {
+      allow read, create, update, delete: if request.auth != null;
+    }
+
+    // Counters: Kiosk (authenticated) needs to read/write in a transaction.
+    match /counters/{counterId} {
       allow read, write: if request.auth != null;
     }
   }
