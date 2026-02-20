@@ -19,21 +19,34 @@ export const PrintableTicket = React.forwardRef<HTMLDivElement, PrintableTicketP
     return (
       <div ref={ref} className="ticket-content">
         <h3 className="company-name">{companyName}</h3>
-        <p className="ticket-label">Your Queue Number is:</p>
-        <p className="ticket-number">{ticket.ticketNumber}</p>
-        <p className="service-type">Service: {service?.label || ticket.type}</p>
+        
+        <div className="ticket-item">
+          <p className="ticket-item-label">Ticket Number</p>
+          <p className="ticket-number">{ticket.ticketNumber}</p>
+        </div>
+
+        <div className="ticket-item">
+          <p className="ticket-item-label">Service</p>
+          <p className="service-type">{service?.label || ticket.type}</p>
+        </div>
+
         <hr className="separator" />
-        <p className="timestamp">
-          {createdAtDate.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })} - {createdAtDate.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })}
-        </p>
+
+        <div className="ticket-item">
+            <p className="ticket-item-label">Date & Time</p>
+            <p className="timestamp">
+            {createdAtDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            })} - {createdAtDate.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            })}
+            </p>
+        </div>
+
         <p className="footer-message">Please wait for your number to be called.</p>
       </div>
     );
