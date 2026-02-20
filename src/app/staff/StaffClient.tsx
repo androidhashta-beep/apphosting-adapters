@@ -81,8 +81,8 @@ export function StaffClient() {
             </Card>
           ))}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6">
+          {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-[480px] rounded-lg" />
           ))}
         </div>
@@ -134,7 +134,7 @@ export function StaffClient() {
           </Card>
         ))}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6">
         {sortedStations?.map((station) => {
           const ticket = tickets?.find((t) => t.id === station.currentTicketId);
           return (
