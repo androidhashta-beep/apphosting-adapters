@@ -54,7 +54,6 @@ export function KioskClient() {
             }
 
             const counterRef = doc(firestore, "counters", type);
-            // The new ticket will get a random ID from the SDK, so we create a reference for it beforehand
             const newTicketRef = doc(ticketsCollection);
             newTicketId = newTicketRef.id;
 
