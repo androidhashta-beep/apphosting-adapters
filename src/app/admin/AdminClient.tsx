@@ -26,6 +26,7 @@ import {
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
+import { StationManagement } from './StationManagement'; // Import the new component
 
 export function AdminClient() {
   const router = useRouter();
@@ -89,35 +90,36 @@ export function AdminClient() {
 
       <ScrollArea className="flex-grow">
         <div className="space-y-8 p-6">
-          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-            <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Company Settings</CardTitle>
-                  <CardDescription>
-                    Set the name of your organization.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Label htmlFor="company-name">Company Name</Label>
-                  <Input
-                    id="company-name"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    disabled={!isHydrated}
-                  />
-                </CardContent>
-                <CardFooter>
-                  <Button onClick={handleCompanyNameSave} disabled={!isHydrated}>
-                    Save
-                  </Button>
-                </CardFooter>
-              </Card>
+            <StationManagement />
+            <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+                <div className="space-y-8">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Company Settings</CardTitle>
+                    <CardDescription>
+                        Set the name of your organization.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <Label htmlFor="company-name">Company Name</Label>
+                    <Input
+                        id="company-name"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        disabled={!isHydrated}
+                    />
+                    </CardContent>
+                    <CardFooter>
+                    <Button onClick={handleCompanyNameSave} disabled={!isHydrated}>
+                        Save
+                    </Button>
+                    </CardFooter>
+                </Card>
+                </div>
+                <div className="space-y-8">
+                <CarouselSettings />
+                </div>
             </div>
-            <div className="space-y-8">
-              <CarouselSettings />
-            </div>
-          </div>
         </div>
       </ScrollArea>
     </div>
