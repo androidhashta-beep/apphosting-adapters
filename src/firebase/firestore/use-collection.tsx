@@ -89,12 +89,12 @@ export function useCollection<T = any>(
         // but not throw an error, allowing the app to remain online in a degraded state.
         if (error.code === 'unavailable') {
           console.error(
-            `[Firebase Firestore] Network Error: Cannot connect to the Firestore server at 10.30.0.250.
+            `[Firebase Firestore] Network Error: Cannot connect to the local Firestore Emulator.
 
             >>> TROUBLESHOOTING CHECKLIST <<<
-            1. SERVER PC: Is the server PC (IP: 10.30.0.250) turned on and connected to the same Wi-Fi as this device?
-            2. SERVER PC: Is the 'firebase emulators:start' command still running in a PowerShell window?
-            3. SERVER PC: Did you run the firewall command? In PowerShell (as Admin): New-NetFirewallRule -DisplayName "Firebase Emulators" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080,9099,4000
+            1. Is this the same PC where the emulators are running? If not, update 'localhost' in src/firebase/index.ts to the server's IP address.
+            2. Is the 'firebase emulators:start' command still running in a PowerShell window? It should show "All emulators ready".
+            3. Could a firewall or antivirus on this PC be blocking the application from accessing localhost (127.0.0.1) on port 8080 (Firestore)?
 
             This is a local network configuration issue, not an application bug.`
           );
