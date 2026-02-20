@@ -41,7 +41,7 @@ import {
   setDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
 
 export function AdminClient() {
@@ -111,20 +111,24 @@ export function AdminClient() {
   };
 
   const handleAutoAddStation = () => {
-    if (!stationsCollection || !stations || !settings?.services) {
+    if (!stationsCollection || !stations) {
       toast({
         variant: 'destructive',
         title: 'Cannot Add Station',
-        description:
-          'System is not ready. Please wait for services to initialize and try again.',
+        description: 'System is not ready. Please wait for data to load.',
       });
       return;
     }
-    if (settings.services.length === 0) {
+
+    if (!settings?.services || settings.services.length === 0) {
+      const description = !settings && !isLoadingSettings
+        ? "Application settings are missing. Please use 'Restore Defaults' first."
+        : "No services are configured. Please use 'Restore Defaults' to add them.";
+      
       toast({
           variant: "destructive",
-          title: "No Services Found",
-          description: "Please restore default services before adding a station.",
+          title: "Cannot Add Station",
+          description: description,
       });
       return;
     }
@@ -178,49 +182,66 @@ export function AdminClient() {
     }
   };
 
-  const handleRestoreDefaults = () => {
-    if (!firestore || !settingsRef || !stationsCollection || !stations) return;
-    let servicesRestored = false;
-
-    // Restore default services if missing
-    if (!settings || !settings.services || settings.services.length === 0) {
-        const defaultServices: Service[] = [
-            { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
-            { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
-            { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
-        ];
-        setDocumentNonBlocking(settingsRef, { services: defaultServices }, { merge: true });
-        servicesRestored = true;
+  const handleRestoreDefaults = async () => {
+    if (!firestore || !settingsRef || !stationsCollection || !stations) {
+      toast({ title: 'System Not Ready', description: 'Please wait a moment and try again.', variant: 'destructive' });
+      return;
     }
-    
-    const currentServices = settings?.services || [];
-    const serviceIds = currentServices.length > 0 ? currentServices.map(s => s.id) : ['registration', 'payment', 'certificate'];
-
-    // Restore default stations if missing
-    const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
-    const existingStationNames = new Set(stations.map(s => s.name));
-
-    let stationsAdded = false;
-    defaultStationNames.forEach(name => {
-        if (!existingStationNames.has(name)) {
-            const newStation: Omit<Station, 'id'> = {
-                name: name,
-                services: serviceIds,
-                status: 'closed',
-                currentTicketId: null,
-            };
-            addDocumentNonBlocking(stationsCollection, newStation);
-            stationsAdded = true;
-        }
-    });
-
-    if (stationsAdded || servicesRestored) {
-        toast({ title: "Defaults Restored", description: "Any missing default stations or services have been recreated." });
-    } else {
-        toast({ title: "Nothing to Restore", description: "All default stations and services are already present." });
-    }
-    
     setRestoreDefaultsDialog(false);
+
+    let servicesRestored = false;
+    let stationsAdded = false;
+
+    try {
+      // --- Services ---
+      const currentServices = settings?.services || [];
+      let servicesToUse: Service[];
+
+      if (currentServices.length === 0) {
+        const defaultServices: Service[] = [
+          { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
+          { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
+          { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
+        ];
+        await setDoc(settingsRef, { services: defaultServices }, { merge: true });
+        servicesRestored = true;
+        servicesToUse = defaultServices;
+      } else {
+        servicesToUse = currentServices;
+      }
+      
+      const serviceIds = servicesToUse.map(s => s.id);
+
+      // --- Stations ---
+      const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4'];
+      const existingStationNames = new Set(stations.map(s => s.name));
+
+      defaultStationNames.forEach(name => {
+          if (!existingStationNames.has(name)) {
+              const newStation: Omit<Station, 'id'> = {
+                  name: name,
+                  services: serviceIds,
+                  status: 'closed',
+                  currentTicketId: null,
+              };
+              addDocumentNonBlocking(stationsCollection, newStation);
+              stationsAdded = true;
+          }
+      });
+
+      if (stationsAdded || servicesRestored) {
+          toast({ title: "Defaults Restored", description: "Any missing default stations or services have been recreated." });
+      } else {
+          toast({ title: "Nothing to Restore", description: "All default stations and services are already present." });
+      }
+    } catch (error: any) {
+      console.warn("Error restoring defaults:", error);
+      toast({
+        variant: "destructive",
+        title: "Restore Failed",
+        description: "Could not connect to the server to restore settings. Please check your connection and try again.",
+      });
+    }
   };
 
   const isHydrated = !isLoadingSettings && !isLoadingStations;
