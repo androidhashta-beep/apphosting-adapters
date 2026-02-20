@@ -7,9 +7,9 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,10 +21,7 @@ import {
 } from '@/components/ui/select';
 import {
   Trash2,
-  RefreshCw,
   ArrowLeft,
-  Download,
-  Upload,
   PlusCircle,
   Edit,
 } from 'lucide-react';
@@ -59,6 +56,8 @@ import {
 } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 export function AdminClient() {
   const router = useRouter();
@@ -102,11 +101,9 @@ export function AdminClient() {
 
   useEffect(() => {
     if (settings && settingsRef && !isLoadingSettings && firestore) {
-      // Create a deep copy to avoid direct mutation of props/state
       let services = settings.services ? JSON.parse(JSON.stringify(settings.services)) : [];
       let needsUpdate = false;
 
-      // This function now only adds a service if it's missing. It won't update existing ones.
       const ensureService = (
         id: string,
         label: string,
@@ -120,7 +117,6 @@ export function AdminClient() {
         }
       };
 
-      // Ensure core services exist without overwriting user customizations
       ensureService('enrollment', 'Enrollment', 'Student enrollment services.', 'UserPlus');
       ensureService('payment', 'Cashier', 'Payment and cashiering services.', 'DollarSign');
       ensureService('certificate', 'Certificate Claiming', 'Claiming of certificates.', 'Award');
@@ -300,154 +296,146 @@ export function AdminClient() {
       <ScrollArea className="flex-grow">
         <div className="space-y-8 p-6">
           <Card>
-            <CardHeader className="flex-row items-center justify-between">
-              <div>
-                <CardTitle>Station Management</CardTitle>
-                <CardDescription>
-                  Configure station status and operational modes.
-                </CardDescription>
-              </div>
-              <Button onClick={() => setIsAddStationDialogOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Station
-              </Button>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {!isHydrated &&
-                [...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-2 rounded-md border h-[180px]"
-                  >
-                    <Skeleton className="h-full w-full" />
-                  </div>
-                ))}
-              {isHydrated && stations?.length === 0 && (
-                 <div className="col-span-full text-center text-muted-foreground py-10">
-                  <p>No stations created yet. Click "Add Station" to begin.</p>
+            <Tabs defaultValue="stations">
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-4 border-b p-6">
+                <div>
+                  <CardTitle>Station & Service Management</CardTitle>
+                  <CardDescription className="mt-1">
+                    Configure stations and the services they provide.
+                  </CardDescription>
                 </div>
-              )}
-              {isHydrated &&
-                stations?.map((station) => {
-                  const isServing = !!station.currentTicketId;
-                  const isClosed = station.status === 'closed';
-                  const isDeleteDisabled = isServing && !isClosed;
-                  const serviceType =
-                    settings?.services?.find((s) => s.id === station.type)
-                      ?.label || station.type;
+                <TabsList className="w-full sm:w-auto">
+                  <TabsTrigger value="stations" className="w-full sm:w-auto">Stations</TabsTrigger>
+                  <TabsTrigger value="services" className="w-full sm:w-auto">Services</TabsTrigger>
+                </TabsList>
+              </div>
 
-                  return (
-                    <div
-                      key={station.id}
-                      className="space-y-3 rounded-md border p-4"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold">{station.name}</p>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {serviceType}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setStationToDelete(station.id)}
-                          className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed -mr-2 -mt-2 shrink-0"
-                          disabled={isDeleteDisabled}
-                          title={
-                            isDeleteDisabled
-                              ? 'Station is busy. Close it first.'
-                              : 'Delete station'
-                          }
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
+              <TabsContent value="stations">
+                <CardHeader>
+                    <div className="flex items-center justify-end">
+                        <Button onClick={() => setIsAddStationDialogOpen(true)}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add Station
                         </Button>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Operational Mode</Label>
-                        <Select
-                          value={station.mode}
-                          onValueChange={(value: StationMode) =>
-                            handleModeChange(station.id, value)
-                          }
-                          disabled={isClosed}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select mode" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="regular">Regular</SelectItem>
-                            <SelectItem value="all-in-one">
-                              All-in-One
-                            </SelectItem>
-                            <SelectItem value="payment-only">
-                              Payment-only (Legacy)
-                            </SelectItem>
-                            <SelectItem value="certificate-only">
-                              Certificate-only (Legacy)
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center justify-between rounded-lg border p-3">
-                        <div className="space-y-0.5">
-                          <Label
-                            htmlFor={`status-switch-${station.id}`}
-                            className="cursor-pointer"
-                          >
-                            Station Status
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            {isClosed
-                              ? 'Station is offline.'
-                              : 'Station is open for service.'}
-                          </p>
-                        </div>
-                        <Switch
-                          id={`status-switch-${station.id}`}
-                          checked={!isClosed}
-                          onCheckedChange={(checked) =>
-                            handleStatusChange(station.id, checked)
-                          }
-                        />
-                      </div>
                     </div>
-                  );
-                })}
-            </CardContent>
-          </Card>
-          
-          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-            <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Company Settings</CardTitle>
-                  <CardDescription>
-                    Set the name of your organization.
-                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <Label htmlFor="company-name">Company Name</Label>
-                  <Input
-                    id="company-name"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    disabled={!isHydrated}
-                  />
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {!isHydrated &&
+                    [...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-2 rounded-md border h-[180px]"
+                      >
+                        <Skeleton className="h-full w-full" />
+                      </div>
+                    ))}
+                  {isHydrated && stations?.length === 0 && (
+                     <div className="col-span-full text-center text-muted-foreground py-10">
+                      <p>No stations created yet. Click "Add Station" to begin.</p>
+                    </div>
+                  )}
+                  {isHydrated &&
+                    stations?.map((station) => {
+                      const isServing = !!station.currentTicketId;
+                      const isClosed = station.status === 'closed';
+                      const isDeleteDisabled = isServing && !isClosed;
+                      const serviceType =
+                        settings?.services?.find((s) => s.id === station.type)
+                          ?.label || station.type;
+
+                      return (
+                        <div
+                          key={station.id}
+                          className="space-y-3 rounded-md border p-4"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-semibold">{station.name}</p>
+                              <p className="text-sm text-muted-foreground capitalize">
+                                {serviceType}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setStationToDelete(station.id)}
+                              className="text-destructive hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed -mr-2 -mt-2 shrink-0"
+                              disabled={isDeleteDisabled}
+                              title={
+                                isDeleteDisabled
+                                  ? 'Station is busy. Close it first.'
+                                  : 'Delete station'
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Operational Mode</Label>
+                            <Select
+                              value={station.mode}
+                              onValueChange={(value: StationMode) =>
+                                handleModeChange(station.id, value)
+                              }
+                              disabled={isClosed}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select mode" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="regular">Regular</SelectItem>
+                                <SelectItem value="all-in-one">
+                                  All-in-One
+                                </SelectItem>
+                                <SelectItem value="payment-only">
+                                  Payment-only (Legacy)
+                                </SelectItem>
+                                <SelectItem value="certificate-only">
+                                  Certificate-only (Legacy)
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <Label
+                                htmlFor={`status-switch-${station.id}`}
+                                className="cursor-pointer"
+                              >
+                                Station Status
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                {isClosed
+                                  ? 'Station is offline.'
+                                  : 'Station is open for service.'}
+                              </p>
+                            </div>
+                            <Switch
+                              id={`status-switch-${station.id}`}
+                              checked={!isClosed}
+                              onCheckedChange={(checked) =>
+                                handleStatusChange(station.id, checked)
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                 </CardContent>
-                <CardFooter>
-                  <Button onClick={handleCompanyNameSave} disabled={!isHydrated}>
-                    Save
-                  </Button>
-                </CardFooter>
-              </Card>
-              <Card>
+              </TabsContent>
+
+              <TabsContent value="services">
                 <CardHeader>
-                  <CardTitle>Service Types</CardTitle>
-                  <CardDescription>
-                    Manage the services offered at the kiosk.
-                  </CardDescription>
+                  <div className="flex items-center justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => openServiceEditor(null)}
+                      >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add New Service
+                      </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {isHydrated &&
@@ -489,14 +477,31 @@ export function AdminClient() {
                       </div>
                     ))}
                 </CardContent>
+              </TabsContent>
+            </Tabs>
+          </Card>
+          
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+            <div className="space-y-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Company Settings</CardTitle>
+                  <CardDescription>
+                    Set the name of your organization.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Label htmlFor="company-name">Company Name</Label>
+                  <Input
+                    id="company-name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    disabled={!isHydrated}
+                  />
+                </CardContent>
                 <CardFooter>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => openServiceEditor(null)}
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Service
+                  <Button onClick={handleCompanyNameSave} disabled={!isHydrated}>
+                    Save
                   </Button>
                 </CardFooter>
               </Card>
