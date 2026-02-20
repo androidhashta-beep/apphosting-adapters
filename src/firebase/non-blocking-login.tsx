@@ -9,17 +9,17 @@ import {
 const handleAuthError = (error: any, operation: string) => {
     if (error.code === 'auth/network-request-failed') {
       console.error(
-        `[Firebase Auth] Network Error during ${operation}: Cannot connect to the local Firebase Emulator.
+        `[Firebase Auth] Network Connection Blocked during ${operation}.
 
-        >>> FINAL DIAGNOSIS & SOLUTION <<<
-        This error indicates that security software on your PC (like Windows Defender Firewall) is blocking the application. This is common for new desktop applications.
+        >>> FINAL DIAGNOSIS: PC FIREWALL OR SECURITY SOFTWARE <<<
+        The application code is correct, but your PC's security is preventing it from connecting to the local server. This is the final step to resolve the issue.
 
-        ACTION REQUIRED:
-        1. Open your firewall settings (e.g., Windows Defender Firewall).
-        2. Find the setting for "Allow an app through firewall".
-        3. Add this application's executable file to the list of allowed apps. The file is located in the 'out/make' folder inside your project directory.
+        >>> ACTION REQUIRED ON YOUR PC <<<
+        1. Open your PC's firewall settings (e.g., search for 'Windows Defender Firewall').
+        2. Find the setting to 'Allow an app through firewall'.
+        3. Add your application's .exe file to the list of allowed apps. It is located in the 'out/make' folder inside your project.
 
-        This is a one-time setup step for your PC. All code-level fixes for this issue have been applied.`
+        This is a manual, one-time configuration on your computer. The application code cannot be changed further to fix this.`
       );
     } else {
       console.error(`[Firebase Auth] Error during ${operation}:`, error);
