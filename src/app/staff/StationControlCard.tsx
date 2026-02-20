@@ -1,7 +1,7 @@
 'use client';
 
-import type { TicketType, Ticket, Settings, Station } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Ticket, Settings, Station } from "@/lib/types";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,6 @@ import { Megaphone, Check, SkipForward, Ban, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Icon } from "@/lib/icons";
 import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, doc, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +36,13 @@ export function StationControlCard({
     }
     return settings.services.filter(s => (station.serviceIds || []).includes(s.id));
   }, [isLoadingSettings, station.serviceIds, settings?.services]);
+
+  const totalWaitingForStation = useMemo(() => {
+    if (!station.serviceIds) return 0;
+    return station.serviceIds.reduce((total, serviceId) => {
+      return total + (waitingCounts[serviceId] || 0);
+    }, 0);
+  }, [station.serviceIds, waitingCounts]);
   
   useEffect(() => {
     const handleVoicesChanged = () => {
@@ -54,7 +60,7 @@ export function StationControlCard({
     }
   }, []);
 
-  const announce = useCallback((ticketNumber: string, stationName: string, ticketType: TicketType) => {
+  const announce = useCallback((ticketNumber: string, stationName: string, ticketType: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis || !settings) return;
     
     window.speechSynthesis.cancel();
@@ -113,25 +119,24 @@ export function StationControlCard({
     }
   };
 
-  const callNext = async (ticketType: TicketType) => {
-    if (!firestore || isUserLoading || station.status === 'closed' || station.currentTicketId) {
+  const callNext = async () => {
+    if (!firestore || isUserLoading || station.status === 'closed' || station.currentTicketId || !station.serviceIds || station.serviceIds.length === 0) {
       return;
     }
 
     try {
         const ticketsCollection = collection(firestore, "tickets");
-        // We fetch all waiting tickets for the type and sort on the client
-        // to avoid needing a composite index on the database.
+        // Query for tickets that are waiting AND have a type that this station can service.
         const q = query(
             ticketsCollection,
-            where("type", "==", ticketType),
-            where("status", "==", "waiting")
+            where("status", "==", "waiting"),
+            where("type", "in", station.serviceIds)
         );
 
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            // Sort documents by createdAt timestamp client-side
+            // Sort documents by createdAt timestamp client-side to find the oldest.
             const sortedDocs = querySnapshot.docs.sort((a, b) => {
                 const timeA = a.data().createdAt as Timestamp;
                 const timeB = b.data().createdAt as Timestamp;
@@ -148,7 +153,7 @@ export function StationControlCard({
             toast({
                 variant: "default",
                 title: "Queue is empty",
-                description: `There are no more tickets waiting for this service.`,
+                description: `There are no waiting customers for the services offered at this station.`,
             });
         }
     } catch (error: any) {
@@ -156,7 +161,7 @@ export function StationControlCard({
              toast({
                 variant: "destructive",
                 title: "CRITICAL: Connection Blocked by Firewall",
-                description: "The application cannot connect to the local database because your PC's firewall is blocking it. This is a system configuration issue, not an application bug. Please allow the app through your firewall to continue.",
+                description: "The application cannot connect to the local database because your PC's firewall is blocking it. Please allow the app through your firewall to continue.",
                 duration: 20000,
             });
         } else {
@@ -227,24 +232,16 @@ export function StationControlCard({
                   <Ban /> Station is closed
               </Button>
             ) : servicesForStation.length > 0 ? (
-                servicesForStation.map(service => {
-                    const waitingCount = waitingCounts[service.id] || 0;
-                    const isQueueEmpty = waitingCount === 0;
-                    const isDisabled = isClosed || !!station.currentTicketId;
-
-                    return (
-                        <Button key={service.id} onClick={() => callNext(service.id)} className="w-full justify-between" disabled={isDisabled}>
-                            <div className="flex items-center gap-2">
-                                <Icon name={service.icon} />
-                                <span>{`Call ${service.label}`}</span>
-                            </div>
-                            <span className={cn(
-                                "text-primary-foreground rounded-full px-2 text-xs",
-                                isQueueEmpty ? "bg-primary-foreground/20" : "bg-primary-foreground/40 font-bold"
-                            )}>{waitingCount}</span>
-                        </Button>
-                    );
-                })
+                <Button onClick={callNext} className="w-full justify-between" disabled={isClosed || !!station.currentTicketId}>
+                    <div className="flex items-center gap-2">
+                        <Megaphone />
+                        <span>Call Next Customer</span>
+                    </div>
+                    <span className={cn(
+                        "text-primary-foreground rounded-full px-2 text-xs",
+                        totalWaitingForStation === 0 ? "bg-primary-foreground/20" : "bg-primary-foreground/40 font-bold"
+                    )}>{totalWaitingForStation}</span>
+                </Button>
             ) : (
               <p className="text-sm text-center text-muted-foreground p-4">No services assigned.</p>
             )}
