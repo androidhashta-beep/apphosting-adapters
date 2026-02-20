@@ -11,12 +11,18 @@ export function initializeFirebase() {
   const auth = getAuth(app);
   const firestore = getFirestore(app);
 
-  if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined') {
-    console.log("Connecting to local Firebase emulators...");
-    // NOTE: The IP address '10.30.0.250' is a placeholder.
-    // This must be replaced with the actual IP address of the server PC running the emulators.
-    connectAuthEmulator(auth, 'http://10.30.0.250:9099', { disableWarnings: true });
-    connectFirestoreEmulator(firestore, '10.30.0.250', 8080);
+  // This application is designed for OFFLINE use.
+  // It will ALWAYS connect to the local emulators, regardless of environment.
+  if (typeof window !== 'undefined') {
+    // IMPORTANT: If you run the packaged application on a different computer
+    // than the one running the emulators, replace 'localhost' below
+    // with the IP address of the server PC.
+    const EMULATOR_HOST = 'localhost'; 
+
+    console.log(`Connecting to Firebase emulators at ${EMULATOR_HOST}...`);
+    
+    connectAuthEmulator(auth, `http://${EMULATOR_HOST}:9099`, { disableWarnings: true });
+    connectFirestoreEmulator(firestore, EMULATOR_HOST, 8080);
   }
   
   return {
