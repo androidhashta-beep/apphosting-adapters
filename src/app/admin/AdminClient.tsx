@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Station, Service, Settings } from '@/lib/types';
 import {
@@ -64,6 +64,8 @@ export function AdminClient() {
   );
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
+    
+  const hasAttemptedServiceRestore = useRef(false);
 
   const stationsCollection = useMemoFirebase(
     () => (firestore ? collection(firestore, 'stations') : null),
@@ -90,6 +92,31 @@ export function AdminClient() {
       setCompanyName(settings.companyName || '');
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (
+      !isLoadingSettings &&
+      settings &&
+      (!settings.services || settings.services.length === 0) &&
+      settingsRef &&
+      !hasAttemptedServiceRestore.current
+    ) {
+      hasAttemptedServiceRestore.current = true; 
+
+      const defaultServices: Service[] = [
+        { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
+        { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
+        { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
+      ];
+      
+      setDocumentNonBlocking(settingsRef, { services: defaultServices }, { merge: true });
+      
+      toast({
+        title: "Default Services Restored",
+        description: "The standard services have been added to your configuration.",
+      });
+    }
+  }, [settings, isLoadingSettings, settingsRef, toast]);
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
