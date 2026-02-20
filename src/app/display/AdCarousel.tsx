@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useState, useEffect, useRef, useCallback, SyntheticEvent } from "react";
 import Image from "next/image";
 import Autoplay from "embla-carousel-autoplay";
 import { type EmblaCarouselType } from 'embla-carousel-react'
@@ -21,22 +21,22 @@ import type { ImagePlaceholder, AudioTrack } from "@/lib/types";
 export function AdCarousel({ adItems = [], backgroundMusic = [] }: { adItems: ImagePlaceholder[], backgroundMusic: AudioTrack[] }) {
   const canAutoplay = adItems.length > 1;
 
-  const [api, setApi] = React.useState<CarouselApi>();
+  const [api, setApi] = useState<CarouselApi>();
 
   // State for shuffled music playlist and current track index
-  const [shuffledMusic, setShuffledMusic] = React.useState<AudioTrack[]>([]);
-  const [bgMusicIndex, setBgMusicIndex] = React.useState(0);
+  const [shuffledMusic, setShuffledMusic] = useState<AudioTrack[]>([]);
+  const [bgMusicIndex, setBgMusicIndex] = useState(0);
 
-  const [isBgMuted, setIsBgMuted] = React.useState(false);
-  const [isPlaying, setIsPlaying] = React.useState(true);
-  const bgAudioRef = React.useRef<HTMLAudioElement>(null);
+  const [isBgMuted, setIsBgMuted] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const bgAudioRef = useRef<HTMLAudioElement>(null);
 
-  const autoplayPlugin = React.useRef(
+  const autoplayPlugin = useRef(
     Autoplay({ delay: 12000, stopOnInteraction: true, stopOnMouseEnter: true })
   );
 
   // Memoized shuffle function
-  const shuffleArray = React.useCallback((array: AudioTrack[]) => {
+  const shuffleArray = useCallback((array: AudioTrack[]) => {
     if (!array || array.length === 0) return [];
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -47,11 +47,11 @@ export function AdCarousel({ adItems = [], backgroundMusic = [] }: { adItems: Im
   }, []);
 
   // Shuffle the music list on initial load
-  React.useEffect(() => {
+  useEffect(() => {
     setShuffledMusic(shuffleArray(backgroundMusic));
   }, [shuffleArray, backgroundMusic]);
 
-  const handleAudioForSlide = React.useCallback((currentApi?: EmblaCarouselType) => {
+  const handleAudioForSlide = useCallback((currentApi?: EmblaCarouselType) => {
     if (!bgAudioRef.current) return;
 
     let shouldPlayBgMusic = true;
@@ -77,7 +77,7 @@ export function AdCarousel({ adItems = [], backgroundMusic = [] }: { adItems: Im
     }
   }, [adItems]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!api) return;
 
     const onPlay = () => setIsPlaying(true);
@@ -117,20 +117,20 @@ export function AdCarousel({ adItems = [], backgroundMusic = [] }: { adItems: Im
   };
 
   // When the track changes, try to play the new one
-  React.useEffect(() => {
+  useEffect(() => {
     if (bgAudioRef.current) {
         bgAudioRef.current.load();
         handleAudioForSlide(api);
     }
   }, [bgMusicIndex, shuffledMusic, api, handleAudioForSlide]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (bgAudioRef.current) {
         setIsBgMuted(bgAudioRef.current.muted);
     }
   }, []);
 
-  const handleMediaError = (e: React.SyntheticEvent<HTMLAudioElement | HTMLVideoElement | HTMLImageElement>) => {
+  const handleMediaError = (e: SyntheticEvent<HTMLAudioElement | HTMLVideoElement | HTMLImageElement>) => {
       console.warn(`A media element failed to load and has been hidden. Source: ${'src' in e.currentTarget ? e.currentTarget.src : 'unknown'}`);
       if (e.currentTarget.parentElement) {
         e.currentTarget.parentElement.style.display = 'none';
