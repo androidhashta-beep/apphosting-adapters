@@ -11,6 +11,7 @@ import {
   arrayRemove,
   updateDoc,
   deleteDoc,
+  getDocs,
 } from 'firebase/firestore';
 import type { Settings, Station, Service } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -35,10 +36,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 const handleFirestoreError = (error: any, toast: any, operation: string) => {
     console.error(`Error during ${operation}:`, error);
     let description = "An unexpected error occurred. Please try again.";
-    if (error.code === 'unavailable') {
-        description = "Could not connect to the database. Please check your network connection and firewall settings."
+    if (error.code === 'unavailable' || error.code === 'network-request-failed') {
+        description = "Could not connect to the database. Please check your network connection and PC firewall settings."
     } else if (error.code === 'permission-denied') {
-        description = "You do not have permission to perform this action."
+        description = "You do not have permission to perform this action. Check your security rules."
     }
     toast({
         variant: "destructive",
@@ -73,23 +74,20 @@ export function StationManagement() {
         const stationsCollection = collection(firestore, 'stations');
         
         await runTransaction(firestore, async (transaction) => {
-            // Read all existing station documents *within* the transaction
             const stationSnapshot = await transaction.get(stationsCollection);
             
-            const maxNum = stationSnapshot.docs.reduce((max, stationDoc) => {
-                const match = stationDoc.data().name.match(/(\d+)$/);
-                if (match) {
-                    return Math.max(max, parseInt(match[1], 10));
-                }
-                return max;
-            }, 0);
+            const existingNames = stationSnapshot.docs.map(doc => doc.data().name);
+            let nextStationNumber = 1;
+            while (existingNames.includes(`Window ${nextStationNumber}`)) {
+              nextStationNumber++;
+            }
 
-            const nextStationNumber = maxNum + 1;
-            const newStationId = `window-${nextStationNumber}`;
             const newStationName = `Window ${nextStationNumber}`;
+            const newStationId = `window-${nextStationNumber}`;
             
             const stationRef = doc(firestore, 'stations', newStationId);
             transaction.set(stationRef, {
+                id: newStationId,
                 name: newStationName,
                 status: 'closed',
                 serviceIds: [],
@@ -109,7 +107,11 @@ export function StationManagement() {
     try {
         const batch = writeBatch(firestore);
 
-        // 1. Define Default Services
+        const stationsQuerySnapshot = await getDocs(collection(firestore, 'stations'));
+        stationsQuerySnapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
         const defaultServices: Service[] = [
             { id: 'registration', label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
             { id: 'cashier', label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
@@ -117,27 +119,25 @@ export function StationManagement() {
             { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
         ];
         
-        // 2. Set Default Services
         const settingsDocRef = doc(firestore, 'settings', 'app');
         batch.set(settingsDocRef, { services: defaultServices }, { merge: true });
 
-        // 3. Create 5 Default Stations
         for (let i = 1; i <= 5; i++) {
             const stationId = `window-${i}`;
             const stationRef = doc(firestore, 'stations', stationId);
             batch.set(stationRef, {
+                id: stationId,
                 name: `Window ${i}`,
                 status: 'closed',
                 serviceIds: [],
             });
         }
         
-        // 4. Atomically commit all changes
         await batch.commit();
 
         toast({
             title: "Defaults Restored",
-            description: `Created 4 default services and 5 default stations.`
+            description: `Removed old config and created 4 default services and 5 default stations.`
         });
 
     } catch (error: any) {
