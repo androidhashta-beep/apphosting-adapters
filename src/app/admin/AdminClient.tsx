@@ -41,7 +41,7 @@ import {
   setDocumentNonBlocking,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, doc, setDoc, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
 
 export function AdminClient() {
@@ -211,62 +211,69 @@ export function AdminClient() {
   };
 
   const handleRestoreDefaults = async () => {
-    if (!firestore || !settingsRef || !stationsCollection) {
-      toast({ title: 'System Not Ready', description: 'Please wait a moment and try again.', variant: 'destructive' });
-      return;
+    if (!firestore) {
+        toast({ title: 'System Not Ready', description: 'Please wait a moment and try again.', variant: 'destructive' });
+        return;
     }
     setRestoreDefaultsDialog(false);
-  
+
     try {
-      // --- Services ---
-      const currentServices = settings?.services || [];
-      let servicesToUse: Service[];
-  
-      if (currentServices.length === 0) {
-        const defaultServices: Service[] = [
-          { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
-          { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
-          { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
-        ];
-        await setDoc(settingsRef, { services: defaultServices }, { merge: true });
-        servicesToUse = defaultServices;
-      } else {
-        servicesToUse = currentServices;
-      }
-      
-      const serviceIds = servicesToUse.map(s => s.id);
-  
-      // --- Stations ---
-      const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4', 'Window 5'];
-      const existingStationNames = new Set(stations?.map(s => s.name) || []);
-      
-      const stationsToAdd = defaultStationNames.filter(name => !existingStationNames.has(name));
-  
-      if (stationsToAdd.length > 0) {
-        const creationPromises = stationsToAdd.map(name => {
-            const newStation: Omit<Station, 'id'> = {
-                name: name,
-                services: serviceIds,
-                status: 'closed',
-                currentTicketId: null,
-            };
-            return addDoc(stationsCollection, newStation);
-        });
-        await Promise.all(creationPromises);
-      }
-  
-      if (stationsToAdd.length > 0 || currentServices.length === 0) {
-          toast({ title: "Defaults Restored", description: "Any missing default stations or services have been recreated." });
-      } else {
-          toast({ title: "Nothing to Restore", description: "All default stations and services are already present." });
-      }
+        const settingsDocRef = doc(firestore, 'settings', 'app');
+        const stationsColRef = collection(firestore, 'stations');
+
+        // --- Step 1: Ensure services exist ---
+        const settingsSnap = await getDoc(settingsDocRef);
+        let currentServicesData = settingsSnap.exists() ? settingsSnap.data().services as Service[] : [];
+        let serviceIds: string[];
+        let servicesCreated = false;
+
+        if (!currentServicesData || currentServicesData.length === 0) {
+            const defaultServices: Service[] = [
+                { id: 'registration', label: 'Registration', description: 'Register for courses and training programs.', icon: 'UserPlus' },
+                { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
+                { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
+            ];
+            await setDoc(settingsDocRef, { services: defaultServices }, { merge: true });
+            serviceIds = defaultServices.map(s => s.id);
+            servicesCreated = true;
+        } else {
+            serviceIds = currentServicesData.map(s => s.id);
+        }
+
+        // --- Step 2: Create missing stations ---
+        const stationsSnap = await getDocs(stationsColRef);
+        const existingStationNames = new Set(stationsSnap.docs.map(d => d.data().name));
+        const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4', 'Window 5'];
+        const stationsToAdd = defaultStationNames.filter(name => !existingStationNames.has(name));
+
+        if (stationsToAdd.length > 0) {
+            const batch = writeBatch(firestore);
+            stationsToAdd.forEach(name => {
+                const newStationRef = doc(stationsColRef);
+                batch.set(newStationRef, {
+                    name: name,
+                    services: serviceIds,
+                    status: 'closed',
+                    currentTicketId: null,
+                });
+            });
+            await batch.commit();
+        }
+        
+        // --- Step 3: Give feedback ---
+        if (stationsToAdd.length > 0 || servicesCreated) {
+            toast({ title: "Defaults Restored", description: "Any missing default stations or services have been recreated." });
+        } else {
+            toast({ title: "Nothing to Restore", description: "All default stations and services are already present." });
+        }
+
     } catch (error: any) {
-      console.error("Error restoring defaults:", error);
-      toast({
-        variant: "destructive",
-        title: "Restore Failed",
-        description: "Could not connect to the server to restore settings. Please check your connection and try again.",
-      });
+        console.error("Error restoring defaults:", error);
+        toast({
+            variant: "destructive",
+            title: "Restore Failed",
+            description: "Could not connect to the server to restore settings. Please check your connection and try again.",
+        });
     }
   };
 
