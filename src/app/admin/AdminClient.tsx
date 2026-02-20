@@ -189,7 +189,7 @@ export function AdminClient() {
         const settingsDocRef = doc(firestore, 'settings', 'app');
         const stationsColRef = collection(firestore, 'stations');
 
-        // --- Step 1: Ensure services exist ---
+        // --- Step 1: Ensure services exist by fetching fresh data ---
         const settingsSnap = await getDoc(settingsDocRef);
         let currentServicesData = settingsSnap.exists() ? settingsSnap.data().services as Service[] : [];
         let serviceIds: string[];
@@ -201,6 +201,7 @@ export function AdminClient() {
                 { id: 'payment', label: 'Cashier', description: 'Pay for services, courses, and other fees.', icon: 'DollarSign' },
                 { id: 'certificate', label: 'Certificate Claiming', description: 'Claim your certificates and other documents.', icon: 'Award' },
             ];
+            // Use await to ensure this completes before proceeding
             await setDoc(settingsDocRef, { services: defaultServices }, { merge: true });
             serviceIds = defaultServices.map(s => s.id);
             servicesCreated = true;
@@ -208,7 +209,7 @@ export function AdminClient() {
             serviceIds = currentServicesData.map(s => s.id);
         }
 
-        // --- Step 2: Create missing stations ---
+        // --- Step 2: Create missing stations by fetching fresh data ---
         const stationsSnap = await getDocs(stationsColRef);
         const existingStationNames = new Set(stationsSnap.docs.map(d => d.data().name));
         const defaultStationNames = ['Window 1', 'Window 2', 'Window 3', 'Window 4', 'Window 5'];
@@ -217,7 +218,7 @@ export function AdminClient() {
         if (stationsToAdd.length > 0) {
             const batch = writeBatch(firestore);
             stationsToAdd.forEach(name => {
-                const newStationRef = doc(stationsColRef);
+                const newStationRef = doc(stationsColRef); // Firestore generates ID
                 batch.set(newStationRef, {
                     name: name,
                     services: serviceIds,
@@ -225,10 +226,10 @@ export function AdminClient() {
                     currentTicketId: null,
                 });
             });
-            await batch.commit();
+            await batch.commit(); // Atomically commit all changes
         }
         
-        // --- Step 3: Give specific feedback ---
+        // --- Step 3: Give specific, accurate feedback ---
         let description = '';
         if (servicesCreated && stationsToAdd.length > 0) {
             description = `Created default services and added ${stationsToAdd.length} missing default station(s).`;
