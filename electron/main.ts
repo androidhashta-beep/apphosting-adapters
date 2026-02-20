@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import path from 'path';
 import isDev from 'electron-is-dev';
 
@@ -34,6 +34,17 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // This is the new change. It intercepts network requests to add a permissive
+  // CORS header, which can help in environments where `webSecurity: false` is not enough.
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Access-Control-Allow-Origin': ['*'],
+      },
+    });
+  });
+
   createWindow();
 
   app.on('activate', () => {
