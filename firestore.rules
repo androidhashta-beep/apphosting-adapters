@@ -7,10 +7,10 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // This function must not throw an error if the user document does not exist yet.
     function isRole(role) {
       let userDocPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      return request.auth != null && exists(userDocPath) && get(userDocPath).data.role == role;
+      // This is safe. If the doc or the role field doesn't exist, it returns false, not an error.
+      return request.auth != null && get(userDocPath).data.role == role;
     }
     
     function isAdmin() {
@@ -24,9 +24,9 @@ service cloud.firestore {
     // Collection Rules
     match /settings/{settingId} {
       allow read: if true;
-      // Allow write if user is an admin OR if we are setting up the first user by flipping the flag.
-      // This rule must handle the case where the settings document does not yet exist.
-      allow write: if isAdmin() || (request.resource.data.firstUserCreated == true && (resource == null || resource.data.firstUserCreated == false));
+      // Allow admins to write. Also allow the specific transaction of setting the firstUserCreated flag.
+      allow write: if isAdmin() || 
+        (request.resource.data.firstUserCreated == true && (resource == null || resource.data.firstUserCreated == false));
     }
     match /stations/{stationId} {
       allow read: if true;
@@ -44,11 +44,21 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     match /users/{userId} {
-      // Allow a user to create their own user document, and check that the uid in the document is their own.
-      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == request.auth.uid;
+      // Allow a user to create their own user document, with strict role validation.
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == request.auth.uid && (
+        // Case 1: Becoming an ADMIN is only allowed if the first user flag is not yet true.
+        (
+          request.resource.data.role == 'admin' &&
+          (!exists(/databases/$(database)/documents/settings/app) || get(/databases/$(database)/documents/settings/app).data.firstUserCreated == false)
+        ) ||
+        // Case 2: Becoming STAFF is allowed if the first user flag is already true.
+        (
+          request.resource.data.role == 'staff' &&
+          exists(/databases/$(database)/documents/settings/app) && get(/databases/$(database)/documents/settings/app).data.firstUserCreated == true
+        )
+      );
 
       // Allow any authenticated user to perform a list query.
-      // The results will be filtered by the 'read' rules below.
       allow list: if request.auth != null;
 
       // Allow a user to read their own document.
