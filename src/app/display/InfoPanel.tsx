@@ -16,9 +16,9 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
   const videoItems = settings?.placeholderImages?.filter(p => p.type === 'video') || [];
 
   return (
-    <div className="w-1/3 h-full flex flex-col p-4 gap-4 bg-blue-900">
+    <div className="w-1/3 h-full flex flex-col p-4 gap-4">
         {/* Top Image Carousel */}
-        <div className="flex-grow relative">
+        <div className="flex-1 relative">
             <Carousel
                 className="absolute inset-0 h-full w-full"
                 plugins={[Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]}
@@ -27,7 +27,7 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
                 <CarouselContent className="h-full">
                     {infoItems.length > 0 ? infoItems.map((item) => (
                         <CarouselItem key={item.id} className="h-full">
-                            <Card className="h-full w-full overflow-hidden bg-transparent border-2 border-sky-400">
+                            <Card className="h-full w-full overflow-hidden bg-transparent">
                                 <CardContent className="relative h-full w-full p-0">
                                     <Image
                                         src={item.imageUrl}
@@ -44,7 +44,7 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
                         </CarouselItem>
                     )) : (
                          <CarouselItem className="h-full">
-                             <Card className="h-full w-full overflow-hidden bg-transparent border-2 border-sky-400 flex items-center justify-center">
+                             <Card className="h-full w-full overflow-hidden bg-transparent flex items-center justify-center">
                                  <CardContent className="p-0 text-center">
                                      <p className="text-muted-foreground">No informational slides.</p>
                                  </CardContent>
@@ -56,12 +56,12 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
         </div>
 
         {/* Clock */}
-        <div className="flex-shrink-0 p-2 bg-black/30 rounded-lg border-y border-sky-500">
+        <div className="flex-shrink-0 p-2 bg-black/30 rounded-lg">
             <Clock />
         </div>
 
         {/* Bottom Video Carousel */}
-        <div className="flex-grow relative rounded-lg overflow-hidden">
+        <div className="flex-1 relative rounded-lg overflow-hidden">
              <Carousel
                 className="absolute inset-0 h-full w-full"
                 plugins={[Autoplay({ delay: 7000, stopOnInteraction: false, stopOnMouseEnter: true })]}

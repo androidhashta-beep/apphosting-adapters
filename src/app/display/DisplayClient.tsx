@@ -69,7 +69,7 @@ export function DisplayClient() {
   const isLoading = isLoadingSettings || isLoadingStations || isLoadingTickets;
   
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#001f3f] text-white font-sans flex">
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex">
       {isLoading ? (
           <div className="w-full flex gap-4 p-4">
               <Skeleton className="w-2/3 h-full bg-slate-700" />
