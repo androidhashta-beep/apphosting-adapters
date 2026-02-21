@@ -4,13 +4,13 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Ticket, UsersRound, BrainCircuit, Loader2, Monitor } from 'lucide-react';
+import { Ticket, UsersRound, Loader2, Monitor } from 'lucide-react';
 import { PageWrapper } from '@/components/PageWrapper';
 import { useUser } from '@/firebase';
 
 const APP_ROLE_KEY = 'app-instance-role';
 
-type Role = 'kiosk' | 'staff' | 'admin' | 'display';
+type Role = 'kiosk' | 'staff' | 'display';
 
 const roles = [
     {
@@ -31,12 +31,6 @@ const roles = [
         description: 'For staff to manage queues and call tickets.',
         icon: UsersRound,
     },
-    {
-        id: 'admin' as Role,
-        title: 'Admin Panel',
-        description: 'For administrators to configure stations and users.',
-        icon: BrainCircuit,
-    }
 ];
 
 export default function RoleSelectorPage() {
@@ -67,11 +61,11 @@ export default function RoleSelectorPage() {
 
         if (savedRole && roles.some(r => r.id === savedRole)) {
             // If user is anonymous and trying to access a protected role, go to login.
-            if ((savedRole === 'admin' || savedRole === 'staff') && user?.isAnonymous) {
+            if (savedRole === 'staff' && user?.isAnonymous) {
                 router.replace('/login');
                 return;
             }
-             if ((savedRole === 'admin' || savedRole === 'staff') && !user) {
+             if (savedRole === 'staff' && !user) {
                 router.replace('/login');
                 return;
             }
@@ -85,7 +79,7 @@ export default function RoleSelectorPage() {
 
     const handleRoleSelect = (role: Role) => {
         localStorage.setItem(APP_ROLE_KEY, role);
-         if ((role === 'admin' || role === 'staff') && (user?.isAnonymous || !user)) {
+         if (role === 'staff' && (user?.isAnonymous || !user)) {
             router.push('/login');
         } else {
             router.push(`/${role}`);

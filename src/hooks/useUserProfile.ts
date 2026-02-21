@@ -27,58 +27,21 @@ export function useUserProfile() {
       const createProfileWithRole = async () => {
         try {
           await runTransaction(firestore, async (transaction) => {
-            const settingsRef = doc(firestore, 'settings', 'app');
-            
             // Re-check if profile exists inside transaction to prevent race conditions.
             const freshProfileDoc = await transaction.get(userProfileRef);
             if (freshProfileDoc.exists()) {
               return; // Profile was created by another process, abort.
             }
             
-            const settingsDoc = await transaction.get(settingsRef);
-            const firstUserHasBeenCreated = settingsDoc.exists() && settingsDoc.data().firstUserCreated === true;
-
-            let role: 'admin' | 'staff';
-            let mustChangePassword: boolean;
-
-            if (!firstUserHasBeenCreated) {
-                role = 'admin';
-                mustChangePassword = true;
-                if (settingsDoc.exists()) {
-                    transaction.update(settingsRef, { firstUserCreated: true });
-                } else {
-                    transaction.set(settingsRef, { firstUserCreated: true }, { merge: true });
-                }
-            } else {
-                role = 'staff';
-                mustChangePassword = false;
-            }
-
             const newProfile: UserProfile = {
               uid: user.uid,
               email: user.email || 'unknown',
               displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-              role: role,
-              mustChangePassword: mustChangePassword,
+              role: 'staff',
+              mustChangePassword: false, // Simplified: no forced password change
             };
             
             transaction.set(userProfileRef, newProfile);
-            
-            return { isFirstUser: !firstUserHasBeenCreated, mustChange: mustChangePassword };
-
-          }).then((result) => {
-              if (result) {
-                if (result.isFirstUser) {
-                  toast({
-                      title: "Welcome, Administrator!",
-                      description: "You have been assigned the admin role. You will be asked to change your password for security.",
-                      duration: 8000,
-                  });
-                }
-                if (result.mustChange) {
-                    router.replace('/change-password');
-                }
-              }
           });
         } catch (e) {
             console.error("User profile creation transaction failed: ", e);
@@ -92,7 +55,7 @@ export function useUserProfile() {
 
       createProfileWithRole();
     }
-  }, [user, profile, isProfileLoading, userProfileRef, firestore, toast, router]);
+  }, [user, profile, isProfileLoading, userProfileRef, firestore, toast]);
 
   useEffect(() => {
     // This effect ensures that if a user already has a profile but needs to change their password,
