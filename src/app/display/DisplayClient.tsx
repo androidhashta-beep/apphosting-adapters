@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import type { Ticket, Settings, Station } from '@/lib/types';
+import type { Ticket, Settings, Station, AudioTrack } from '@/lib/types';
 import {
   useCollection,
   useFirebase,
@@ -18,9 +18,27 @@ import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import { Clock } from './Clock';
 
+// Create a context to manage the background music's mute state
+type AudioContextType = {
+  setBgMusicMuted: (isMuted: boolean) => void;
+};
+
+const AudioContext = createContext<AudioContextType | undefined>(undefined);
+
+export const useAudio = () => {
+  const context = useContext(AudioContext);
+  if (context === undefined) {
+    throw new Error('useAudio must be used within an AudioProvider');
+  }
+  return context;
+};
+
+
 export function DisplayClient() {
   const { firestore } = useFirebase();
   const router = useRouter();
+
+  const [isBgMusicMuted, setBgMusicMuted] = useState(false);
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -73,6 +91,23 @@ export function DisplayClient() {
   
   const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets;
 
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const tracks = useMemo(() => settings?.backgroundMusic || [], [settings]);
+  
+  useEffect(() => {
+    if (audioRef.current) {
+        audioRef.current.muted = isBgMusicMuted;
+    }
+  }, [isBgMusicMuted]);
+
+  const playNextTrack = useCallback(() => {
+      if (tracks.length > 0) {
+          setCurrentTrackIndex((prevIndex) => (prevIndex + 1) % tracks.length);
+      }
+  }, [tracks.length]);
+
+
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
@@ -80,62 +115,74 @@ export function DisplayClient() {
   };
   
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
-       <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-4">
-              {settings?.companyLogoUrl && (
-                  <div className="relative h-12">
-                      <Image 
-                          src={settings.companyLogoUrl}
-                          alt={`${settings.companyName || 'Company'} Logo`}
-                          width={200}
-                          height={48}
-                          className="h-full w-auto object-contain"
-                      />
-                  </div>
-              )}
-              <h1 className="text-3xl font-bold">{settings?.companyName || 'Welcome'}</h1>
-          </div>
-          <div className="w-1/3 max-w-md">
-            <Clock />
-          </div>
-      </header>
-      
-      <main className="flex-grow p-4">
-      {isLoading ? (
+    <AudioContext.Provider value={{ setBgMusicMuted }}>
+      <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
+        <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-4">
+                {settings?.companyLogoUrl && (
+                    <div className="relative h-12">
+                        <Image 
+                            src={settings.companyLogoUrl}
+                            alt={`${settings.companyName || 'Company'} Logo`}
+                            width={200}
+                            height={48}
+                            className="h-full w-auto object-contain"
+                        />
+                    </div>
+                )}
+                <h1 className="text-3xl font-bold">{settings?.companyName || 'Welcome'}</h1>
+            </div>
+            <div className="w-1/3 max-w-md">
+              <Clock />
+            </div>
+        </header>
+        
+        <main className="flex-grow p-4">
+        {isLoading ? (
+            <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4">
+                <Skeleton className="bg-slate-700/50" />
+                <Skeleton className="bg-slate-700/50" />
+                <Skeleton className="bg-slate-700/50" />
+                <Skeleton className="bg-slate-700/50" />
+            </div>
+        ) : (
           <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4">
-              <Skeleton className="bg-slate-700/50" />
-              <Skeleton className="bg-slate-700/50" />
-              <Skeleton className="bg-slate-700/50" />
-              <Skeleton className="bg-slate-700/50" />
+            <div className="bg-black/20 rounded-lg overflow-hidden flex flex-col">
+              <NowServing servingData={servingData} />
+            </div>
+            <div className="bg-black/20 rounded-lg overflow-hidden relative">
+              <InfoPanel settings={settings} contentType='images'/>
+            </div>
+            <div className="bg-black/20 rounded-lg overflow-hidden relative">
+              <InfoPanel settings={settings} contentType='videos'/>
+            </div>
+            <div className="bg-black/20 rounded-lg overflow-hidden relative">
+              <InfoPanel settings={settings} contentType='all'/>
+            </div>
           </div>
-      ) : (
-        <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4">
-          <div className="bg-black/20 rounded-lg overflow-hidden flex flex-col">
-            <NowServing servingData={servingData} />
-          </div>
-          <div className="bg-black/20 rounded-lg overflow-hidden relative">
-            <InfoPanel settings={settings} contentType='images'/>
-          </div>
-          <div className="bg-black/20 rounded-lg overflow-hidden relative">
-            <InfoPanel settings={settings} contentType='videos'/>
-          </div>
-          <div className="bg-black/20 rounded-lg overflow-hidden relative">
-            <InfoPanel settings={settings} contentType='all'/>
-          </div>
-        </div>
-      )}
-      </main>
+        )}
+        </main>
 
-       <Button
-        onClick={handleGoHome}
-        variant="ghost"
-        size="icon"
-        className="fixed bottom-4 right-4 h-12 w-12 rounded-full bg-black/30 hover:bg-black/50 text-white hover:text-white z-50"
-      >
-        <Home className="h-6 w-6" />
-        <span className="sr-only">Go Home</span>
-      </Button>
-    </div>
+        <Button
+          onClick={handleGoHome}
+          variant="ghost"
+          size="icon"
+          className="fixed bottom-4 right-4 h-12 w-12 rounded-full bg-black/30 hover:bg-black/50 text-white hover:text-white z-50"
+        >
+          <Home className="h-6 w-6" />
+          <span className="sr-only">Go Home</span>
+        </Button>
+
+        {tracks.length > 0 && (
+            <audio
+                ref={audioRef}
+                src={tracks[currentTrackIndex]?.url}
+                onEnded={playNextTrack}
+                autoPlay
+                onPlay={() => { if(audioRef.current) audioRef.current.muted = isBgMusicMuted; }}
+            />
+        )}
+      </div>
+    </AudioContext.Provider>
   );
 }

@@ -1,4 +1,5 @@
 'use client';
+import { useState, useEffect } from 'react';
 import {
   Carousel,
   CarouselContent,
@@ -6,8 +7,9 @@ import {
 } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
-import type { Settings } from '@/lib/types';
+import type { Settings, ImagePlaceholder } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAudio } from './DisplayClient';
 
 type InfoPanelProps = {
   settings: Settings | null;
@@ -15,16 +17,44 @@ type InfoPanelProps = {
 }
 
 export function InfoPanel({ settings, contentType }: InfoPanelProps) {
+  const { setBgMusicMuted } = useAudio();
+  const [shuffledItems, setShuffledItems] = useState<ImagePlaceholder[]>([]);
 
-  const items = settings?.placeholderImages || [];
+  // Client-side shuffle to avoid hydration mismatch & have different carousels
+  useEffect(() => {
+    const items = settings?.placeholderImages || [];
   
-  const filteredItems = items.filter(item => {
-    if (contentType === 'images') return item.type === 'image';
-    if (contentType === 'videos') return item.type === 'video';
-    return true;
-  });
+    const filteredItems = items.filter(item => {
+      if (contentType === 'images') return item.type === 'image';
+      if (contentType === 'videos') return item.type === 'video';
+      return true;
+    });
 
-  const displayItems = filteredItems.length > 0 ? filteredItems : items.length > 0 && contentType !== 'all' ? items : [];
+    const itemsToShuffle = filteredItems.length > 0 ? filteredItems : (items.length > 0 && contentType !== 'all' ? items : []);
+
+    // Fisher-Yates shuffle algorithm
+    const shuffle = (array: ImagePlaceholder[]) => {
+      let currentIndex = array.length, randomIndex;
+      while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [
+          array[randomIndex], array[currentIndex]];
+      }
+      return array;
+    }
+    
+    setShuffledItems(shuffle([...itemsToShuffle]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
+
+  const handleVideoStateChange = (isPlaying: boolean, hasOwnAudio: boolean) => {
+    if (hasOwnAudio) {
+      setBgMusicMuted(isPlaying);
+    }
+  };
+
+  const displayItems = shuffledItems;
 
   return (
     <Carousel
@@ -38,7 +68,16 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
                     <Card className="h-full w-full overflow-hidden bg-transparent border-none">
                         <CardContent className="relative h-full w-full p-0">
                             {item.type === 'video' ? (
-                                <video src={item.imageUrl} autoPlay loop muted={!item.useOwnAudio} className="h-full w-full object-cover" />
+                                <video 
+                                  src={item.imageUrl} 
+                                  autoPlay 
+                                  loop 
+                                  muted={!item.useOwnAudio} 
+                                  className="h-full w-full object-cover"
+                                  onPlay={() => handleVideoStateChange(true, !!item.useOwnAudio)}
+                                  onPause={() => handleVideoStateChange(false, !!item.useOwnAudio)}
+                                  onEnded={() => handleVideoStateChange(false, !!item.useOwnAudio)}
+                                />
                             ) : (
                                 <Image
                                     src={item.imageUrl}
