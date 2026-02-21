@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
-import { useUser, useDoc, useFirebase, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, where, runTransaction } from 'firebase/firestore';
+import { useUser, useDoc, useFirebase, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 export function useUserProfile() {
   const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
 
   const userProfileRef = useMemoFirebase(
     () => (firestore && user && !user.isAnonymous ? doc(firestore, 'users', user.uid) : null),
@@ -18,17 +20,59 @@ export function useUserProfile() {
 
   useEffect(() => {
     // If the user is authenticated but has no profile document, create one.
-    if (user && !user.isAnonymous && !isProfileLoading && !profile && userProfileRef) {
-        const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email || 'unknown',
-            displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-            role: 'staff', // Default role for new users
-        };
-        // Use non-blocking update to avoid awaiting here
-        setDocumentNonBlocking(userProfileRef, newProfile, {});
+    if (user && !user.isAnonymous && !isProfileLoading && !profile && userProfileRef && firestore) {
+      
+      const createProfileWithRole = async () => {
+        try {
+          await runTransaction(firestore, async (transaction) => {
+            // Re-check if profile exists inside transaction to prevent race conditions.
+            const freshProfileDoc = await transaction.get(userProfileRef);
+            if (freshProfileDoc.exists()) {
+              return; // Profile was created by another process, abort.
+            }
+
+            const usersCollection = collection(firestore, 'users');
+            const adminQuery = query(usersCollection, where('role', '==', 'admin'));
+            // Read to see if any admins exist.
+            const adminSnapshot = await transaction.get(adminQuery);
+
+            const isFirstUser = adminSnapshot.empty;
+            const role: 'admin' | 'staff' = isFirstUser ? 'admin' : 'staff';
+
+            const newProfile: UserProfile = {
+              uid: user.uid,
+              email: user.email || 'unknown',
+              displayName: user.displayName || user.email?.split('@')[0] || 'New User',
+              role: role,
+            };
+            
+            // Create the new user profile document within the transaction.
+            transaction.set(userProfileRef, newProfile);
+            
+            // Return the role so we can show a toast.
+            return { isFirstUser, role };
+          }).then((result) => {
+             if (result?.isFirstUser) {
+                toast({
+                    title: "Welcome, Administrator!",
+                    description: "You have been assigned the admin role as the first user.",
+                    duration: 8000,
+                });
+             }
+          });
+        } catch (e) {
+            console.error("User profile creation transaction failed: ", e);
+            toast({
+                variant: 'destructive',
+                title: 'Profile Creation Failed',
+                description: 'Could not create your user profile. Please try logging in again.'
+            })
+        }
+      };
+
+      createProfileWithRole();
     }
-  }, [user, profile, isProfileLoading, userProfileRef]);
+  }, [user, profile, isProfileLoading, userProfileRef, firestore, toast]);
 
   return {
     profile,
