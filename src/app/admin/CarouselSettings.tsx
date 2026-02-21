@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, runTransaction, updateDoc, setDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,7 @@ export function CarouselSettings() {
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!dialogState || !settingsRef || isSaving || imageUrlStatus !== 'valid') {
+    if (!dialogState || !settingsRef || !firestore || isSaving || imageUrlStatus !== 'valid') {
         if (imageUrlStatus !== 'valid') {
              toast({ variant: "destructive", title: "Invalid URL", description: "Please provide a valid and accessible URL." });
         }
@@ -131,26 +131,35 @@ export function CarouselSettings() {
     setIsSaving(true);
 
     try {
-        if (dialogState.type === 'music') {
-            const newTrack: AudioTrack = {
-                id: `music-${Date.now()}`,
-                description,
-                url: imageUrl,
-            };
-            await setDoc(settingsRef, { backgroundMusic: arrayUnion(newTrack) }, { merge: true });
-            toast({ title: `Music track added` });
-        } else { // image or video
-            const newItem: ImagePlaceholder = {
-                id: `${dialogState.type}-${Date.now()}`,
-                type: dialogState.type,
-                description,
-                imageUrl,
-                imageHint: hint,
-                ...(dialogState.type === 'video' && { useOwnAudio })
-            };
-            await setDoc(settingsRef, { placeholderImages: arrayUnion(newItem) }, { merge: true });
-            toast({ title: `${dialogState.type} added` });
-        }
+        await runTransaction(firestore, async (transaction) => {
+            const settingsDoc = await transaction.get(settingsRef);
+            
+            if (dialogState.type === 'music') {
+                const newTrack: AudioTrack = {
+                    id: `music-${Date.now()}`,
+                    description,
+                    url: imageUrl,
+                };
+                const currentTracks = settingsDoc.exists() ? (settingsDoc.data().backgroundMusic || []) : [];
+                const updatedTracks = [...currentTracks, newTrack];
+                transaction.set(settingsRef, { backgroundMusic: updatedTracks }, { merge: true });
+
+            } else { // image or video
+                const newItem: ImagePlaceholder = {
+                    id: `${dialogState.type}-${Date.now()}`,
+                    type: dialogState.type,
+                    description,
+                    imageUrl,
+                    imageHint: hint,
+                    ...(dialogState.type === 'video' && { useOwnAudio })
+                };
+                const currentImages = settingsDoc.exists() ? (settingsDoc.data().placeholderImages || []) : [];
+                const updatedImages = [...currentImages, newItem];
+                transaction.set(settingsRef, { placeholderImages: updatedImages }, { merge: true });
+            }
+        });
+
+        toast({ title: `${dialogState.type} added` });
         handleCloseDialog();
     } catch(error: any) {
         toast({ variant: "destructive", title: "Save Failed", description: error.message || "An unknown error occurred while saving." });
@@ -160,20 +169,23 @@ export function CarouselSettings() {
   };
 
   const handleDeleteItem = async () => {
-    if (!itemToDelete || !settings || !settingsRef) return;
+    if (!itemToDelete || !settingsRef || !firestore) return;
     
     try {
-        if (itemToDelete.type === 'music') {
-            const trackToRemove = settings.backgroundMusic?.find(item => item.id === itemToDelete.id);
-            if (trackToRemove) {
-                await setDoc(settingsRef, { backgroundMusic: arrayRemove(trackToRemove) }, { merge: true });
+        await runTransaction(firestore, async (transaction) => {
+            const settingsDoc = await transaction.get(settingsRef);
+            if (!settingsDoc.exists()) { return; }
+            
+            const currentData = settingsDoc.data() as Settings;
+
+            if (itemToDelete.type === 'music') {
+                const updatedMusic = (currentData.backgroundMusic || []).filter(item => item.id !== itemToDelete.id);
+                transaction.update(settingsRef, { backgroundMusic: updatedMusic });
+            } else {
+                const updatedImages = (currentData.placeholderImages || []).filter(item => item.id !== itemToDelete.id);
+                transaction.update(settingsRef, { placeholderImages: updatedImages });
             }
-        } else {
-            const imageToRemove = settings.placeholderImages?.find(item => item.id === itemToDelete.id);
-            if (imageToRemove) {
-                await setDoc(settingsRef, { placeholderImages: arrayRemove(imageToRemove) }, { merge: true });
-            }
-        }
+        });
         
         toast({ title: "Item removed" });
         setItemToDelete(null);
@@ -361,7 +373,5 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
 
     
