@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -16,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import { Clock } from './Clock';
+import { InfoPanel } from './InfoPanel';
 
 export function DisplayClient() {
   const { firestore } = useFirebase();
@@ -103,16 +105,21 @@ export function DisplayClient() {
           </div>
       </header>
       
-      <main className="flex-grow p-4">
-      {isLoading ? (
-          <div className="w-full h-full">
-              <Skeleton className="bg-slate-700/50 h-full w-full rounded-lg" />
+      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
+        <div className="md:col-span-2 w-full h-full">
+        {isLoading ? (
+            <div className="w-full h-full">
+                <Skeleton className="bg-slate-700/50 h-full w-full rounded-lg" />
+            </div>
+        ) : (
+          <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
+            <NowServing servingData={servingData} />
           </div>
-      ) : (
-        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
-          <NowServing servingData={servingData} />
+        )}
         </div>
-      )}
+        <div className="w-full h-full">
+            <InfoPanel settings={settings} contentType="all" />
+        </div>
       </main>
 
       <Button

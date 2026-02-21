@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -26,6 +27,7 @@ import {
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { StationManagement } from './StationManagement';
+import { CarouselSettings } from './CarouselSettings';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminClient() {
@@ -65,7 +67,7 @@ export function AdminClient() {
 
     if (isLocal && isFileSystemPath) {
         setLogoUrlStatus('invalid');
-        setLogoUrlError("Invalid path. Use path from 'public' folder, e.g., '/logo.png', not a full file system path.");
+        setLogoUrlError("Invalid path. For local files, use the path from the 'public' folder (e.g., '/video.mp4'), not the full file system path.");
         return;
     }
     
@@ -161,6 +163,7 @@ export function AdminClient() {
         ) : (
           <div className="space-y-8 p-6">
               <StationManagement />
+              <CarouselSettings />
               <div className="grid grid-cols-1 items-start gap-8">
                   <div className="space-y-8">
                   <Card>
