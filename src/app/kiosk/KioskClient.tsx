@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -163,50 +164,52 @@ export function KioskClient() {
         </div>
       </div>
 
-      <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-16 items-center justify-items-center p-16">
-        {isLoadingSettings ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="w-1/3 aspect-square bg-muted rounded-lg animate-pulse" />
-          ))
-        ) : settings?.services && settings.services.length > 0 ? (
-          settings.services.map((service) => (
-            <div key={service.id} className="w-1/3 aspect-square">
-              <Button
-                variant="outline"
-                className="w-full h-full flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer whitespace-normal"
-                onClick={() => handleGetTicket(service.id)}
-                disabled={isLoadingSettings || !!isPrinting}
-              >
-                {isPrinting === service.id ? (
-                    <Loader2 className="h-24 w-24 animate-spin" />
-                ) : (
-                    <Icon name={service.icon} className="h-24 w-24" />
-                )}
-                <div className="flex flex-col text-center">
-                    <span className="text-4xl font-semibold">
-                      {isPrinting === service.id
-                        ? 'Preparing Ticket...'
-                        : !!isPrinting
-                        ? 'Please wait...'
-                        : service.label}
-                    </span>
-                    {!!isPrinting && isPrinting !== service.id && (
-                        <span className="text-xl font-normal text-muted-foreground">Another request is in progress.</span>
+      <div className="flex-grow flex items-center justify-center p-8">
+        <div className="grid w-full max-w-2xl grid-cols-1 sm:grid-cols-2 gap-16">
+            {isLoadingSettings ? (
+            Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="aspect-square bg-muted rounded-lg animate-pulse" />
+            ))
+            ) : settings?.services && settings.services.length > 0 ? (
+            settings.services.map((service) => (
+                <div key={service.id} className="aspect-square">
+                <Button
+                    variant="outline"
+                    className="w-full h-full flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer whitespace-normal"
+                    onClick={() => handleGetTicket(service.id)}
+                    disabled={isLoadingSettings || !!isPrinting}
+                >
+                    {isPrinting === service.id ? (
+                        <Loader2 className="h-16 w-16 animate-spin" />
+                    ) : (
+                        <Icon name={service.icon} className="h-16 w-16" />
                     )}
+                    <div className="flex flex-col text-center">
+                        <span className="text-3xl font-semibold">
+                        {isPrinting === service.id
+                            ? 'Preparing Ticket...'
+                            : !!isPrinting
+                            ? 'Please wait...'
+                            : service.label}
+                        </span>
+                        {!!isPrinting && isPrinting !== service.id && (
+                            <span className="text-lg font-normal text-muted-foreground">Another request is in progress.</span>
+                        )}
+                    </div>
+                </Button>
                 </div>
-              </Button>
+            ))
+            ) : (
+            <div className="sm:col-span-2 text-center text-muted-foreground flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                <p className="text-lg font-semibold">No Services Available</p>
+                <p>
+                    This kiosk is not yet configured. Please contact an administrator.
+                </p>
+                </div>
             </div>
-          ))
-        ) : (
-          <div className="sm:col-span-2 text-center text-muted-foreground flex items-center justify-center">
-            <div className="flex flex-col items-center">
-              <p className="text-lg font-semibold">No Services Available</p>
-              <p>
-                This kiosk is not yet configured. Please contact an administrator.
-              </p>
-            </div>
-          </div>
-        )}
+            )}
+        </div>
       </div>
       <div className="printable-area">
         <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings?.companyName || ''} service={getPrintableService(ticketToPrint)} companyLogoUrl={logoUrl} />
