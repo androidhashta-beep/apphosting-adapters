@@ -45,14 +45,6 @@ export function DisplayClient() {
   );
   const { data: servingTickets, isLoading: isLoadingServingTickets } = useCollection<Ticket>(servingTicketsQuery);
 
-  const waitingTicketsQuery = useMemoFirebase(
-      () => {
-          if (!firestore) return null;
-          return query(collection(firestore, 'tickets'), where('status', '==', 'waiting'), orderBy('createdAt', 'asc'));
-      }, [firestore]
-  );
-  const { data: waitingTickets, isLoading: isLoadingWaitingTickets } = useCollection<Ticket>(waitingTicketsQuery);
-
   const servingData = useMemo(() => {
     if (!stations || !servingTickets || !settings) return [];
     
@@ -77,7 +69,7 @@ export function DisplayClient() {
 
   }, [stations, servingTickets, settings]);
   
-  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingWaitingTickets;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets;
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -99,8 +91,6 @@ export function DisplayClient() {
         <>
           <NowServing 
             servingData={servingData} 
-            waitingData={waitingTickets || []} 
-            services={settings?.services || []} 
           />
           <InfoPanel settings={settings} />
         </>
