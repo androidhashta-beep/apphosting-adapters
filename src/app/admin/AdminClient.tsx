@@ -124,13 +124,16 @@ export function AdminClient() {
                         <Label htmlFor="company-logo">Company Logo URL</Label>
                         <Input
                             id="company-logo"
-                            placeholder="/logo.png"
+                            placeholder="/logo.png or a public URL"
                             value={companyLogoUrl}
                             onChange={(e) => setCompanyLogoUrl(e.target.value)}
                             disabled={isLoadingSettings}
                         />
                          <p className="text-xs text-muted-foreground mt-2">
-                            Place your logo in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder and enter the path here (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/logo.png</code>).
+                            You can use a local path (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/logo.png</code> in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder) or a public URL from a service like Google Drive.
+                        </p>
+                         <p className="text-xs text-muted-foreground mt-1">
+                            <strong>For Google Drive:</strong> Set file sharing to "Anyone with the link". Convert the link from <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code> to <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code>.
                         </p>
                       </div>
                       </CardContent>

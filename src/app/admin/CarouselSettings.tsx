@@ -107,10 +107,13 @@ export function CarouselSettings() {
                 <AlertDialogDescription asChild>
                      <div className="space-y-4 text-left pt-4 text-sm text-muted-foreground">
                         <p>
-                            First, place your file (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">{fileExample}</code>) into the <code className="font-mono bg-muted text-foreground rounded px-1">public/carousel</code> folder in your project directory.
+                            You can use a local file or a public URL (e.g., from Google Drive).
+                        </p>
+                        <p>
+                            <strong>For local files:</strong> Place your file (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">{fileExample}</code>) into the <code className="font-mono bg-muted text-foreground rounded px-1">public/carousel</code> folder, then enter the path <code className="font-mono bg-muted text-foreground rounded px-1">/carousel/{fileExample}</code> as the URL.
                         </p>
                          <p>
-                            Then, fill out the details below. The URL should be the path relative to the public folder, like <code className="font-mono bg-muted text-foreground rounded px-1">/carousel/{fileExample}</code>.
+                            <strong>For Google Drive:</strong> Set sharing to "Anyone with the link". Convert the share link from <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code> to <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code> and use that as the URL.
                         </p>
                     </div>
                 </AlertDialogDescription>
@@ -122,7 +125,7 @@ export function CarouselSettings() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="item-url">File URL</Label>
-                    <Input id="item-url" name="url" placeholder={`/carousel/${fileExample}`} required />
+                    <Input id="item-url" name="url" placeholder={`/carousel/${fileExample} or public URL`} required />
                 </div>
                 {!isMusic && (
                     <div className="space-y-2">
