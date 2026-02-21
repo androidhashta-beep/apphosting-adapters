@@ -63,6 +63,7 @@ export function CarouselSettings() {
     }
     
     setImageUrlStatus('verifying');
+    const encodedUrl = encodeURI(url);
 
     let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
     const timeout = 5000;
@@ -99,7 +100,7 @@ export function CarouselSettings() {
         element.onloadedmetadata = handleSuccess;
         element.onerror = handleError;
     }
-    element.src = encodeURI(url);
+    element.src = encodedUrl;
   }, []);
 
   useEffect(() => {
@@ -161,23 +162,14 @@ export function CarouselSettings() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const settingsDoc = await transaction.get(settingsRef);
+            const currentItems = settingsDoc.exists() ? settingsDoc.data()?.[fieldToUpdate] || [] : [];
             
-            if (!settingsDoc.exists()) {
-                // Document doesn't exist, create it with the new item in its array
-                transaction.set(settingsRef, { [fieldToUpdate]: [newItem] });
-            } else {
-                // Document exists, update the array
-                const existingData = settingsDoc.data() as Partial<Settings> | undefined;
-                const currentItems = existingData?.[fieldToUpdate] || [];
-                
-                if (!Array.isArray(currentItems)) {
-                    // If it's not an array for some reason, overwrite it. This is a safe recovery.
-                    transaction.update(settingsRef, { [fieldToUpdate]: [newItem] });
-                } else {
-                    const updatedItems = [...currentItems, newItem];
-                    transaction.update(settingsRef, { [fieldToUpdate]: updatedItems });
-                }
+            if (!Array.isArray(currentItems)) {
+                 throw new Error("Database field is corrupted and not an array.");
             }
+            
+            const updatedItems = [...currentItems, newItem];
+            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         });
         
       toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
@@ -204,17 +196,13 @@ export function CarouselSettings() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const settingsDoc = await transaction.get(settingsRef);
-            if (!settingsDoc.exists()) {
-                // Nothing to delete if the document doesn't even exist.
-                return;
-            }
+            if (!settingsDoc.exists()) return; // Nothing to delete
 
-            const currentData = settingsDoc.data() as Partial<Settings>;
-            const existingItems = currentData[fieldToUpdate];
+            const existingItems = settingsDoc.data()?.[fieldToUpdate];
 
             if (Array.isArray(existingItems)) {
                 const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-                transaction.update(settingsRef, { [fieldToUpdate]: updatedItems });
+                transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
             }
         });
         
@@ -490,3 +478,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
