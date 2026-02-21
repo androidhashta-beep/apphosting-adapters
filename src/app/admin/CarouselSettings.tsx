@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction } from "firebase/firestore";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Film, Image as ImageIcon, PlusCircle, Music, Trash2, Volume2, VolumeX, Folder, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Film, Image as ImageIcon, PlusCircle, Music, Trash2, Volume2, VolumeX, Folder, Loader2, CheckCircle, AlertCircle, GripVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
 
 type DialogState = {
     type: 'image' | 'video' | 'music';
@@ -35,20 +37,35 @@ export function CarouselSettings() {
   const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   
+  const [carouselItems, setCarouselItems] = useState<ImagePlaceholder[]>([]);
+  const [musicTracks, setMusicTracks] = useState<AudioTrack[]>([]);
+
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+  const dragMusicItem = useRef<number | null>(null);
+  const dragOverMusicItem = useRef<number | null>(null);
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [itemToDelete, setItemToDelete] = useState<{type: 'image' | 'music', id: string} | null>(null);
   
-  // State for the add/edit dialog
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [hint, setHint] = useState('');
   const [useOwnAudio, setUseOwnAudio] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [imageUrlStatus, setImageUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
+  
+  useEffect(() => {
+    if (settings) {
+        setCarouselItems(settings.placeholderImages || []);
+        setMusicTracks(settings.backgroundMusic || []);
+    }
+  }, [settings]);
 
   const verifyMediaUrl = useCallback((url: string, type: 'image' | 'video' | 'music') => {
     if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
-        setImageUrlStatus(url.trim() ? 'idle' : 'idle'); // Reset if empty, but don't show invalid for partial URLs
+        setImageUrlStatus('idle');
         return;
     }
     
@@ -102,7 +119,7 @@ export function CarouselSettings() {
 
     const handler = setTimeout(() => {
         verifyMediaUrl(imageUrl, dialogState.type);
-    }, 500); // 500ms debounce
+    }, 500);
 
     return () => {
         clearTimeout(handler);
@@ -129,6 +146,7 @@ export function CarouselSettings() {
     }
 
     setIsSaving(true);
+    let success = false;
 
     try {
         await runTransaction(firestore, async (transaction) => {
@@ -140,14 +158,8 @@ export function CarouselSettings() {
                     description,
                     url: imageUrl,
                 };
-
-                if (settingsDoc.exists()) {
-                    const currentTracks = settingsDoc.data().backgroundMusic || [];
-                    transaction.update(settingsRef, { backgroundMusic: [...currentTracks, newTrack] });
-                } else {
-                    transaction.set(settingsRef, { backgroundMusic: [newTrack] });
-                }
-
+                const currentTracks = settingsDoc.exists() ? settingsDoc.data().backgroundMusic || [] : [];
+                transaction.set(settingsRef, { backgroundMusic: [...currentTracks, newTrack] }, { merge: true });
             } else { // image or video
                 const newItem: ImagePlaceholder = {
                     id: `${dialogState.type}-${Date.now()}`,
@@ -157,22 +169,19 @@ export function CarouselSettings() {
                     imageHint: hint,
                     ...(dialogState.type === 'video' && { useOwnAudio })
                 };
-                
-                if (settingsDoc.exists()) {
-                    const currentImages = settingsDoc.data().placeholderImages || [];
-                    transaction.update(settingsRef, { placeholderImages: [...currentImages, newItem] });
-                } else {
-                    transaction.set(settingsRef, { placeholderImages: [newItem] });
-                }
+                const currentItems = settingsDoc.exists() ? settingsDoc.data().placeholderImages || [] : [];
+                transaction.set(settingsRef, { placeholderImages: [...currentItems, newItem] }, { merge: true });
             }
         });
-
-        toast({ title: `${dialogState.type} added` });
-        handleCloseDialog();
+        success = true;
     } catch(error: any) {
         toast({ variant: "destructive", title: "Save Failed", description: error.message || "An unknown error occurred while saving." });
     } finally {
         setIsSaving(false);
+        if (success) {
+            toast({ title: `${dialogState.type} added` });
+            handleCloseDialog();
+        }
     }
   };
 
@@ -201,6 +210,70 @@ export function CarouselSettings() {
         toast({ variant: "destructive", title: "Delete Failed", description: error.message || "An unknown error occurred while deleting." });
     }
   }
+
+  const handleCarouselDragStart = (index: number, id: string) => {
+    dragItem.current = index;
+    setDraggedItemId(id);
+  };
+  const handleCarouselDragEnter = (index: number) => {
+    dragOverItem.current = index;
+  };
+  const handleCarouselDrop = async () => {
+    setDraggedItemId(null);
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    if (dragItem.current === dragOverItem.current) return;
+
+    const newItems = [...carouselItems];
+    const draggedItemContent = newItems.splice(dragItem.current, 1)[0];
+    newItems.splice(dragOverItem.current, 0, draggedItemContent);
+    
+    dragItem.current = null;
+    dragOverItem.current = null;
+    
+    setCarouselItems(newItems);
+    
+    if (settingsRef) {
+        try {
+            await updateDoc(settingsRef, { placeholderImages: newItems });
+            toast({ title: "Carousel order saved" });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Save Failed", description: error.message });
+            setCarouselItems(settings?.placeholderImages || []);
+        }
+    }
+  };
+
+  const handleMusicDragStart = (index: number, id: string) => {
+    dragMusicItem.current = index;
+    setDraggedItemId(id);
+  };
+  const handleMusicDragEnter = (index: number) => {
+    dragOverMusicItem.current = index;
+  };
+  const handleMusicDrop = async () => {
+    setDraggedItemId(null);
+    if (dragMusicItem.current === null || dragOverMusicItem.current === null) return;
+    if (dragMusicItem.current === dragOverMusicItem.current) return;
+
+    const newTracks = [...musicTracks];
+    const draggedTrackContent = newTracks.splice(dragMusicItem.current, 1)[0];
+    newTracks.splice(dragOverMusicItem.current, 0, draggedTrackContent);
+
+    dragMusicItem.current = null;
+    dragOverMusicItem.current = null;
+
+    setMusicTracks(newTracks);
+
+    if (settingsRef) {
+        try {
+            await updateDoc(settingsRef, { backgroundMusic: newTracks });
+            toast({ title: "Music order saved" });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Save Failed", description: error.message });
+            setMusicTracks(settings?.backgroundMusic || []);
+        }
+    }
+  };
 
   const renderDialogContent = () => {
     if (!dialogState) return null;
@@ -277,15 +350,27 @@ export function CarouselSettings() {
         <Card>
           <CardHeader>
             <CardTitle>Carousel Content</CardTitle>
-            <CardDescription>Manage images and videos for the public display.</CardDescription>
+            <CardDescription>Manage and reorder images and videos for the public display.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3 pr-2 border rounded-lg p-2 bg-muted/20 max-h-96 overflow-y-auto">
-                {isLoadingSettings ? <p>Loading...</p> : (settings?.placeholderImages || []).length > 0 ? settings?.placeholderImages.map(item => {
+                {isLoadingSettings ? <p>Loading...</p> : carouselItems.length > 0 ? carouselItems.map((item, index) => {
                      const isVideo = item.type === 'video';
                      return (
-                        <div key={item.id} className="flex items-center justify-between gap-3 p-2 border rounded-md bg-card">
-                            <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+                        <div 
+                            key={item.id} 
+                            className={cn(
+                                "flex items-center justify-between gap-3 p-2 border rounded-md bg-card cursor-grab active:cursor-grabbing transition-opacity",
+                                draggedItemId === item.id && "opacity-30"
+                            )}
+                            draggable
+                            onDragStart={() => handleCarouselDragStart(index, item.id)}
+                            onDragEnter={() => handleCarouselDragEnter(index)}
+                            onDragEnd={handleCarouselDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                        >
+                            <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+                                <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                                 {isVideo ? <Film className="h-5 w-5 text-muted-foreground flex-shrink-0" /> : <ImageIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />}
                                 <div className="overflow-hidden">
                                     <p className="font-semibold truncate" title={item.description}>{item.description}</p>
@@ -327,13 +412,25 @@ export function CarouselSettings() {
         <Card>
             <CardHeader>
                 <CardTitle>Background Music</CardTitle>
-                <CardDescription>Manage music for the public display carousel.</CardDescription>
+                <CardDescription>Manage and reorder music for the public display.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-3 pr-2 border rounded-lg p-2 bg-muted/20 max-h-72 overflow-y-auto">
-                    {isLoadingSettings ? <p>Loading...</p> : (settings?.backgroundMusic || []).length > 0 ? settings.backgroundMusic.map(track => (
-                        <div key={track.id} className="flex items-center justify-between gap-3 p-2 border rounded-md bg-card">
+                    {isLoadingSettings ? <p>Loading...</p> : musicTracks.length > 0 ? musicTracks.map((track, index) => (
+                        <div 
+                            key={track.id} 
+                            className={cn(
+                                "flex items-center justify-between gap-3 p-2 border rounded-md bg-card cursor-grab active:cursor-grabbing transition-opacity",
+                                draggedItemId === track.id && "opacity-30"
+                            )}
+                            draggable
+                            onDragStart={() => handleMusicDragStart(index, track.id)}
+                            onDragEnter={() => handleMusicDragEnter(index)}
+                            onDragEnd={handleMusicDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                        >
                            <div className="flex items-center gap-3 overflow-hidden">
+                                <GripVertical className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                                 <Music className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                                 <div className="overflow-hidden">
                                     <p className="font-semibold truncate" title={track.description}>{track.description}</p>
@@ -370,7 +467,7 @@ export function CarouselSettings() {
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>This will permanently remove the media item from the carousel. This cannot be undone.</AlertDialogDescription>
+                    <AlertDialogDescription>This will permanently remove the media item. This cannot be undone.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
@@ -381,5 +478,7 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
 
     
