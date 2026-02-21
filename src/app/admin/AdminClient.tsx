@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -26,7 +25,6 @@ import {
   useMemoFirebase,
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { CarouselSettings } from './CarouselSettings';
 import { StationManagement } from './StationManagement';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -163,7 +161,7 @@ export function AdminClient() {
         ) : (
           <div className="space-y-8 p-6">
               <StationManagement />
-              <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+              <div className="grid grid-cols-1 items-start gap-8">
                   <div className="space-y-8">
                   <Card>
                       <CardHeader>
@@ -214,9 +212,6 @@ export function AdminClient() {
                       </Button>
                       </CardFooter>
                   </Card>
-                  </div>
-                  <div className="space-y-8">
-                  <CarouselSettings />
                   </div>
               </div>
           </div>

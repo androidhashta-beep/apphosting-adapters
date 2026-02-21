@@ -165,25 +165,14 @@ export function StationManagement() {
                 { id: 'certificate', label: 'Certificate', description: 'Claiming of certificates', icon: 'Award' },
                 { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
             ];
-
-            const defaultPlaceholderImages: ImagePlaceholder[] = [
-                { id: 'img-1', type: 'image', description: 'Our Modern Training Facilities', imageUrl: '/carousel/image1.jpg', imageHint: 'training room' },
-                { id: 'vid-1', type: 'video', description: 'A Quick Tour of Our Center', imageUrl: '/carousel/video1.mp4', imageHint: 'office tour', useOwnAudio: false },
-                { id: 'img-2', type: 'image', description: 'Hands-On Learning Environment', imageUrl: '/carousel/image2.jpg', imageHint: 'students learning' },
-            ];
-
-            const defaultBackgroundMusic: AudioTrack[] = [
-                { id: 'music-1', description: 'Uplifting Corporate Track', url: '/carousel/music1.mp3' },
-                { id: 'music-2', description: 'Calm and Focused Ambient', url: '/carousel/music2.mp3' },
-            ];
             
             const settingsDocRef = doc(firestore, 'settings', 'app');
             batch.set(settingsDocRef, { 
                 services: defaultServices,
                 companyName: "NaviQueue Pro",
                 companyLogoUrl: "/logo.png",
-                placeholderImages: defaultPlaceholderImages,
-                backgroundMusic: defaultBackgroundMusic,
+                placeholderImages: [],
+                backgroundMusic: [],
             }, { merge: true });
 
             for (let i = 1; i <= 5; i++) {
@@ -201,7 +190,7 @@ export function StationManagement() {
 
             toast({
                 title: "Defaults Restored with Examples",
-                description: `Created default services, stations, and example media content.`,
+                description: `Created default services and stations.`,
                 duration: 8000,
             });
         }

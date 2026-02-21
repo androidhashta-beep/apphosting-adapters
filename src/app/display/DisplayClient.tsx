@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { Ticket, Settings, Station } from '@/lib/types';
@@ -12,33 +12,14 @@ import {
 } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 import { NowServing } from './NowServing';
-import { InfoPanel } from './InfoPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import { Clock } from './Clock';
 
-// Create a context to manage the background music's mute state
-type AudioContextType = {
-  setBgMusicMuted: (isMuted: boolean) => void;
-};
-
-const AudioContext = createContext<AudioContextType | undefined>(undefined);
-
-export const useAudio = () => {
-  const context = useContext(AudioContext);
-  if (context === undefined) {
-    throw new Error('useAudio must be used within an AudioProvider');
-  }
-  return context;
-};
-
-
 export function DisplayClient() {
   const { firestore } = useFirebase();
   const router = useRouter();
-
-  const [isBgMusicMuted, setBgMusicMuted] = useState(false);
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -91,57 +72,6 @@ export function DisplayClient() {
   
   const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets;
 
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const tracks = useMemo(() => settings?.backgroundMusic || [], [settings]);
-  
-  useEffect(() => {
-    if (audioRef.current) {
-        audioRef.current.muted = isBgMusicMuted;
-    }
-  }, [isBgMusicMuted]);
-
-  const playNextTrack = useCallback(() => {
-      if (tracks.length > 0) {
-          setCurrentTrackIndex((prevIndex) => (prevIndex + 1) % tracks.length);
-      }
-  }, [tracks.length]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const playAudio = () => {
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                console.error("Audio playback failed. User interaction may be required.", error);
-            });
-        }
-    };
-    
-    if (tracks.length > 0 && tracks[currentTrackIndex]) {
-        const currentSrc = tracks[currentTrackIndex].url;
-        if (audio.src !== currentSrc) {
-            audio.src = currentSrc;
-            // Listen for when the new audio can be played
-            const canPlayListener = () => {
-                playAudio();
-            };
-            audio.addEventListener('canplaythrough', canPlayListener, { once: true });
-            audio.load(); // Trigger loading the new source
-
-            return () => {
-                audio.removeEventListener('canplaythrough', canPlayListener);
-            };
-        } else if (audio.paused) {
-           // If src is the same but it's paused, try playing
-           playAudio();
-        }
-    }
-  }, [tracks, currentTrackIndex]);
-
-
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
@@ -152,72 +82,48 @@ export function DisplayClient() {
   const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
   
   return (
-    <AudioContext.Provider value={{ setBgMusicMuted }}>
-      <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
-        <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-4">
-                {isLogoValid && (
-                    <div className="relative h-12">
-                        <Image 
-                            src={logoUrl}
-                            alt={`${settings?.companyName || 'Company'} Logo`}
-                            width={300}
-                            height={48}
-                            className="h-full w-auto object-contain"
-                        />
-                    </div>
-                )}
-                <h1 className="text-3xl font-bold">{settings?.companyName || 'Welcome'}</h1>
-            </div>
-            <div className="w-1/3 max-w-md">
-              <Clock />
-            </div>
-        </header>
-        
-        <main className="flex-grow p-4">
-        {isLoading ? (
-            <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4">
-                <Skeleton className="bg-slate-700/50" />
-                <Skeleton className="bg-slate-700/50" />
-                <Skeleton className="bg-slate-700/50" />
-                <Skeleton className="bg-slate-700/50" />
-            </div>
-        ) : (
-          <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4">
-            <div className="bg-black/20 rounded-lg overflow-hidden flex flex-col">
-              <NowServing servingData={servingData} />
-            </div>
-            <div className="bg-black/20 rounded-lg overflow-hidden relative">
-              <InfoPanel settings={settings} contentType='images'/>
-            </div>
-            <div className="bg-black/20 rounded-lg overflow-hidden relative">
-              <InfoPanel settings={settings} contentType='videos'/>
-            </div>
-            <div className="bg-black/20 rounded-lg overflow-hidden relative">
-              <InfoPanel settings={settings} contentType='all'/>
-            </div>
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
+      <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-4">
+              {isLogoValid && (
+                  <div className="relative h-12">
+                      <Image 
+                          src={logoUrl}
+                          alt={`${settings?.companyName || 'Company'} Logo`}
+                          width={300}
+                          height={48}
+                          className="h-full w-auto object-contain"
+                      />
+                  </div>
+              )}
+              <h1 className="text-3xl font-bold">{settings?.companyName || 'Welcome'}</h1>
           </div>
-        )}
-        </main>
+          <div className="w-1/3 max-w-md">
+            <Clock />
+          </div>
+      </header>
+      
+      <main className="flex-grow p-4">
+      {isLoading ? (
+          <div className="w-full h-full">
+              <Skeleton className="bg-slate-700/50 h-full w-full rounded-lg" />
+          </div>
+      ) : (
+        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
+          <NowServing servingData={servingData} />
+        </div>
+      )}
+      </main>
 
-        <Button
-          onClick={handleGoHome}
-          variant="ghost"
-          size="icon"
-          className="fixed bottom-4 right-4 h-12 w-12 rounded-full bg-black/30 hover:bg-black/50 text-white hover:text-white z-50"
-        >
-          <Home className="h-6 w-6" />
-          <span className="sr-only">Go Home</span>
-        </Button>
-
-        {tracks.length > 0 && (
-            <audio
-                ref={audioRef}
-                onEnded={playNextTrack}
-                crossOrigin="anonymous"
-            />
-        )}
-      </div>
-    </AudioContext.Provider>
+      <Button
+        onClick={handleGoHome}
+        variant="ghost"
+        size="icon"
+        className="fixed bottom-4 right-4 h-12 w-12 rounded-full bg-black/30 hover:bg-black/50 text-white hover:text-white z-50"
+      >
+        <Home className="h-6 w-6" />
+        <span className="sr-only">Go Home</span>
+      </Button>
+    </div>
   );
 }
