@@ -166,11 +166,11 @@ export function KioskClient() {
       <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-24 items-center justify-items-center p-24">
         {isLoadingSettings ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="w-2/3 aspect-square bg-muted rounded-lg animate-pulse" />
+            <div key={i} className="w-1/3 aspect-square bg-muted rounded-lg animate-pulse" />
           ))
         ) : settings?.services && settings.services.length > 0 ? (
           settings.services.map((service) => (
-            <div key={service.id} className="w-2/3 aspect-square">
+            <div key={service.id} className="w-1/3 aspect-square">
               <Button
                 variant="outline"
                 className="w-full h-full flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer whitespace-normal"
