@@ -13,7 +13,6 @@ import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip"
 
 export function PageWrapper({ children, title, showBackButton = true }: { children: React.ReactNode, title: string, showBackButton?: boolean }) {
@@ -48,21 +47,10 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
             <ThemeSwitcher />
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button asChild variant="ghost" size="icon">
-                            <Link href="/admin">
-                                <Shield className="h-4 w-4" />
-                                <span className="sr-only">Admin Panel</span>
-                            </Link>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>Admin Panel</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+            <Link href="/admin" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <Shield className="h-4 w-4" />
+                Admin
+            </Link>
             <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
