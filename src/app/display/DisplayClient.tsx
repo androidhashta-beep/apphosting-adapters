@@ -108,8 +108,8 @@ export function DisplayClient() {
       </header>
       
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 md:grid-rows-2 gap-4 p-4">
-        {/* Quadrant 1: All Ticket Info */}
-        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
+        {/* Left Column: Ticket Info */}
+        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col md:row-span-2">
             {isLoading ? (
                 <Skeleton className="bg-slate-700/50 h-full w-full" />
             ) : (
@@ -135,17 +135,12 @@ export function DisplayClient() {
             )}
         </div>
         
-        {/* Quadrant 2: Video Panel */}
-        <div className="w-full h-full">
-            <InfoPanel settings={settings} contentType="videos" />
-        </div>
-
-        {/* Quadrant 3: Image Panel */}
+        {/* Image Panel */}
         <div className="w-full h-full">
             <InfoPanel settings={settings} contentType="images" />
         </div>
 
-        {/* Quadrant 4: All Media Panel */}
+        {/* All Media Panel */}
         <div className="w-full h-full">
             <InfoPanel settings={settings} contentType="all" />
         </div>
