@@ -17,51 +17,54 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
 
   return (
     <div className="w-1/2 h-full flex flex-col p-4 gap-4">
-        {/* Top Image Carousel */}
-        <div className="flex-1 relative">
-            <Carousel
-                className="absolute inset-0 h-full w-full"
-                plugins={[Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]}
-                opts={{ loop: true }}
-            >
-                <CarouselContent className="h-full">
-                    {infoItems.length > 0 ? infoItems.map((item) => (
-                        <CarouselItem key={item.id} className="h-full">
-                            <Card className="h-full w-full overflow-hidden bg-transparent border-none">
-                                <CardContent className="relative h-full w-full p-0">
-                                    <Image
-                                        src={item.imageUrl}
-                                        alt={item.description}
-                                        fill
-                                        className="object-cover"
-                                        sizes="(max-width: 768px) 100vw, 50vw"
-                                    />
-                                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-center">
-                                        <p className="font-bold text-white">{item.description}</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </CarouselItem>
-                    )) : (
-                         <CarouselItem className="h-full">
-                             <Card className="h-full w-full overflow-hidden bg-transparent border-none flex items-center justify-center">
-                                 <CardContent className="p-0 text-center">
-                                     <p className="text-muted-foreground">No informational slides.</p>
-                                 </CardContent>
-                             </Card>
-                        </CarouselItem>
-                    )}
-                </CarouselContent>
-            </Carousel>
-        </div>
+        {/* Top Part: Contains Top Carousel and Clock */}
+        <div className="h-3/4 flex flex-col gap-4">
+            {/* Top Image Carousel */}
+            <div className="flex-1 relative">
+                <Carousel
+                    className="absolute inset-0 h-full w-full"
+                    plugins={[Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]}
+                    opts={{ loop: true }}
+                >
+                    <CarouselContent className="h-full">
+                        {infoItems.length > 0 ? infoItems.map((item) => (
+                            <CarouselItem key={item.id} className="h-full">
+                                <Card className="h-full w-full overflow-hidden bg-transparent border-none">
+                                    <CardContent className="relative h-full w-full p-0">
+                                        <Image
+                                            src={item.imageUrl}
+                                            alt={item.description}
+                                            fill
+                                            className="object-cover"
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                        />
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-center">
+                                            <p className="font-bold text-white">{item.description}</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </CarouselItem>
+                        )) : (
+                             <CarouselItem className="h-full">
+                                 <Card className="h-full w-full overflow-hidden bg-transparent border-none flex items-center justify-center">
+                                     <CardContent className="p-0 text-center">
+                                         <p className="text-muted-foreground">No informational slides.</p>
+                                     </CardContent>
+                                 </Card>
+                            </CarouselItem>
+                        )}
+                    </CarouselContent>
+                </Carousel>
+            </div>
 
-        {/* Clock */}
-        <div className="flex-shrink-0 p-2 bg-black/30 rounded-lg">
-            <Clock />
+            {/* Clock */}
+            <div className="flex-shrink-0 p-2 bg-black/30 rounded-lg">
+                <Clock />
+            </div>
         </div>
 
         {/* Bottom Video Carousel */}
-        <div className="flex-1 relative rounded-lg overflow-hidden">
+        <div className="h-1/4 relative rounded-lg overflow-hidden">
              <Carousel
                 className="absolute inset-0 h-full w-full"
                 plugins={[Autoplay({ delay: 7000, stopOnInteraction: false, stopOnMouseEnter: true })]}
