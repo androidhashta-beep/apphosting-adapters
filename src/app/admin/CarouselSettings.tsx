@@ -154,7 +154,12 @@ export function CarouselSettings() {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  const verifyUrl = useCallback((url: string, setStatus: (s: 'idle' | 'verifying' | 'valid' | 'invalid') => void, setError: (e: string | null) => void) => {
+  const verifyUrl = useCallback((
+    url: string, 
+    mediaType: 'media' | 'audio',
+    setStatus: (s: 'idle' | 'verifying' | 'valid' | 'invalid') => void, 
+    setError: (e: string | null) => void
+  ) => {
     const trimmedUrl = url.trim();
     if (!trimmedUrl) {
       setStatus('idle');
@@ -164,7 +169,7 @@ export function CarouselSettings() {
 
     const isHttp = trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://');
     const isLocal = trimmedUrl.startsWith('/');
-    const isFileSystemPath = trimmedUrl.includes('/home/') || /^[a-zA-Z]:\\/.test(trimmedUrl);
+    const isFileSystemPath = trimmedUrl.includes('/home/') || trimmedUrl.includes('/Users/') || /^[a-zA-Z]:\\/.test(trimmedUrl);
 
     if (!isHttp && !isLocal) {
         setStatus('invalid');
@@ -173,33 +178,46 @@ export function CarouselSettings() {
     }
 
     if (isLocal && isFileSystemPath) {
+        const errorMsg = mediaType === 'audio' 
+            ? "Invalid path. For local files, use the path from the 'public' folder (e.g., '/music.mp3'), not the full file system path."
+            : "Invalid path. For local files, use the path from the 'public' folder (e.g., '/image.png'), not the full file system path.";
         setStatus('invalid');
-        setError("Invalid path. Use path from 'public' folder, e.g., '/logo.png', not a full file system path.");
+        setError(errorMsg);
         return;
     }
     
     setStatus('verifying');
     setError(null);
 
-    const mediaElement = new window.Image(); // Use Image for both image and video to check loadability
-    mediaElement.onload = () => setStatus('valid');
-    mediaElement.onerror = () => {
-        setStatus('invalid');
-        setError("Could not load media. Check if the URL is correct and the file is publicly accessible.");
+    if (mediaType === 'audio') {
+        const audioElement = new window.Audio();
+        audioElement.oncanplaythrough = () => setStatus('valid');
+        audioElement.onerror = () => {
+            setStatus('invalid');
+            setError("Could not load audio. Check if the URL is correct and publicly accessible.");
+        }
+        audioElement.src = encodeURI(trimmedUrl);
+    } else { // 'media' for image/video
+        const mediaElement = new window.Image();
+        mediaElement.onload = () => setStatus('valid');
+        mediaElement.onerror = () => {
+            setStatus('invalid');
+            setError("Could not load media. Check if the URL is correct and publicly accessible.");
+        }
+        mediaElement.src = encodeURI(trimmedUrl);
     }
-    mediaElement.src = encodeURI(trimmedUrl);
   }, []);
 
   useEffect(() => {
     const handler = setTimeout(() => {
-        if (newMediaUrl) verifyUrl(newMediaUrl, setMediaUrlStatus, setMediaUrlError);
+        if (newMediaUrl) verifyUrl(newMediaUrl, 'media', setMediaUrlStatus, setMediaUrlError);
     }, 500);
     return () => clearTimeout(handler);
   }, [newMediaUrl, verifyUrl]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
-        if (newAudioUrl) verifyUrl(newAudioUrl, setAudioUrlStatus, setAudioUrlError);
+        if (newAudioUrl) verifyUrl(newAudioUrl, 'audio', setAudioUrlStatus, setAudioUrlError);
     }, 500);
     return () => clearTimeout(handler);
   }, [newAudioUrl, verifyUrl]);
