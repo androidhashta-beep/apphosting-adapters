@@ -85,7 +85,7 @@ export function CarouselSettings() {
         element.onload = handleSuccess;
         element.onerror = handleError;
     } else { // video or music
-        element = document.createElement(type);
+        element = document.createElement(type as 'video' | 'audio');
         element.onloadedmetadata = handleSuccess;
         element.onerror = handleError;
     }
@@ -146,7 +146,7 @@ export function CarouselSettings() {
                 type: dialogState.type,
                 description,
                 imageUrl,
-                imageHint,
+                imageHint: hint,
                 ...(dialogState.type === 'video' && { useOwnAudio })
             };
             const placeholderImages = [...(settings.placeholderImages || []), newItem];
