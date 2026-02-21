@@ -61,6 +61,56 @@ export function CarouselSettings() {
         return;
     }
 
+    const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    const validVideoExtensions = ['.mp4', '.webm', '.ogg'];
+    const validMusicExtensions = ['.mp3', '.wav', '.ogg'];
+
+    const invalidPathUrls: string[] = [];
+    const incompatibleFormatUrls: string[] = [];
+
+    for (const url of urls) {
+        if (!url.startsWith('/') && !url.startsWith('http')) {
+            invalidPathUrls.push(url);
+            continue;
+        }
+
+        try {
+            const urlObject = new URL(url, window.location.origin);
+            const pathname = urlObject.pathname.toLowerCase();
+            
+            let validExtensions: string[] = [];
+            if (dialogState.type === 'image') validExtensions = validImageExtensions;
+            else if (dialogState.type === 'video') validExtensions = validVideoExtensions;
+            else if (dialogState.type === 'music') validExtensions = validMusicExtensions;
+
+            if (!validExtensions.some(ext => pathname.endsWith(ext))) {
+                incompatibleFormatUrls.push(url);
+            }
+        } catch (e) {
+            invalidPathUrls.push(url);
+        }
+    }
+
+    if (invalidPathUrls.length > 0) {
+        toast({
+            variant: "destructive",
+            title: "Invalid Path Detected",
+            description: `One or more URLs have an invalid path. Paths must start with "/" for local files or "http(s)://". Please correct: ${invalidPathUrls.join(', ')}`,
+            duration: 10000,
+        });
+        return;
+    }
+
+    if (incompatibleFormatUrls.length > 0) {
+        toast({
+            variant: "destructive",
+            title: "Incompatible File Format",
+            description: `One or more files may have a format incompatible for a ${dialogState.type}. Please check: ${incompatibleFormatUrls.join(', ')}`,
+            duration: 10000,
+        });
+        return;
+    }
+
     try {
         if (dialogState.type === 'music') {
             const newTracks: AudioTrack[] = urls.map((url, index) => ({
@@ -112,6 +162,11 @@ export function CarouselSettings() {
     const isMusic = dialogState.type === 'music';
     const title = isMusic ? "Add Background Music Track(s)" : isVideo ? "Add Video(s)" : "Add Image(s)";
     const type = isMusic ? "music track" : isVideo ? "video" : "image";
+
+    let supportedFormatsNotice = '';
+    if (dialogState.type === 'image') supportedFormatsNotice = 'Supported: jpg, png, gif, webp, svg.';
+    else if (dialogState.type === 'video') supportedFormatsNotice = 'Supported: mp4, webm, ogg.';
+    else if (dialogState.type === 'music') supportedFormatsNotice = 'Supported: mp3, wav, ogg.';
     
     return (
         <form onSubmit={handleSaveItem}>
@@ -137,6 +192,9 @@ export function CarouselSettings() {
                 <div className="space-y-2">
                     <Label htmlFor="item-urls">File URLs (one per line)</Label>
                     <Textarea id="item-urls" name="urls" placeholder={"/carousel/item1.jpg\n/carousel/item2.mp4\nhttps://drive.google.com/uc?id=YOUR_FILE_ID"} required rows={5} />
+                    <p className="text-xs text-muted-foreground">
+                        Paths must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> for local files. {supportedFormatsNotice}
+                    </p>
                 </div>
                 {!isMusic && (
                     <div className="space-y-2">
@@ -269,3 +327,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
