@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, updateDoc, setDoc } from "firebase/firestore";
+import { useFirebase, useDoc, useMemoFirebase, FirestorePermissionError, errorEmitter } from "@/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,25 +29,6 @@ import { cn } from "@/lib/utils";
 type DialogState = {
     type: 'image' | 'video' | 'music';
 } | null;
-
-const handleFirestoreError = (error: any, operation: string, toast: any) => {
-    console.error(`${operation.toUpperCase()} FAILED:`, error);
-    if (error.code === 'unavailable' || error.code === 'network-request-failed') {
-        toast({
-            variant: "destructive",
-            title: "CRITICAL: Connection Blocked by Firewall",
-            description: `The ${operation} operation failed because your PC's firewall is blocking the connection to the local database. Please allow the app through your firewall to continue.`,
-            duration: 20000,
-        });
-    } else {
-        toast({
-            variant: "destructive",
-            title: `${operation} Failed`,
-            description: `The database operation failed. Error: ${error.message || 'Unknown error'}`,
-            duration: 15000,
-        });
-    }
-}
 
 export function CarouselSettings() {
   const { firestore } = useFirebase();
@@ -83,7 +64,6 @@ export function CarouselSettings() {
     
     setImageUrlStatus('verifying');
     
-    // URI encode the URL to handle special characters in filenames
     const encodedUrl = encodeURI(url);
 
     let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
@@ -96,7 +76,7 @@ export function CarouselSettings() {
             element.onload = null;
             element.onerror = null;
             (element as any).onloadedmetadata = null;
-            (element as any).oncanplaythrough = null; // for video/audio
+            (element as any).oncanplaythrough = null;
             if ('src' in element) element.src = '';
         }
     };
@@ -118,9 +98,8 @@ export function CarouselSettings() {
         element.onload = handleSuccess;
         element.onerror = handleError;
         element.src = encodedUrl;
-    } else { // video or music
+    } else { 
         element = document.createElement(type === 'video' ? 'video' : 'audio');
-        // onloadedmetadata can be too quick for some files, canplaythrough is more reliable
         (element as HTMLMediaElement).oncanplaythrough = handleSuccess;
         element.onerror = handleError;
         element.src = encodedUrl;
@@ -165,38 +144,40 @@ export function CarouselSettings() {
     }
 
     setIsSaving(true);
+    let updatedField: { [key: string]: (ImagePlaceholder | AudioTrack)[] } = {};
+    const isMusic = dialogState.type === 'music';
+    const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
 
+    const newItem = isMusic 
+        ? { id: `music-${Date.now()}`, description, url: imageUrl }
+        : {
+            id: `${dialogState.type}-${Date.now()}`,
+            type: dialogState.type,
+            description,
+            imageUrl,
+            imageHint: hint,
+            ...(dialogState.type === 'video' && { useOwnAudio })
+        };
+    
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const settingsDoc = await transaction.get(settingsRef);
-            const currentData = settingsDoc.exists() ? (settingsDoc.data() as Partial<Settings>) : {};
+        const settingsDoc = await getDoc(settingsRef);
+        const currentData = settingsDoc.exists() ? (settingsDoc.data() as Partial<Settings>) : {};
+        const currentItems = currentData[fieldToUpdate] || [];
+        const safeCurrentItems = Array.isArray(currentItems) ? currentItems : [];
+        const newItems = [...safeCurrentItems, newItem];
+        updatedField = { [fieldToUpdate]: newItems };
 
-            const isMusic = dialogState.type === 'music';
-            const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
-            
-            const newItem = isMusic 
-                ? { id: `music-${Date.now()}`, description, url: imageUrl }
-                : {
-                    id: `${dialogState.type}-${Date.now()}`,
-                    type: dialogState.type,
-                    description,
-                    imageUrl,
-                    imageHint: hint,
-                    ...(dialogState.type === 'video' && { useOwnAudio })
-                };
-
-            const currentItems = currentData[fieldToUpdate] || [];
-            const safeCurrentItems = Array.isArray(currentItems) ? currentItems : [];
-            const updatedItems = [...safeCurrentItems, newItem];
-
-            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-        });
+        await setDoc(settingsRef, updatedField, { merge: true });
         
         toast({ title: "Save Successful", description: "Media item has been added." });
         handleCloseDialog();
 
     } catch (error: any) {
-        handleFirestoreError(error, 'Save', toast);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: settingsRef.path,
+            operation: 'update',
+            requestResourceData: updatedField,
+        }));
     } finally {
         setIsSaving(false);
     }
@@ -205,26 +186,32 @@ export function CarouselSettings() {
   const handleDeleteItem = async () => {
     if (!itemToDelete || !settingsRef || !firestore) return;
     
+    let updatedField: { [key: string]: (ImagePlaceholder | AudioTrack)[] } = {};
+    const isMusic = itemToDelete.type === 'music';
+    const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
+    
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const settingsDoc = await transaction.get(settingsRef);
-        if (!settingsDoc.exists()) {
-          return;
-        }
+      const settingsDoc = await getDoc(settingsRef);
+      if (!settingsDoc.exists()) {
+        setItemToDelete(null);
+        return;
+      }
 
-        const isMusic = itemToDelete.type === 'music';
-        const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
-        const currentData = settingsDoc.data();
-        const existingItems = currentData[fieldToUpdate];
+      const currentData = settingsDoc.data();
+      const existingItems = currentData[fieldToUpdate];
 
-        if (Array.isArray(existingItems)) {
-          const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-          transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-        }
-      });
+      if (Array.isArray(existingItems)) {
+        const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
+        updatedField = { [fieldToUpdate]: updatedItems };
+        await setDoc(settingsRef, updatedField, { merge: true });
+      }
       toast({ title: "Item removal successful" });
     } catch(error: any) {
-        handleFirestoreError(error, 'Delete', toast);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: settingsRef.path,
+            operation: 'update',
+            requestResourceData: updatedField,
+        }));
     } finally {
         setItemToDelete(null);
     }
@@ -237,7 +224,11 @@ export function CarouselSettings() {
         await setDoc(settingsRef, { [field]: newItems }, { merge: true });
         toast({ title: "Reorder successful" });
     } catch (error: any) {
-        handleFirestoreError(error, 'Reorder', toast);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: settingsRef.path,
+            operation: 'update',
+            requestResourceData: { [field]: newItems },
+        }));
     }
   };
 
