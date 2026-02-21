@@ -168,17 +168,11 @@ export function CarouselSettings() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const settingsDoc = await transaction.get(settingsRef);
+            const currentData = settingsDoc.data() || {};
+            const currentItems = currentData[fieldToUpdate] || [];
+            const updatedItems = [...currentItems, newItem];
             
-            if (!settingsDoc.exists()) {
-                // If the document doesn't exist, create it with the new item in an array.
-                transaction.set(settingsRef, { [fieldToUpdate]: [newItem] });
-            } else {
-                // If the document exists, get the current array and add the new item.
-                const currentItems = settingsDoc.data()[fieldToUpdate] || [];
-                transaction.update(settingsRef, { 
-                    [fieldToUpdate]: [...currentItems, newItem] 
-                });
-            }
+            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         });
         
         toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
@@ -205,14 +199,11 @@ export function CarouselSettings() {
     try {
         await runTransaction(firestore, async (transaction) => {
             const settingsDoc = await transaction.get(settingsRef);
-            if (!settingsDoc.exists()) {
-                console.warn("Settings document does not exist. Cannot delete item.");
-                return; 
-            }
-            
-            const currentItems = settingsDoc.data()[fieldToUpdate] || [];
+            const currentData = settingsDoc.data() || {};
+            const currentItems = currentData[fieldToUpdate] || [];
             const updatedItems = currentItems.filter((item: any) => item.id !== itemToDelete.id);
-            transaction.update(settingsRef, { [fieldToUpdate]: updatedItems });
+            
+            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         });
         
         toast({ title: "Item removed" });
