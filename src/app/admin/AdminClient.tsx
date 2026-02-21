@@ -45,16 +45,28 @@ export function AdminClient() {
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState('');
   const [logoUrlStatus, setLogoUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
+  const [logoUrlError, setLogoUrlError] = useState<string | null>(null);
 
   const verifyUrl = useCallback((url: string) => {
-    if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
-        setLogoUrlStatus('idle');
-        return;
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) {
+      setLogoUrlStatus('idle');
+      setLogoUrlError(null);
+      return;
+    }
+    if (!trimmedUrl.startsWith('/') && !trimmedUrl.startsWith('http')) {
+      setLogoUrlStatus('invalid');
+      setLogoUrlError("URL must start with '/' (for local files) or 'http'.");
+      return;
     }
     setLogoUrlStatus('verifying');
+    setLogoUrlError(null);
     const img = new window.Image();
     img.onload = () => setLogoUrlStatus('valid');
-    img.onerror = () => setLogoUrlStatus('invalid');
+    img.onerror = () => {
+        setLogoUrlStatus('invalid');
+        setLogoUrlError("Could not load image. Check if the URL is correct and publicly accessible.");
+    }
     img.src = encodeURI(url);
   }, []);
 
@@ -68,6 +80,7 @@ export function AdminClient() {
   useEffect(() => {
     if (companyLogoUrl === (settings?.companyLogoUrl || '')) {
         setLogoUrlStatus('idle');
+        setLogoUrlError(null);
         return;
     }
 
@@ -87,6 +100,14 @@ export function AdminClient() {
   };
 
   const handleCompanySettingsSave = () => {
+    if (logoUrlStatus !== 'valid' && companyLogoUrl.trim() !== '') {
+        toast({
+            variant: "destructive",
+            title: 'Cannot Save',
+            description: 'The company logo URL is invalid. Please fix it before saving.'
+        });
+        return;
+    }
     if (settingsRef) {
       setDocumentNonBlocking(settingsRef, { companyName, companyLogoUrl }, { merge: true });
       toast({
@@ -166,7 +187,7 @@ export function AdminClient() {
                                 {logoUrlStatus === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive" />}
                             </div>
                         </div>
-                        {logoUrlStatus === 'invalid' && <p className="text-xs text-destructive mt-1">Could not load image. Check if the URL is correct and publicly accessible.</p>}
+                        {logoUrlError && <p className="text-xs text-destructive mt-1">{logoUrlError}</p>}
                          <p className="text-xs text-muted-foreground mt-2">
                             <strong>Recommended:</strong> In the file explorer, use the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder (all lowercase) located at the top level of your project (alongside the `src` folder). Place your logo inside it, then enter its <strong>URL path</strong> here. The path must start with a forward slash (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/logo.png</code>). Next.js requires the folder to be named `public` in all lowercase.
                         </p>

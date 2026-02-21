@@ -55,16 +55,27 @@ export function CarouselSettings() {
   const [useOwnAudio, setUseOwnAudio] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [imageUrlStatus, setImageUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
+  const [urlError, setUrlError] = useState<string | null>(null);
+
 
   const verifyMediaUrl = useCallback((url: string, type: 'image' | 'video' | 'music') => {
-    if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
-        setImageUrlStatus('idle');
-        return;
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) {
+      setImageUrlStatus('idle');
+      setUrlError(null);
+      return;
+    }
+    
+    if (!trimmedUrl.startsWith('/') && !trimmedUrl.startsWith('http')) {
+      setImageUrlStatus('invalid');
+      setUrlError("URL must start with '/' (for local files) or 'http'.");
+      return;
     }
     
     setImageUrlStatus('verifying');
+    setUrlError(null);
     
-    const encodedUrl = encodeURI(url);
+    const encodedUrl = encodeURI(trimmedUrl);
 
     let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
     const timeout = 5000;
@@ -84,11 +95,13 @@ export function CarouselSettings() {
     const handleSuccess = () => {
         cleanup();
         setImageUrlStatus('valid');
+        setUrlError(null);
     };
 
     const handleError = () => {
         cleanup();
         setImageUrlStatus('invalid');
+        setUrlError("Could not load media. Check if the URL is correct and the file is publicly accessible.");
     };
     
     timer = setTimeout(handleError, timeout);
@@ -110,11 +123,6 @@ export function CarouselSettings() {
   useEffect(() => {
     if (!dialogState) return;
 
-    if (imageUrl === '') {
-        setImageUrlStatus('idle');
-        return;
-    }
-
     const handler = setTimeout(() => {
         verifyMediaUrl(imageUrl, dialogState.type === 'music' ? 'music' : (dialogState.type === 'video' ? 'video' : 'image'));
     }, 500);
@@ -132,15 +140,22 @@ export function CarouselSettings() {
     setUseOwnAudio(false);
     setIsSaving(false);
     setImageUrlStatus('idle');
+    setUrlError(null);
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!dialogState || !settingsRef || !firestore || isSaving || imageUrlStatus !== 'valid') {
-        if (imageUrlStatus !== 'valid') {
-             toast({ variant: "destructive", title: "Invalid URL", description: "Please provide a valid and accessible URL." });
-        }
-        return;
+    if (!dialogState || !settingsRef || !firestore || isSaving) {
+      return;
+    }
+
+    if (imageUrlStatus !== 'valid') {
+      toast({ 
+        variant: "destructive", 
+        title: "Invalid URL", 
+        description: urlError || "Please provide a valid and accessible URL." 
+      });
+      return;
     }
 
     setIsSaving(true);
@@ -292,6 +307,7 @@ export function CarouselSettings() {
                         <p>
                            Provide a URL for your media file. Local files must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> and point to a file in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder. The URL will be verified automatically.
                         </p>
+                        <p><strong>Recommendations:</strong> For best performance, keep images under 1MB and videos under 50MB.</p>
                     </div>
                 </AlertDialogDescription>
             </AlertDialogHeader>
@@ -318,7 +334,7 @@ export function CarouselSettings() {
                             {imageUrlStatus === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive" />}
                         </div>
                     </div>
-                    {imageUrlStatus === 'invalid' && <p className="text-xs text-destructive mt-1">Could not load media. Check if the URL is correct and publicly accessible.</p>}
+                    {urlError && <p className="text-xs text-destructive mt-1">{urlError}</p>}
                 </div>
 
                 {!isMusic && (
