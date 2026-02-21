@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, updateDoc } from "firebase/firestore";
+import { doc, runTransaction, updateDoc, setDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,25 @@ import { cn } from "@/lib/utils";
 type DialogState = {
     type: 'image' | 'video' | 'music';
 } | null;
+
+const handleFirestoreError = (error: any, operation: string, toast: any) => {
+    console.error(`${operation.toUpperCase()} FAILED:`, error);
+    if (error.code === 'unavailable' || error.code === 'network-request-failed') {
+        toast({
+            variant: "destructive",
+            title: "CRITICAL: Connection Blocked by Firewall",
+            description: `The ${operation} operation failed because your PC's firewall is blocking the connection to the local database. Please allow the app through your firewall to continue.`,
+            duration: 20000,
+        });
+    } else {
+        toast({
+            variant: "destructive",
+            title: `${operation} Failed`,
+            description: `The database operation failed. Error: ${error.message || 'Unknown error'}`,
+            duration: 15000,
+        });
+    }
+}
 
 export function CarouselSettings() {
   const { firestore } = useFirebase();
@@ -177,13 +196,7 @@ export function CarouselSettings() {
         handleCloseDialog();
 
     } catch (error: any) {
-        console.error("SAVE FAILED:", error);
-        toast({
-            variant: "destructive",
-            title: "Save Failed",
-            description: `The database operation failed. Error: ${error.message || 'Unknown error'}`,
-            duration: 15000,
-        });
+        handleFirestoreError(error, 'Save', toast);
     } finally {
         setIsSaving(false);
     }
@@ -211,34 +224,21 @@ export function CarouselSettings() {
       });
       toast({ title: "Item removal successful" });
     } catch(error: any) {
-        console.error("DELETE FAILED:", error);
-        toast({ 
-            variant: "destructive", 
-            title: "Delete Failed", 
-            description: `The database operation failed. Error: ${error.message || "An unknown error occurred."}`,
-            duration: 15000
-        });
+        handleFirestoreError(error, 'Delete', toast);
     } finally {
         setItemToDelete(null);
     }
   }
 
-  const handleDrop = (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
-    if (!settingsRef) return;
+  const handleDrop = async (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
+    if (!settingsRef || !firestore) return;
     
-    updateDoc(settingsRef, { [field]: newItems })
-        .then(() => {
-            toast({ title: "Reorder successful" });
-        })
-        .catch((error: any) => {
-            console.error("REORDER FAILED:", error);
-            toast({
-                variant: "destructive",
-                title: "Reorder Failed",
-                description: `The database operation failed. Error: ${error.message || 'Unknown error'}`,
-                duration: 15000
-            });
-        });
+    try {
+        await setDoc(settingsRef, { [field]: newItems }, { merge: true });
+        toast({ title: "Reorder successful" });
+    } catch (error: any) {
+        handleFirestoreError(error, 'Reorder', toast);
+    }
   };
 
   const handleCarouselDragStart = (index: number, id: string) => {
@@ -260,7 +260,7 @@ export function CarouselSettings() {
     dragItem.current = null;
     dragOverItem.current = null;
     
-    handleDrop(currentItems, 'placeholderImages');
+    await handleDrop(currentItems, 'placeholderImages');
   };
 
   const handleMusicDragStart = (index: number, id: string) => {
@@ -282,7 +282,7 @@ export function CarouselSettings() {
     dragMusicItem.current = null;
     dragOverMusicItem.current = null;
 
-    handleDrop(currentTracks, 'backgroundMusic');
+    await handleDrop(currentTracks, 'backgroundMusic');
   };
 
   const renderDialogContent = () => {
