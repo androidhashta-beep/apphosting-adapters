@@ -148,16 +148,19 @@ export function DisplayClient() {
     router.push('/');
   };
   
+  const logoUrl = settings?.companyLogoUrl?.trim();
+  const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
+  
   return (
     <AudioContext.Provider value={{ setBgMusicMuted }}>
       <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
         <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-4">
-                {settings?.companyLogoUrl && settings.companyLogoUrl.trim() && (
+                {isLogoValid && (
                     <div className="relative h-12">
                         <Image 
-                            src={settings.companyLogoUrl.trim()}
-                            alt={`${settings.companyName || 'Company'} Logo`}
+                            src={logoUrl}
+                            alt={`${settings?.companyName || 'Company'} Logo`}
                             width={300}
                             height={48}
                             className="h-full w-auto object-contain"
