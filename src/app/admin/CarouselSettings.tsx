@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,21 +159,24 @@ export function CarouselSettings() {
         };
 
     try {
-        const settingsDoc = await getDoc(settingsRef);
-        const currentData = settingsDoc.data() as Settings | undefined;
+      await runTransaction(firestore, async (transaction) => {
+        const settingsDoc = await transaction.get(settingsRef);
+        const currentData = settingsDoc.exists() ? settingsDoc.data() as Partial<Settings> : {};
         
-        const existingItems = currentData?.[fieldToUpdate as keyof Settings];
+        const existingItems = currentData[fieldToUpdate as keyof Settings] || [];
 
         if (Array.isArray(existingItems)) {
             const updatedItems = [...existingItems, newItem];
-            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+            transaction.set(settingsRef, { ...currentData, [fieldToUpdate]: updatedItems });
         } else {
-            // If the field doesn't exist or is not an array, create it.
-            await setDoc(settingsRef, { [fieldToUpdate]: [newItem] }, { merge: true });
+             // If for some reason it's not an array, start a new one
+             transaction.set(settingsRef, { ...currentData, [fieldToUpdate]: [newItem] });
         }
+      });
         
-        toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
-        handleCloseDialog();
+      toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
+      handleCloseDialog();
+
     } catch (error: any) {
         console.error("Save failed:", error);
         toast({ 
@@ -193,19 +196,23 @@ export function CarouselSettings() {
     const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
     
     try {
-        const settingsDoc = await getDoc(settingsRef);
-        const currentData = settingsDoc.data() as Settings | undefined;
+        await runTransaction(firestore, async (transaction) => {
+            const settingsDoc = await transaction.get(settingsRef);
+            if (!settingsDoc.exists()) {
+                // Document doesn't exist, so there's nothing to delete from.
+                return;
+            }
 
-        const existingItems = currentData?.[fieldToUpdate as keyof Settings];
+            const currentData = settingsDoc.data() as Partial<Settings>;
+            const existingItems = currentData[fieldToUpdate as keyof Settings];
 
-        if (Array.isArray(existingItems)) {
-            const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-            toast({ title: "Item removed" });
-        } else {
-            toast({ variant: "destructive", title: "Cannot Delete", description: "The list does not exist." });
-        }
-
+            if (Array.isArray(existingItems)) {
+                const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
+                transaction.set(settingsRef, { ...currentData, [fieldToUpdate]: updatedItems });
+            }
+        });
+        
+        toast({ title: "Item removed" });
     } catch(error: any) {
         console.error("Delete failed:", error);
         toast({ 
@@ -477,5 +484,7 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
 
     
