@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -18,9 +17,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 
 export function UserManagement() {
   const { profile, isLoading } = useUserProfile();
+  const projectId = "studio-2232077555-525b9";
+  const firestoreUsersUrl = `https://console.firebase.google.com/project/${projectId}/firestore/data/~2Fusers`;
 
   const getUsernameFromEmail = (email: string) => {
     if (email === 'anonymous-user') return 'anonymous';
@@ -84,6 +88,14 @@ export function UserManagement() {
             </li>
             <li>
              To make a user an admin, you must manually edit their 'role' field in the Firestore 'users' collection from 'staff' to 'admin'.
+            </li>
+            <li>
+               <Button asChild variant="link" className="p-0 h-auto text-xs -ml-1">
+                 <Link href={firestoreUsersUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1">
+                  Open Firebase Console to edit roles
+                  <ExternalLink className="h-3 w-3" />
+                 </Link>
+               </Button>
             </li>
           </ul>
         </div>
