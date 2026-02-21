@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -109,41 +108,46 @@ export function DisplayClient() {
       </header>
       
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 md:grid-rows-2 gap-4 p-4">
-        {/* Quadrant 1: Most Recent Ticket */}
-        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col items-center justify-center p-8 text-center border-4 border-yellow-400 shadow-2xl shadow-yellow-500/50">
-            {isLoading ? (
-                <Skeleton className="bg-slate-700/50 h-full w-full" />
-            ) : mostRecentTicket ? (
-                 <div className="animate-pulse-slow w-full h-full flex flex-col items-center justify-center">
-                    <h2 className="text-5xl font-bold text-yellow-300">NOW SERVING</h2>
-                    <p className="text-9xl font-extrabold my-4 text-white" style={{ fontSize: '10rem' }}>{mostRecentTicket.ticketNumber}</p>
-                    <p className="text-6xl font-bold text-white">Please proceed to</p>
-                    <p className="text-8xl font-extrabold mt-2 text-yellow-300">{mostRecentTicket.stationName}</p>
-                </div>
-            ) : (
-                <div className="flex items-center justify-center h-full">
-                    <p className="text-4xl text-slate-300">No tickets being served.</p>
-                </div>
-            )}
-        </div>
-
-        {/* Quadrant 2: Other Serving Tickets */}
+        {/* Quadrant 1: All Ticket Info */}
         <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
             {isLoading ? (
                 <Skeleton className="bg-slate-700/50 h-full w-full" />
             ) : (
-                <NowServing servingData={otherServingTickets} />
+                <>
+                    <div className="flex-grow flex flex-col items-center justify-center p-4 text-center border-b-2 border-white/30">
+                    {mostRecentTicket ? (
+                        <div className="animate-pulse-slow">
+                            <h2 className="text-3xl lg:text-4xl font-bold text-yellow-300">NOW SERVING</h2>
+                            <p className="text-7xl lg:text-8xl font-extrabold my-2 text-white">{mostRecentTicket.ticketNumber}</p>
+                            <p className="text-3xl lg:text-4xl font-bold text-white">Please proceed to</p>
+                            <p className="text-5xl lg:text-6xl font-extrabold mt-1 text-yellow-300">{mostRecentTicket.stationName}</p>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full">
+                           <p className="text-3xl text-slate-300">No tickets being served.</p>
+                        </div>
+                    )}
+                    </div>
+                    <div className="flex-shrink-0 h-2/5 overflow-hidden">
+                        <NowServing servingData={otherServingTickets} />
+                    </div>
+                </>
             )}
         </div>
-
-        {/* Quadrant 3: Video Panel */}
+        
+        {/* Quadrant 2: Video Panel */}
         <div className="w-full h-full">
             <InfoPanel settings={settings} contentType="videos" />
         </div>
 
-        {/* Quadrant 4: Image Panel */}
+        {/* Quadrant 3: Image Panel */}
         <div className="w-full h-full">
             <InfoPanel settings={settings} contentType="images" />
+        </div>
+
+        {/* Quadrant 4: All Media Panel */}
+        <div className="w-full h-full">
+            <InfoPanel settings={settings} contentType="all" />
         </div>
       </main>
 
