@@ -1,5 +1,5 @@
 
-'use client';
+"use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
@@ -171,8 +171,8 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
             ]}
         >
             <CarouselContent>
-            {mediaItems.map((item, index) => (
-                <CarouselItem key={index} className="relative w-full h-full">
+            {mediaItems.map((item) => (
+                <CarouselItem key={item.id} className="relative w-full h-full">
                    {item.type === 'video' ? (
                        <VideoPlayer 
                           src={item.imageUrl} 
