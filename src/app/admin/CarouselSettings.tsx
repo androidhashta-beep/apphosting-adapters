@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Film, Image as ImageIcon, PlusCircle, Music, Trash2, Volume2, VolumeX, Folder, Loader2 } from "lucide-react";
+import { Film, Image as ImageIcon, PlusCircle, Music, Trash2, Volume2, VolumeX, Folder, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +28,12 @@ import { Textarea } from "@/components/ui/textarea";
 type DialogState = {
     type: 'image' | 'video' | 'music';
 } | null;
+
+type UrlEntry = {
+    id: number;
+    url: string;
+    status: 'idle' | 'verifying' | 'valid' | 'invalid';
+};
 
 export function CarouselSettings() {
   const { firestore } = useFirebase();
@@ -38,7 +44,13 @@ export function CarouselSettings() {
   
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [itemToDelete, setItemToDelete] = useState<{type: 'image' | 'music', id: string} | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
+  
+  const [urlEntries, setUrlEntries] = useState<UrlEntry[]>([]);
+  const [description, setDescription] = useState('');
+  const [hint, setHint] = useState('');
+  const [useOwnAudio, setUseOwnAudio] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [urlsInput, setUrlsInput] = useState('');
 
   const verifyMediaUrl = (url: string, type: 'image' | 'video' | 'music'): Promise<{ url: string; status: 'valid' | 'invalid' }> => {
     return new Promise((resolve) => {
@@ -55,7 +67,6 @@ export function CarouselSettings() {
             if (element) {
                 element.onload = null;
                 element.onerror = null;
-                (element as any).oncanplay = null;
                 (element as any).onloadedmetadata = null;
                 if ('src' in element) element.src = '';
             }
@@ -79,69 +90,99 @@ export function CarouselSettings() {
             element.onerror = handleError;
         } else { // video or music
             element = document.createElement(type);
-            element.oncanplay = handleSuccess;
+            element.onloadedmetadata = handleSuccess; // Use onloadedmetadata for faster checks on media files
             element.onerror = handleError;
         }
         element.src = url;
     });
   };
-
-  const handleSaveItem = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!dialogState || !settings || !settingsRef || isVerifying) return;
-
-    setIsVerifying(true);
-
-    const formData = new FormData(e.currentTarget);
-    const description = formData.get('description') as string;
-    const urlsInput = formData.get('urls') as string;
-    const hint = formData.get('hint') as string;
-    const useOwnAudio = formData.get('useOwnAudio') === 'on';
-
-    if (!description || !urlsInput) {
-        toast({ variant: "destructive", title: "Save Failed", description: "Description and URLs are required." });
-        setIsVerifying(false);
-        return;
-    }
-
+  
+  const handleAddUrls = () => {
     const urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url);
+    const newEntries: UrlEntry[] = urls.map((url, index) => ({
+        id: Date.now() + index,
+        url,
+        status: 'idle',
+    }));
+    setUrlEntries(prev => [...prev, ...newEntries]);
+    setUrlsInput('');
+  };
 
-    if (urls.length === 0) {
-        toast({ variant: "destructive", title: "Save Failed", description: "Please provide at least one valid URL." });
-        setIsVerifying(false);
+  const handleRemoveUrl = (id: number) => {
+      setUrlEntries(prev => prev.filter(entry => entry.id !== id));
+  };
+  
+  const handleCloseDialog = () => {
+    setDialogState(null);
+    setUrlEntries([]);
+    setDescription('');
+    setHint('');
+    setUseOwnAudio(false);
+    setUrlsInput('');
+    setIsSaving(false);
+  };
+
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!dialogState || !settings || !settingsRef || isSaving) return;
+
+    if (!description) {
+        toast({ variant: "destructive", title: "Save Failed", description: "Description field is required." });
+        return;
+    }
+    if (urlEntries.length === 0) {
+        toast({ variant: "destructive", title: "Save Failed", description: "Please add at least one URL." });
         return;
     }
 
-    const verificationPromises = urls.map(url => verifyMediaUrl(url, dialogState.type));
+    setIsSaving(true);
+
+    const verificationPromises = urlEntries.map(entry => {
+        setUrlEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: 'verifying' } : e));
+        return verifyMediaUrl(entry.url, dialogState.type).then(result => ({ ...result, id: entry.id }));
+    });
+
     const results = await Promise.all(verificationPromises);
-    const invalidUrls = results.filter(result => result.status === 'invalid').map(result => result.url);
+
+    let allValid = true;
+    results.forEach(result => {
+        setUrlEntries(prev => prev.map(e => {
+            if (e.id === result.id) {
+                if (result.status === 'invalid') allValid = false;
+                return { ...e, status: result.status };
+            }
+            return e;
+        }));
+    });
     
-    if (invalidUrls.length > 0) {
+    if (!allValid) {
         toast({
             variant: "destructive",
-            title: "Could Not Load Media",
-            description: `The following URLs could not be loaded. Check if the paths are correct and accessible: ${invalidUrls.join(', ')}`,
+            title: "Could Not Load Some Media",
+            description: `One or more URLs are invalid. Please remove them and try again.`,
             duration: 10000,
         });
-        setIsVerifying(false);
+        setIsSaving(false);
         return;
     }
 
     try {
+        const validUrls = urlEntries.map(entry => entry.url);
+
         if (dialogState.type === 'music') {
-            const newTracks: AudioTrack[] = urls.map((url, index) => ({
+            const newTracks: AudioTrack[] = validUrls.map((url, index) => ({
                 id: `music-${Date.now()}-${index}`,
-                description: urls.length > 1 ? `${description} (${index + 1})` : description,
+                description: validUrls.length > 1 ? `${description} (${index + 1})` : description,
                 url,
             }));
             const backgroundMusic = [...(settings.backgroundMusic || []), ...newTracks];
             setDocumentNonBlocking(settingsRef, { backgroundMusic }, { merge: true });
             toast({ title: `${newTracks.length} music track(s) added` });
         } else { // image or video
-            const newImages: ImagePlaceholder[] = urls.map((url, index) => ({
+            const newImages: ImagePlaceholder[] = validUrls.map((url, index) => ({
                 id: `${dialogState.type}-${Date.now()}-${index}`,
                 type: dialogState.type,
-                description: urls.length > 1 ? `${description} (${index + 1})` : description,
+                description: validUrls.length > 1 ? `${description} (${index + 1})` : description,
                 imageUrl: url,
                 imageHint: hint,
                 ...(dialogState.type === 'video' && { useOwnAudio })
@@ -152,12 +193,11 @@ export function CarouselSettings() {
         }
     } catch(error: any) {
         toast({ variant: "destructive", title: "Save Failed", description: error.message });
-        setIsVerifying(false);
+        setIsSaving(false);
         return;
     }
 
-    setIsVerifying(false);
-    setDialogState(null);
+    handleCloseDialog();
   };
 
   const handleDeleteItem = () => {
@@ -179,25 +219,16 @@ export function CarouselSettings() {
     if (!dialogState) return null;
     const isVideo = dialogState.type === 'video';
     const isMusic = dialogState.type === 'music';
-    const title = isMusic ? "Add Background Music Track(s)" : isVideo ? "Add Video(s)" : "Add Image(s)";
-    const type = isMusic ? "music track" : isVideo ? "video" : "image";
-
-    let supportedFormatsNotice = '';
-    if (dialogState.type === 'image') supportedFormatsNotice = 'Supported: jpg, png, gif, webp, svg.';
-    else if (dialogState.type === 'video') supportedFormatsNotice = 'Supported: mp4, webm, ogg.';
-    else if (dialogState.type === 'music') supportedFormatsNotice = 'Supported: mp3, wav, ogg.';
+    const title = isMusic ? "Add Background Music" : isVideo ? "Add Video(s)" : "Add Image(s)";
     
     return (
-        <form onSubmit={handleSaveItem}>
+        <form onSubmit={handleSave}>
             <AlertDialogHeader>
                 <AlertDialogTitle>{title}</AlertDialogTitle>
-                <AlertDialogDescription asChild>
+                 <AlertDialogDescription asChild>
                      <div className="space-y-4 text-left pt-4 text-sm text-muted-foreground">
                         <p>
-                           <strong>Recommended:</strong> In the file explorer, use the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder (all lowercase) at the top level of your project (alongside `src`). Inside it, create a folder named <code className="font-mono bg-muted text-foreground rounded px-1">carousel</code>. Upload media there, then add their <strong>URL paths</strong> below (one per line). Each path must start with a forward slash (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/carousel/my-video.mp4</code>). **Important:** The folder must be named `public` in all lowercase.
-                        </p>
-                         <p>
-                            <strong>Advanced (less reliable):</strong> You can use public URLs from services like Google Drive, but they may fail to load due to security restrictions. For Google Drive, set sharing to "Anyone with the link" and convert the link from <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code> to <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code>.
+                           Add media by pasting URLs (one per line) into the text box and clicking "Add". Local file paths must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> and point to a file in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder.
                         </p>
                     </div>
                 </AlertDialogDescription>
@@ -205,38 +236,58 @@ export function CarouselSettings() {
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="item-description">Description</Label>
-                    <Input id="item-description" name="description" placeholder={`A short description for the ${type}(s)`} required />
-                    <p className="text-xs text-muted-foreground">If adding multiple items, a number will be appended to each description (e.g., "My Item (1)").</p>
+                    <Input id="item-description" name="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="A short description for the media item(s)" required />
+                    <p className="text-xs text-muted-foreground">If adding multiple items, a number will be appended (e.g., "My Item (1)").</p>
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="item-urls">File URLs (one per line)</Label>
-                    <Textarea id="item-urls" name="urls" placeholder={"/carousel/item1.jpg\n/carousel/item2.mp4\nhttps://drive.google.com/uc?id=YOUR_FILE_ID"} required rows={5} />
-                     <p className="text-xs text-muted-foreground">
-                        Your URLs will be verified on save. For local files, paths must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code>. {supportedFormatsNotice}
-                    </p>
+                 <div className="space-y-2">
+                    <Label htmlFor="item-urls">File URLs</Label>
+                    <div className="flex items-start gap-2">
+                        <Textarea id="item-urls" value={urlsInput} onChange={e => setUrlsInput(e.target.value)} placeholder={"/carousel/item1.jpg\n/carousel/item2.mp4\nhttps://drive.google.com/uc?id=YOUR_FILE_ID"} rows={4} />
+                        <Button type="button" variant="outline" onClick={handleAddUrls} disabled={!urlsInput.trim()}>Add</Button>
+                    </div>
                 </div>
+
+                <div className="space-y-2 rounded-lg border bg-muted/20 p-2 min-h-[6rem] max-h-48 overflow-y-auto">
+                    {urlEntries.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-4">No URLs added yet.</p>
+                    ) : urlEntries.map(entry => (
+                        <div key={entry.id} className="flex items-center justify-between gap-2 text-sm p-1.5 rounded-md bg-background border my-1">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                {entry.status === 'idle' && <ImageIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+                                {entry.status === 'verifying' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" />}
+                                {entry.status === 'valid' && <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />}
+                                {entry.status === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />}
+                                <span className="truncate" title={entry.url}>{entry.url}</span>
+                            </div>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0" onClick={() => handleRemoveUrl(entry.id)} disabled={isSaving}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+
                 {!isMusic && (
                     <div className="space-y-2">
                         <Label htmlFor="item-hint">AI Image Hint (Optional)</Label>
-                        <Input id="item-hint" name="hint" placeholder="e.g., 'training room'" />
+                        <Input id="item-hint" name="hint" value={hint} onChange={e => setHint(e.target.value)} placeholder="e.g., 'training room'" />
                         <p className="text-xs text-muted-foreground">A hint for AI to find a better stock photo later. Applied to all added images.</p>
                     </div>
                 )}
                  {isVideo && (
                     <div className="flex items-center space-x-2">
-                        <Switch id="useOwnAudio" name="useOwnAudio" />
+                        <Switch id="useOwnAudio" name="useOwnAudio" checked={useOwnAudio} onCheckedChange={setUseOwnAudio} />
                         <Label htmlFor="useOwnAudio">Play video's own audio (for all added videos)</Label>
                     </div>
                 )}
             </div>
             <AlertDialogFooter>
-                <AlertDialogCancel type="button" onClick={() => setDialogState(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction type="submit" disabled={isVerifying}>
-                    {isVerifying ? (
+                <AlertDialogCancel type="button" onClick={handleCloseDialog}>Cancel</AlertDialogCancel>
+                <AlertDialogAction type="submit" disabled={isSaving}>
+                    {isSaving ? (
                         <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying & Saving...
                         </>
-                    ) : 'Save'}
+                    ) : 'Verify & Save'}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </form>
@@ -331,7 +382,7 @@ export function CarouselSettings() {
             </CardFooter>
         </Card>
 
-        <AlertDialog open={!!dialogState} onOpenChange={(open) => !open && setDialogState(null)}>
+        <AlertDialog open={!!dialogState} onOpenChange={(open) => !open && handleCloseDialog()}>
             <AlertDialogContent>
               {renderDialogContent()}
             </AlertDialogContent>
@@ -352,9 +403,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
-
-    
-
-    
