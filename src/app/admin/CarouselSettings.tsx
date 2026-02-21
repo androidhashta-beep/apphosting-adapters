@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -41,41 +42,54 @@ export function CarouselSettings() {
   const handleSaveItem = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!dialogState || !settings || !settingsRef) return;
-    
+
     const formData = new FormData(e.currentTarget);
-    const id = `${dialogState.type}-${Date.now()}`;
-    
+    const description = formData.get('description') as string;
+    const urlsInput = formData.get('urls') as string;
+    const hint = formData.get('hint') as string;
+    const useOwnAudio = formData.get('useOwnAudio') === 'on';
+
+    if (!description || !urlsInput) {
+        toast({ variant: "destructive", title: "Save Failed", description: "Description and URLs are required." });
+        return;
+    }
+
+    const urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url);
+
+    if (urls.length === 0) {
+        toast({ variant: "destructive", title: "Save Failed", description: "Please provide at least one valid URL." });
+        return;
+    }
+
     try {
         if (dialogState.type === 'music') {
-            const newTrack: AudioTrack = {
-                id,
-                description: formData.get('description') as string,
-                url: formData.get('url') as string,
-            };
-            if (!newTrack.description || !newTrack.url) throw new Error("Description and URL are required.");
-            const backgroundMusic = [...(settings.backgroundMusic || []), newTrack];
+            const newTracks: AudioTrack[] = urls.map((url, index) => ({
+                id: `music-${Date.now()}-${index}`,
+                description: urls.length > 1 ? `${description} (${index + 1})` : description,
+                url,
+            }));
+            const backgroundMusic = [...(settings.backgroundMusic || []), ...newTracks];
             setDocumentNonBlocking(settingsRef, { backgroundMusic }, { merge: true });
-            toast({ title: "Music track added" });
+            toast({ title: `${newTracks.length} music track(s) added` });
         } else { // image or video
-             const newImage: ImagePlaceholder = {
-                id,
+            const newImages: ImagePlaceholder[] = urls.map((url, index) => ({
+                id: `${dialogState.type}-${Date.now()}-${index}`,
                 type: dialogState.type,
-                description: formData.get('description') as string,
-                imageUrl: formData.get('url') as string,
-                imageHint: formData.get('hint') as string,
-                ...(dialogState.type === 'video' && { useOwnAudio: (formData.get('useOwnAudio') === 'on') })
-            };
-            if (!newImage.description || !newImage.imageUrl) throw new Error("Description and URL are required.");
-            const placeholderImages = [...(settings.placeholderImages || []), newImage];
+                description: urls.length > 1 ? `${description} (${index + 1})` : description,
+                imageUrl: url,
+                imageHint: hint,
+                ...(dialogState.type === 'video' && { useOwnAudio })
+            }));
+            const placeholderImages = [...(settings.placeholderImages || []), ...newImages];
             setDocumentNonBlocking(settingsRef, { placeholderImages }, { merge: true });
-            toast({ title: `${dialogState.type === 'video' ? 'Video' : 'Image'} added` });
+            toast({ title: `${newImages.length} ${dialogState.type}(s) added` });
         }
     } catch(error: any) {
         toast({ variant: "destructive", title: "Save Failed", description: error.message });
         return;
     }
     setDialogState(null);
-  }
+  };
 
   const handleDeleteItem = () => {
     if (!itemToDelete || !settings || !settingsRef) return;
@@ -96,8 +110,7 @@ export function CarouselSettings() {
     if (!dialogState) return null;
     const isVideo = dialogState.type === 'video';
     const isMusic = dialogState.type === 'music';
-    const title = isMusic ? "Add Background Music" : isVideo ? "Add Video" : "Add Image";
-    const fileExample = isMusic ? "my-song.mp3" : isVideo ? "my-video.mp4" : "my-image.jpg";
+    const title = isMusic ? "Add Background Music" : isVideo ? "Add Videos" : "Add Images";
     const type = isMusic ? "music" : isVideo ? "video" : "image";
     
     return (
@@ -107,10 +120,7 @@ export function CarouselSettings() {
                 <AlertDialogDescription asChild>
                      <div className="space-y-4 text-left pt-4 text-sm text-muted-foreground">
                         <p>
-                            You can use a local file or a public URL (e.g., from Google Drive).
-                        </p>
-                        <p>
-                            <strong>For local files:</strong> Place your file (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">{fileExample}</code>) into the <code className="font-mono bg-muted text-foreground rounded px-1">public/carousel</code> folder, then enter the path <code className="font-mono bg-muted text-foreground rounded px-1">/carousel/{fileExample}</code> as the URL.
+                           Add one or more files. You can use local files from the <code className="font-mono bg-muted text-foreground rounded px-1">public/carousel</code> folder or public URLs (e.g., from Google Drive).
                         </p>
                          <p>
                             <strong>For Google Drive:</strong> Set sharing to "Anyone with the link". Convert the share link from <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code> to <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code> and use that as the URL.
@@ -121,23 +131,24 @@ export function CarouselSettings() {
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="item-description">Description</Label>
-                    <Input id="item-description" name="description" placeholder={`A short description of the ${type}`} required />
+                    <Input id="item-description" name="description" placeholder={`A short description for the ${type}(s)`} required />
+                    <p className="text-xs text-muted-foreground">If adding multiple items, a number will be appended to each description (e.g., "My Image (1)").</p>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="item-url">File URL</Label>
-                    <Input id="item-url" name="url" placeholder={`/carousel/${fileExample} or public URL`} required />
+                    <Label htmlFor="item-urls">File URLs (one per line)</Label>
+                    <Textarea id="item-urls" name="urls" placeholder={"/carousel/item1.jpg\n/carousel/item2.mp4\nhttps://drive.google.com/uc?id=YOUR_FILE_ID"} required rows={5} />
                 </div>
                 {!isMusic && (
                     <div className="space-y-2">
                         <Label htmlFor="item-hint">AI Image Hint (Optional)</Label>
                         <Input id="item-hint" name="hint" placeholder="e.g., 'training room'" />
-                        <p className="text-xs text-muted-foreground">A hint for AI to find a better stock photo later.</p>
+                        <p className="text-xs text-muted-foreground">A hint for AI to find a better stock photo later. Applied to all added images.</p>
                     </div>
                 )}
                  {isVideo && (
                     <div className="flex items-center space-x-2">
                         <Switch id="useOwnAudio" name="useOwnAudio" />
-                        <Label htmlFor="useOwnAudio">Play video's own audio</Label>
+                        <Label htmlFor="useOwnAudio">Play video's own audio (for all added videos)</Label>
                     </div>
                 )}
             </div>
@@ -193,10 +204,10 @@ export function CarouselSettings() {
           </CardContent>
            <CardFooter className="flex flex-col sm:flex-row gap-2 border-t pt-4">
                <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'image'})} disabled={isLoadingSettings}>
-                   <PlusCircle className="mr-2 h-4 w-4" /> Add Image
+                   <PlusCircle className="mr-2 h-4 w-4" /> Add Image(s)
                </Button>
                <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'video'})} disabled={isLoadingSettings}>
-                   <PlusCircle className="mr-2 h-4 w-4" /> Add Video
+                   <PlusCircle className="mr-2 h-4 w-4" /> Add Video(s)
                </Button>
            </CardFooter>
         </Card>
@@ -258,3 +269,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
