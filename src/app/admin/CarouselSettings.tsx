@@ -490,7 +490,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
-
-    
