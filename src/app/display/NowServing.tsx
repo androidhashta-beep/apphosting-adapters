@@ -31,9 +31,9 @@ function abbreviateService(label: string): string {
 export function NowServing({ servingData, services }: { servingData: ServingData[], services: Service[] }) {
   
   return (
-    <div className="w-1/2 h-full flex flex-col">
+    <div className="w-1/2 h-full flex flex-col p-4">
       <div className="grid grid-cols-[1fr,auto,auto] gap-x-8 px-6 pb-2 border-b-2 border-white/50">
-        <h2 className="text-3xl font-bold text-left">Services</h2>
+        <h2 className="text-3xl font-bold text-left justify-self-start">Services</h2>
         <h2 className="text-3xl font-bold text-center min-w-[12rem]">Queue No.</h2>
         <h2 className="text-3xl font-bold text-center min-w-[12rem]">Counter</h2>
       </div>
@@ -41,18 +41,17 @@ export function NowServing({ servingData, services }: { servingData: ServingData
         {/* Serving List */}
         <div className="flex-shrink-0">
           <ul className="flex flex-col">
-            {servingData.map((item, index) => (
+            {servingData.map((item) => (
               <li
                 key={`${item.stationName}-${item.ticketNumber}`}
                 className={cn(
                   "grid grid-cols-[1fr,auto,auto] items-center gap-x-8 px-6 py-3 text-5xl font-extrabold border-b border-white/20 transition-all duration-500",
-                  index === 0 ? "bg-yellow-400 text-blue-900 animate-pulse-slow" : "text-white"
+                  "bg-yellow-400 text-blue-900 animate-pulse-slow"
                 )}
               >
-                <span className={cn("text-left", index > 0 ? "text-blue-300" : "")}>{abbreviateService(item.serviceLabel)}</span>
+                <span className="text-left justify-self-start">{abbreviateService(item.serviceLabel)}</span>
                 <div className="flex flex-col items-center justify-center text-center min-w-[12rem]">
                   <span className="leading-none">{item.ticketNumber}</span>
-                  { index > 0 && <div className="h-1 w-16 bg-white/50 mt-1"></div> }
                 </div>
                 <span className="text-center min-w-[12rem]">{item.stationName.replace('Window ', '')}</span>
               </li>
