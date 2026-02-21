@@ -22,19 +22,25 @@ export function useUserProfile() {
     // If the user is authenticated but has no profile document, create one.
     if (user && !user.isAnonymous && !isProfileLoading && !profile && userProfileRef) {
       const createProfile = async () => {
-        const profileDoc = await getDoc(userProfileRef);
-        if (profileDoc.exists()) {
-          return; // Profile already exists, do nothing
-        }
+        try {
+            const profileDoc = await getDoc(userProfileRef);
+            if (profileDoc.exists()) {
+              return; // Profile already exists, do nothing
+            }
 
-        const newProfile: UserProfile = {
-          uid: user.uid,
-          email: user.email || 'unknown',
-          displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-          role: 'staff', // Default role
-          mustChangePassword: false,
-        };
-        await setDoc(userProfileRef, newProfile);
+            // Default all new users to 'staff' to ensure stable login.
+            // Admin promotion is a manual step for now.
+            const newProfile: UserProfile = {
+              uid: user.uid,
+              email: user.email || 'unknown',
+              displayName: user.displayName || user.email?.split('@')[0] || 'New User',
+              role: 'staff', 
+              mustChangePassword: true, // Force password change for all new users.
+            };
+            await setDoc(userProfileRef, newProfile);
+        } catch (e) {
+            console.error("Failed to create user profile:", e);
+        }
       };
 
       createProfile();

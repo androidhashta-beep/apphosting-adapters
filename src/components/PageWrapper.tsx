@@ -52,7 +52,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
             <ThemeSwitcher />
-            {profile?.role === 'admin' && title !== 'Admin Panel' && (
+            {profile?.role === 'admin' && (
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>

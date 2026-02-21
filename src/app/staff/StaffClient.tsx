@@ -106,14 +106,16 @@ export function StaffClient() {
             <p className="text-muted-foreground">
               There are no stations configured in the system yet.
             </p>
-            <p className="mt-2 text-muted-foreground">
-              Please use the admin panel to add services and stations to get
-              started.
-            </p>
             {profile?.role === 'admin' && (
-                <Button asChild className="mt-6">
-                    <Link href="/admin">Go to Admin Panel</Link>
-                </Button>
+              <>
+              <p className="mt-2 text-muted-foreground">
+                Please use the admin panel to add services and stations to get
+                started.
+              </p>
+              <Button asChild className="mt-6">
+                  <Link href="/admin">Go to Admin Panel</Link>
+              </Button>
+              </>
             )}
           </CardContent>
         </Card>

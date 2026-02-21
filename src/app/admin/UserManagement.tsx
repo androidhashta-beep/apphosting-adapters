@@ -79,18 +79,13 @@ export function UserManagement() {
           <p className="font-bold">Note:</p>
           <ul className="list-disc pl-5 mt-1 space-y-1">
             <li>
-              This panel currently only displays your own profile due to security
-              constraints.
+              This panel currently only displays your own profile.
             </li>
             <li>
-              To add a new user, create their account in the{' '}
-              <strong>Firebase Authentication console</strong> with a
-              username-based email (e.g., `newuser@example.com`) and a temporary
-              password.
+             To create a new user, use the Firebase Authentication console. New users will be assigned the 'staff' role by default.
             </li>
-            <li>
-              The first user to sign in becomes an 'admin'. Subsequent new users
-              are automatically assigned the 'staff' role.
+             <li>
+              To make a user an admin, you must manually edit their 'role' field in the Firestore 'users' collection.
             </li>
           </ul>
         </div>
