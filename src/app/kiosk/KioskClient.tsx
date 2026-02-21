@@ -139,7 +139,7 @@ export function KioskClient() {
   return (
     <>
       <div className="mb-6 text-center">
-            {isLogoValid && (
+            {isLogoValid ? (
                 <div className="flex justify-center mb-4">
                     <Image
                         src={logoUrl}
@@ -150,13 +150,14 @@ export function KioskClient() {
                         priority
                     />
                 </div>
+            ) : (
+                 <div className="flex justify-center mb-4 h-20 items-center">
+                    {/* Placeholder or nothing */}
+                </div>
             )}
             {settings?.companyName && (
                 <h1 className="text-4xl font-bold tracking-tight">{settings.companyName}</h1>
             )}
-            <div className="mt-2 text-muted-foreground text-lg">
-                <Clock />
-            </div>
         </div>
 
       <div className="flex justify-center">
@@ -164,9 +165,12 @@ export function KioskClient() {
           <CardContent className="p-8">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-foreground">Get Your Ticket</h2>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground mt-2 mb-4">
                 Please select a service.
               </p>
+              <div className="text-muted-foreground text-lg">
+                <Clock />
+              </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {isLoadingSettings ? (
