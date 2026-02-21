@@ -14,9 +14,9 @@ export function Clock() {
   }, []);
 
   return (
-    <>
-      <div className="text-xl font-bold">{format(time, 'EEEE, MMMM d, yyyy')}</div>
-      <div className="text-2xl font-extrabold">{format(time, 'hh:mm:ss a')}</div>
-    </>
+    <div className="flex w-full items-center justify-between">
+      <span className="text-xl font-bold">{format(time, 'EEEE, MMMM d, yyyy')}</span>
+      <span className="text-2xl font-extrabold">{format(time, 'hh:mm:ss a')}</span>
+    </div>
   );
 }
