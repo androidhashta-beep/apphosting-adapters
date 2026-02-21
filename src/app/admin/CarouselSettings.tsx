@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useFirebase, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
+import { doc, getDoc, runTransaction, updateDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -143,42 +143,41 @@ export function CarouselSettings() {
     setIsSaving(true);
 
     try {
-        const settingsDoc = await getDoc(settingsRef);
-        const currentData = settingsDoc.exists() ? settingsDoc.data() : {};
+        await runTransaction(firestore, async (transaction) => {
+            const settingsDoc = await transaction.get(settingsRef);
+            const currentData = settingsDoc.exists() ? (settingsDoc.data() as Partial<Settings>) : {};
 
-        const isMusic = dialogState.type === 'music';
-        const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
-        
-        const newItem = isMusic 
-            ? { id: `music-${Date.now()}`, description, url: imageUrl }
-            : {
-                id: `${dialogState.type}-${Date.now()}`,
-                type: dialogState.type,
-                description,
-                imageUrl,
-                imageHint: hint,
-                ...(dialogState.type === 'video' && { useOwnAudio })
-            };
+            const isMusic = dialogState.type === 'music';
+            const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
+            
+            const newItem = isMusic 
+                ? { id: `music-${Date.now()}`, description, url: imageUrl }
+                : {
+                    id: `${dialogState.type}-${Date.now()}`,
+                    type: dialogState.type,
+                    description,
+                    imageUrl,
+                    imageHint: hint,
+                    ...(dialogState.type === 'video' && { useOwnAudio })
+                };
 
-        const currentItems = currentData[fieldToUpdate] || [];
-        if (!Array.isArray(currentItems)) {
-            throw new Error(`Database field '${fieldToUpdate}' is in an unexpected format.`);
-        }
+            const currentItems = currentData[fieldToUpdate] || [];
+            const safeCurrentItems = Array.isArray(currentItems) ? currentItems : [];
+            const updatedItems = [...safeCurrentItems, newItem];
+
+            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        });
         
-        const updatedItems = [...currentItems, newItem];
-        
-        setDocumentNonBlocking(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-        
-        toast({ title: "Save Initiated", description: "Media item is being added." });
+        toast({ title: "Save Successful", description: "Media item has been added." });
         handleCloseDialog();
 
     } catch (error: any) {
-        console.error("Save preparation failed:", error);
-        toast({ 
-            variant: "destructive", 
-            title: "Save Failed", 
-            description: error.message || "An unknown error occurred while preparing the data.",
-            duration: 10000
+        console.error("SAVE FAILED:", error);
+        toast({
+            variant: "destructive",
+            title: "Save Failed",
+            description: `The database operation failed. Error: ${error.message || 'Unknown error'}`,
+            duration: 15000,
         });
     } finally {
         setIsSaving(false);
@@ -187,32 +186,34 @@ export function CarouselSettings() {
 
   const handleDeleteItem = async () => {
     if (!itemToDelete || !settingsRef || !firestore) return;
-
-    const isMusic = itemToDelete.type === 'music';
-    const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
     
     try {
-        const settingsDoc = await getDoc(settingsRef);
+      await runTransaction(firestore, async (transaction) => {
+        const settingsDoc = await transaction.get(settingsRef);
         if (!settingsDoc.exists()) {
-            setItemToDelete(null);
-            return;
+          // Document doesn't exist, so there's nothing to delete from.
+          return;
         }
 
+        const isMusic = itemToDelete.type === 'music';
+        const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
         const currentData = settingsDoc.data();
         const existingItems = currentData[fieldToUpdate];
 
         if (Array.isArray(existingItems)) {
-            const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-            setDocumentNonBlocking(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-            toast({ title: "Item removal initiated" });
+          const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
+          // Use transaction.set with merge:true to update the specific field.
+          transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         }
+      });
+      toast({ title: "Item removal successful" });
     } catch(error: any) {
-        console.error("Delete failed:", error);
+        console.error("DELETE FAILED:", error);
         toast({ 
             variant: "destructive", 
             title: "Delete Failed", 
-            description: error.message || "An unknown error occurred.",
-            duration: 10000
+            description: `The database operation failed. Error: ${error.message || "An unknown error occurred."}`,
+            duration: 15000
         });
     } finally {
         setItemToDelete(null);
@@ -220,11 +221,21 @@ export function CarouselSettings() {
   }
 
   const handleDrop = (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
-    if (!settingsRef || !firestore) return;
+    if (!settingsRef) return;
     
-    setDocumentNonBlocking(settingsRef, { [field]: newItems }, { merge: true });
-
-    toast({ title: "Reorder initiated" });
+    updateDoc(settingsRef, { [field]: newItems })
+        .then(() => {
+            toast({ title: "Reorder successful" });
+        })
+        .catch((error: any) => {
+            console.error("REORDER FAILED:", error);
+            toast({
+                variant: "destructive",
+                title: "Reorder Failed",
+                description: `The database operation failed. Error: ${error.message || 'Unknown error'}`,
+                duration: 15000
+            });
+        });
   };
 
   const handleCarouselDragStart = (index: number, id: string) => {
@@ -474,5 +485,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
