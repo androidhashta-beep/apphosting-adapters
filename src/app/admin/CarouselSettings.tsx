@@ -66,6 +66,12 @@ export function CarouselSettings() {
       return;
     }
     
+    if (trimmedUrl.startsWith('/home/') || trimmedUrl.startsWith('/Users/') || trimmedUrl.includes('studio/public/')) {
+        setImageUrlStatus('invalid');
+        setUrlError("Invalid URL format. Please provide a web path starting from the 'public' folder (e.g., '/image.jpg'), not a full file system path.");
+        return;
+    }
+
     if (!trimmedUrl.startsWith('/') && !trimmedUrl.startsWith('http')) {
       setImageUrlStatus('invalid');
       setUrlError("URL must start with '/' (for local files) or 'http'.");
@@ -175,12 +181,16 @@ export function CarouselSettings() {
     try {
       await runTransaction(firestore, async (transaction) => {
         const settingsDoc = await transaction.get(settingsRef);
-        const currentData = settingsDoc.data() as Settings | undefined;
-        
-        const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
-        const newItems = [...currentItems, newItem];
-        
-        transaction.set(settingsRef, { [fieldToUpdate]: newItems }, { merge: true });
+        if (!settingsDoc.exists()) {
+            // Document doesn't exist, so create it with the new item in its array
+            transaction.set(settingsRef, { [fieldToUpdate]: [newItem] });
+        } else {
+            // Document exists, update the array
+            const currentData = settingsDoc.data() as Settings | undefined;
+            const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
+            const newItems = [...currentItems, newItem];
+            transaction.update(settingsRef, { [fieldToUpdate]: newItems });
+        }
       });
 
       toast({ title: "Save Successful", description: "Media item has been added." });
@@ -207,12 +217,15 @@ export function CarouselSettings() {
     try {
       await runTransaction(firestore, async (transaction) => {
         const settingsDoc = await transaction.get(settingsRef);
+        if (!settingsDoc.exists()) {
+            throw new Error("Settings document does not exist, cannot delete item.");
+        }
         const currentData = settingsDoc.data() as Settings | undefined;
         
         const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
         const updatedItems = currentItems.filter((item: any) => item.id !== itemToDelete.id);
         
-        transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        transaction.update(settingsRef, { [fieldToUpdate]: updatedItems });
       });
 
       toast({ title: "Item removal successful" });
@@ -234,8 +247,13 @@ export function CarouselSettings() {
 
     try {
       await runTransaction(firestore, async (transaction) => {
-        // No need to read, we are replacing the whole array
-        transaction.set(settingsRef, { [field]: newItems }, { merge: true });
+         const settingsDoc = await transaction.get(settingsRef);
+         if (!settingsDoc.exists()) {
+            // This case is unlikely if items exist, but as a safeguard:
+            transaction.set(settingsRef, { [field]: newItems });
+         } else {
+            transaction.update(settingsRef, { [field]: newItems });
+         }
       });
       toast({ title: "Reorder successful" });
     } catch (error: any) {
@@ -306,10 +324,18 @@ export function CarouselSettings() {
                 <AlertDialogTitle>{title}</AlertDialogTitle>
                  <AlertDialogDescription asChild>
                      <div className="space-y-4 text-left pt-4 text-sm text-muted-foreground">
+                        <p className="font-bold text-base text-foreground">How to add a local file:</p>
+                        <ol className="list-decimal list-inside space-y-2">
+                            <li>In the file explorer on the left, find the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder.</li>
+                            <li>Drag and drop your image, video, or music file into that <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder.</li>
+                            <li>In the URL field below, type a forward slash <code className="font-mono bg-muted text-foreground rounded px-1">/</code> followed by the exact filename.</li>
+                        </ol>
                         <p>
-                           Provide a URL for your media file. Local files must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> and point to a file in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder. The URL will be verified automatically.
+                            <strong>Example:</strong> If your file is named <code className="font-mono bg-muted text-foreground rounded px-1">my-video.mp4</code>, you should enter <code className="font-mono bg-muted text-foreground rounded px-1">/my-video.mp4</code> in the URL field.
                         </p>
-                         <p><strong>Recommendations:</strong> For best performance, keep images under 1MB and videos under 50MB.</p>
+                        <p className="font-bold text-destructive">
+                            DO NOT enter the full file system path like <code className="font-mono bg-muted text-destructive/80 rounded px-1">/home/user/studio/...</code>.
+                        </p>
                     </div>
                 </AlertDialogDescription>
             </AlertDialogHeader>
@@ -497,5 +523,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
