@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, getDoc, runTransaction, updateDoc } from "firebase/firestore";
+import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,8 @@ export function CarouselSettings() {
     }
     
     setImageUrlStatus('verifying');
+    
+    // URI encode the URL to handle special characters in filenames
     const encodedUrl = encodeURI(url);
 
     let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
@@ -75,6 +77,7 @@ export function CarouselSettings() {
             element.onload = null;
             element.onerror = null;
             (element as any).onloadedmetadata = null;
+            (element as any).oncanplaythrough = null; // for video/audio
             if ('src' in element) element.src = '';
         }
     };
@@ -98,11 +101,13 @@ export function CarouselSettings() {
         element.src = encodedUrl;
     } else { // video or music
         element = document.createElement(type === 'video' ? 'video' : 'audio');
-        element.onloadedmetadata = handleSuccess;
+        // onloadedmetadata can be too quick for some files, canplaythrough is more reliable
+        (element as HTMLMediaElement).oncanplaythrough = handleSuccess;
         element.onerror = handleError;
         element.src = encodedUrl;
     }
   }, []);
+
 
   useEffect(() => {
     if (!dialogState) return;
@@ -191,7 +196,6 @@ export function CarouselSettings() {
       await runTransaction(firestore, async (transaction) => {
         const settingsDoc = await transaction.get(settingsRef);
         if (!settingsDoc.exists()) {
-          // Document doesn't exist, so there's nothing to delete from.
           return;
         }
 
@@ -202,7 +206,6 @@ export function CarouselSettings() {
 
         if (Array.isArray(existingItems)) {
           const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-          // Use transaction.set with merge:true to update the specific field.
           transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         }
       });
@@ -485,3 +488,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
