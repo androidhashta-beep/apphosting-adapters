@@ -93,6 +93,10 @@ export function UserManagement() {
     }
   };
 
+  const getUsernameFromEmail = (email: string) => {
+    return email.split('@')[0];
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -107,7 +111,7 @@ export function UserManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>Display Name</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Username</TableHead>
                 <TableHead className="w-[120px]">Role</TableHead>
                 <TableHead className="w-[200px]">Force Password Change</TableHead>
                 <TableHead className="w-[100px] text-right">Actions</TableHead>
@@ -128,7 +132,7 @@ export function UserManagement() {
                 sortedUsers.map((user) => (
                   <TableRow key={user.uid}>
                     <TableCell className="font-medium">{user.displayName || 'N/A'}</TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{getUsernameFromEmail(user.email)}</TableCell>
                     <TableCell>
                       <Select
                         value={userRoles[user.uid] || user.role}
@@ -181,7 +185,7 @@ export function UserManagement() {
             <p className="font-bold">Note:</p>
             <ul className="list-disc pl-5 mt-1 space-y-1">
                 <li>Users are automatically added here with the 'staff' role upon their first login. The first user to sign in becomes an 'admin'.</li>
-                <li><strong>To add a new user:</strong> create their account in the <strong>Firebase Authentication console</strong> with an email and a temporary password. Have them log in once to appear here.</li>
+                <li><strong>To add a new user:</strong> create their account in the <strong>Firebase Authentication console</strong> with a username-based email (e.g., `newuser@example.com`) and a temporary password. Have them log in once to appear here.</li>
                 <li>You can then use the <strong>"Force Password Change"</strong> switch to require them to set a new password on their next login.</li>
                 <li>An admin cannot change their own role or force a password change on themselves to prevent accidental lock-out.</li>
             </ul>

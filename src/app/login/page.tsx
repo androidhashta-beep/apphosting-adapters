@@ -25,7 +25,7 @@ export default function LoginPage() {
   const auth = useAuth();
   const { toast } = useToast();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,8 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    const email = `${username.trim()}@example.com`;
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -58,13 +60,13 @@ export default function LoginPage() {
   const getFriendlyAuthErrorMessage = (code: string) => {
     switch (code) {
         case 'auth/invalid-email':
-            return "The email address is not valid.";
+            return "The username is not valid.";
         case 'auth/user-disabled':
             return "This user account has been disabled.";
         case 'auth/user-not-found':
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-            return "Invalid email or password.";
+            return "Invalid username or password.";
         default:
             return "An unexpected error occurred. Please try again.";
     }
@@ -88,14 +90,14 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
+                id="username"
+                type="text"
+                placeholder="e.g. blumarlin"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
               />
             </div>
