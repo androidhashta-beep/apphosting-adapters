@@ -9,7 +9,7 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, doc, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { NowServing } from './NowServing';
 import { InfoPanel } from './InfoPanel';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -45,20 +45,6 @@ export function DisplayClient() {
   );
   const { data: servingTickets, isLoading: isLoadingServingTickets } = useCollection<Ticket>(servingTicketsQuery);
 
-  const waitingTicketsQuery = useMemoFirebase(
-    () => {
-      if (!firestore) return null;
-      return query(
-        collection(firestore, 'tickets'),
-        where('status', '==', 'waiting'),
-        orderBy('createdAt', 'asc'),
-        limit(20)
-      );
-    },
-    [firestore]
-  );
-  const { data: waitingTickets, isLoading: isLoadingWaitingTickets } = useCollection<Ticket>(waitingTicketsQuery);
-
   const servingData = useMemo(() => {
     if (!stations || !servingTickets || !settings) return [];
     
@@ -83,18 +69,7 @@ export function DisplayClient() {
 
   }, [stations, servingTickets, settings]);
   
-  const waitingData = useMemo(() => {
-    if (!waitingTickets || !settings) return [];
-    return waitingTickets.map(ticket => {
-        const service = settings.services.find(s => s.id === ticket.type);
-        return {
-            ticketNumber: ticket.ticketNumber,
-            serviceLabel: service?.label || '...'
-        };
-    });
-  }, [waitingTickets, settings]);
-  
-  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingWaitingTickets;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets;
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -116,7 +91,6 @@ export function DisplayClient() {
         <>
           <NowServing 
             servingData={servingData} 
-            waitingData={waitingData}
           />
           <InfoPanel settings={settings} />
         </>
