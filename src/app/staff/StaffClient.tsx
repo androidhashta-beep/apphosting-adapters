@@ -17,25 +17,25 @@ import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
 
 export function StaffClient() {
-  const { firestore, user, isUserLoading } = useFirebase();
+  const { firestore } = useFirebase();
 
   const settingsRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'settings', 'app') : null),
-    [firestore, user]
+    () => (firestore ? doc(firestore, 'settings', 'app') : null),
+    [firestore]
   );
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
 
   const stationsRef = useMemoFirebase(
-    () => (firestore && user ? collection(firestore, 'stations') : null),
-    [firestore, user]
+    () => (firestore ? collection(firestore, 'stations') : null),
+    [firestore]
   );
   const { data: stations, isLoading: isLoadingStations } =
     useCollection<Station>(stationsRef);
 
   const ticketsRef = useMemoFirebase(
-    () => (firestore && user ? collection(firestore, 'tickets') : null),
-    [firestore, user]
+    () => (firestore ? collection(firestore, 'tickets') : null),
+    [firestore]
   );
   const { data: tickets, isLoading: isLoadingTickets } =
     useCollection<Ticket>(ticketsRef);
@@ -62,10 +62,10 @@ export function StaffClient() {
       {} as { [key: string]: number }
     ) || {};
 
-  const isHydrated =
-    !isLoadingSettings && !isLoadingStations && !isLoadingTickets && !isUserLoading;
+  const isLoading =
+    isLoadingSettings || isLoadingStations || isLoadingTickets;
 
-  if (!isHydrated) {
+  if (isLoading) {
     return (
       <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -90,7 +90,7 @@ export function StaffClient() {
     );
   }
 
-  if (isHydrated && (!sortedStations || sortedStations.length === 0)) {
+  if (!isLoading && (!sortedStations || sortedStations.length === 0)) {
     return (
       <div className="flex items-center justify-center py-20">
         <Card className="max-w-lg text-center">

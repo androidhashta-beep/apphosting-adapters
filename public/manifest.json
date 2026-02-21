@@ -1,7 +1,11 @@
 {
   "name": "NaviQueue Pro",
   "short_name": "NaviQueue",
-  "description": "A smart queueing system for Renaissance Training Center Inc.",
+  "description": "A smart queueing system for modern service centers.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2C5282",
+  "theme_color": "#2C5282",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -19,10 +23,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "theme_color": "#2C5282",
-  "background_color": "#ffffff",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

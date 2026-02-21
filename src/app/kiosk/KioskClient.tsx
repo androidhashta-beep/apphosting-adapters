@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { Ticket, Service, Settings } from "@/lib/types";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
 import { useDoc, useFirebase, useMemoFirebase } from "@/firebase";
@@ -14,16 +14,15 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 
 export function KioskClient() {
-  const { firestore, user, isUserLoading } = useFirebase();
-  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, "settings", "app") : null), [firestore, user]);
+  const { firestore } = useFirebase();
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState<string | null>(null);
   
-  const ticketsCollection = useMemoFirebase(() => (firestore && user ? collection(firestore, 'tickets') : null), [firestore, user]);
-
+  const ticketsCollection = useMemo(() => (firestore ? collection(firestore, 'tickets') : null), [firestore]);
 
   useEffect(() => {
     if (ticketToPrint) {
@@ -34,20 +33,18 @@ export function KioskClient() {
           duration: 5000,
       });
 
-      // A brief delay to allow React to re-render the printable component with the new ticket data
-      // before the browser's print dialog is opened.
       const timer = setTimeout(() => {
         window.print();
-        setTicketToPrint(null); // Reset after triggering print
+        setTicketToPrint(null);
         setIsPrinting(null);
-      }, 100); // 100ms is usually sufficient for the DOM to update.
+      }, 100); 
 
-      return () => clearTimeout(timer); // Cleanup the timer if the component unmounts
+      return () => clearTimeout(timer);
     }
   }, [ticketToPrint, settings, toast]);
   
   const handleGetTicket = async (type: string) => {
-    if (!firestore || !ticketsCollection || isPrinting || isUserLoading) return;
+    if (!firestore || !ticketsCollection || isPrinting) return;
   
     setIsPrinting(type);
     let newTicketPayload: Omit<Ticket, 'id'> | null = null;
@@ -60,7 +57,6 @@ export function KioskClient() {
                 throw new Error(`Service with type '${type}' not found.`);
             }
 
-            // Use a single, global counter for all tickets.
             const counterRef = doc(firestore, "counters", "main-queue");
             const newTicketRef = doc(ticketsCollection);
             newTicketId = newTicketRef.id;
@@ -71,20 +67,16 @@ export function KioskClient() {
             const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
             let newNumber = 1;
-            // Check if counter exists and if it was reset today
             if (counterDoc.exists()) {
                 const counterData = counterDoc.data();
                 const lastResetDate = counterData.lastReset.toDate();
                 if (lastResetDate < startOfToday) {
-                    // It's a new day, reset the counter
                     newNumber = 1;
                 } else {
-                    // It's the same day, increment
                     newNumber = counterData.count + 1;
                 }
             }
             
-            // Update the counter atomically
             transaction.set(counterRef, { count: newNumber, lastReset: Timestamp.now() }, { merge: true });
 
             const ticketNumber = newNumber.toString();
@@ -95,23 +87,20 @@ export function KioskClient() {
                 status: 'waiting' as const,
                 createdAt: Timestamp.now(),
             };
-            newTicketPayload = finalTicketPayload; // Capture for potential error reporting
+            newTicketPayload = finalTicketPayload;
 
-            // Create the new ticket atomically
             transaction.set(newTicketRef, finalTicketPayload);
             
-            // Return the complete ticket object for the UI
             return {
                 id: newTicketRef.id,
                 ...finalTicketPayload,
             };
         });
 
-        // If transaction is successful, trigger the print
         setTicketToPrint(newTicket as Ticket);
 
     } catch (error: any) {
-        setIsPrinting(null); // Stop loading indicator on failure
+        setIsPrinting(null);
         
         if (error.code === 'unavailable' || error.code === 'network-request-failed') {
              toast({
@@ -142,8 +131,6 @@ export function KioskClient() {
       return settings?.services?.find(s => s.id === ticket.type);
   }
 
-  const isHydrated = !isLoadingSettings && !isUserLoading;
-
   return (
     <>
       <div className="flex justify-center">
@@ -156,7 +143,7 @@ export function KioskClient() {
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {!isHydrated ? (
+              {isLoadingSettings ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
                 ))
@@ -167,7 +154,7 @@ export function KioskClient() {
                     variant="outline"
                     className="h-auto text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
                     onClick={() => handleGetTicket(service.id)}
-                    disabled={!isHydrated || !!isPrinting}
+                    disabled={isLoadingSettings || !!isPrinting}
                   >
                     {isPrinting === service.id ? (
                         <Loader2 className="h-8 w-8 animate-spin" />

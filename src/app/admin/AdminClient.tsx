@@ -26,16 +26,17 @@ import {
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { CarouselSettings } from './CarouselSettings';
-import { StationManagement } from './StationManagement'; // Import the new component
+import { StationManagement } from './StationManagement';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function AdminClient() {
   const router = useRouter();
-  const { firestore, user, isUserLoading } = useFirebase();
+  const { firestore } = useFirebase();
   const { toast } = useToast();
 
   const settingsRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'settings', 'app') : null),
-    [firestore, user]
+    () => (firestore ? doc(firestore, 'settings', 'app') : null),
+    [firestore]
   );
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
@@ -64,8 +65,6 @@ export function AdminClient() {
     }
   };
   
-  const isHydrated = !isLoadingSettings && !isUserLoading;
-
   return (
     <div className="flex flex-col h-screen">
       <header className="border-b">
@@ -89,38 +88,48 @@ export function AdminClient() {
       </header>
 
       <ScrollArea className="flex-grow">
-        <div className="space-y-8 p-6">
-            <StationManagement />
-            <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-                <div className="space-y-8">
-                <Card>
-                    <CardHeader>
-                    <CardTitle>Company Settings</CardTitle>
-                    <CardDescription>
-                        Set the name of your organization.
-                    </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                    <Label htmlFor="company-name">Company Name</Label>
-                    <Input
-                        id="company-name"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        disabled={!isHydrated}
-                    />
-                    </CardContent>
-                    <CardFooter>
-                    <Button onClick={handleCompanyNameSave} disabled={!isHydrated}>
-                        Save
-                    </Button>
-                    </CardFooter>
-                </Card>
-                </div>
-                <div className="space-y-8">
-                <CarouselSettings />
-                </div>
+        {isLoadingSettings ? (
+            <div className="space-y-8 p-6">
+              <Skeleton className="w-full h-96" />
+              <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+                <Skeleton className="w-full h-64" />
+                <Skeleton className="w-full h-96" />
+              </div>
             </div>
-        </div>
+        ) : (
+          <div className="space-y-8 p-6">
+              <StationManagement />
+              <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+                  <div className="space-y-8">
+                  <Card>
+                      <CardHeader>
+                      <CardTitle>Company Settings</CardTitle>
+                      <CardDescription>
+                          Set the name of your organization.
+                      </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                      <Label htmlFor="company-name">Company Name</Label>
+                      <Input
+                          id="company-name"
+                          value={companyName}
+                          onChange={(e) => setCompanyName(e.target.value)}
+                          disabled={isLoadingSettings}
+                      />
+                      </CardContent>
+                      <CardFooter>
+                      <Button onClick={handleCompanyNameSave} disabled={isLoadingSettings}>
+                          Save
+                      </Button>
+                      </CardFooter>
+                  </Card>
+                  </div>
+                  <div className="space-y-8">
+                  <CarouselSettings />
+                  </div>
+              </div>
+          </div>
+        )}
       </ScrollArea>
     </div>
   );

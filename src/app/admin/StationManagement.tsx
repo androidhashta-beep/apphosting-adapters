@@ -57,19 +57,19 @@ const handleFirestoreError = (error: any, toast: any, operation: string) => {
 }
 
 export function StationManagement() {
-  const { firestore, user, isUserLoading } = useFirebase();
+  const { firestore } = useFirebase();
   const { toast } = useToast();
 
-  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'settings', 'app') : null), [firestore, user]);
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'settings', 'app') : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   
-  const stationsCollectionRef = useMemoFirebase(() => (firestore && user ? collection(firestore, 'stations') : null), [firestore, user]);
+  const stationsCollectionRef = useMemoFirebase(() => (firestore ? collection(firestore, 'stations') : null), [firestore]);
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsCollectionRef);
 
   const [stationToDelete, setStationToDelete] = useState<Station | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
-  const isHydrated = !isLoadingSettings && !isLoadingStations && !isUserLoading;
+  const isLoading = isLoadingSettings || isLoadingStations;
 
   const sortedStations = useMemo(() => {
     if (!stations) return [];
@@ -241,15 +241,12 @@ export function StationManagement() {
     try {
         const batch = writeBatch(firestore);
 
-        // 1. Delete all tickets
         const ticketsSnapshot = await getDocs(collection(firestore, 'tickets'));
         ticketsSnapshot.forEach(doc => batch.delete(doc.ref));
 
-        // 2. Delete all counters
         const countersSnapshot = await getDocs(collection(firestore, 'counters'));
         countersSnapshot.forEach(doc => batch.delete(doc.ref));
         
-        // 3. Reset all stations' currentTicketId
         if (stations) {
             stations.forEach(station => {
                 const stationRef = doc(firestore, 'stations', station.id);
@@ -280,13 +277,13 @@ export function StationManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {!isHydrated && (
+          {isLoading && (
               <div className="space-y-4">
                   {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
               </div>
           )}
 
-          {isHydrated && sortedStations.length === 0 && (
+          {!isLoading && sortedStations.length === 0 && (
              <div className="flex flex-col items-center justify-center text-center text-muted-foreground p-8 border-dashed border-2 rounded-md">
                 <ServerCrash className="h-10 w-10 mb-4" />
                 <p className="font-semibold text-lg">No Stations Found</p>
@@ -294,7 +291,7 @@ export function StationManagement() {
             </div>
           )}
 
-          {isHydrated && sortedStations.map(station => (
+          {!isLoading && sortedStations.map(station => (
               <div key={station.id} className="p-4 border rounded-lg space-y-4 bg-background shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <Input
@@ -320,7 +317,7 @@ export function StationManagement() {
                                           id={`service-${station.id}-${service.id}`}
                                           checked={(station.serviceIds || []).includes(service.id)}
                                           onCheckedChange={(checked) => handleServiceSelectionChange(station.id, service.id, !!checked)}
-                                          disabled={!isHydrated}
+                                          disabled={isLoading}
                                       />
                                       <Label htmlFor={`service-${station.id}-${service.id}`} className="font-normal cursor-pointer">
                                           {service.label}
@@ -336,16 +333,16 @@ export function StationManagement() {
           ))}
         </CardContent>
         <CardFooter className="border-t pt-6 grid grid-cols-2 gap-2">
-            <Button className="w-full" onClick={handleAddStation} disabled={!isHydrated}>
+            <Button className="w-full" onClick={handleAddStation} disabled={isLoading}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Station
             </Button>
-            <Button variant="outline" className="w-full" onClick={handleSaveAsDefault} disabled={!isHydrated}>
+            <Button variant="outline" className="w-full" onClick={handleSaveAsDefault} disabled={isLoading}>
                 <Save className="mr-2 h-4 w-4" /> Save as Default
             </Button>
-            <Button variant="outline" className="w-full" onClick={handleRestoreDefaults} disabled={!isHydrated}>
+            <Button variant="outline" className="w-full" onClick={handleRestoreDefaults} disabled={isLoading}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Restore Defaults
             </Button>
-             <Button variant="destructive" className="w-full" onClick={() => setIsResetConfirmOpen(true)} disabled={!isHydrated}>
+             <Button variant="destructive" className="w-full" onClick={() => setIsResetConfirmOpen(true)} disabled={isLoading}>
                 <ShieldAlert className="mr-2 h-4 w-4" /> Reset All Queues
             </Button>
         </CardFooter>

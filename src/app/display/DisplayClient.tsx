@@ -55,43 +55,43 @@ function NowServing({ ticket, stationName }: { ticket: Ticket; stationName: stri
 }
 
 export function DisplayClient() {
-  const { firestore, user, isUserLoading } = useFirebase();
+  const { firestore } = useFirebase();
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const router = useRouter();
 
   // --- Data Fetching ---
-  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'settings', 'app') : null), [firestore, user]);
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'settings', 'app') : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
-  const stationsRef = useMemoFirebase(() => (firestore && user ? collection(firestore, 'stations') : null), [firestore, user]);
+  const stationsRef = useMemoFirebase(() => (firestore ? collection(firestore, 'stations') : null), [firestore]);
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsRef);
 
   const servingTicketQuery = useMemoFirebase(
-    () => (firestore && user) ? query(collection(firestore, 'tickets'), where('status', '==', 'serving'), limit(1)) : null,
-    [firestore, user]
+    () => (firestore) ? query(collection(firestore, 'tickets'), where('status', '==', 'serving'), limit(1)) : null,
+    [firestore]
   );
   const { data: servingTickets, isLoading: isLoadingServing } = useCollection<Ticket>(servingTicketQuery);
   const servingTicket = useMemo(() => (servingTickets && servingTickets.length > 0 ? servingTickets[0] : null), [servingTickets]);
 
   const historyTicketsQuery = useMemoFirebase(
-    () => (firestore && user) ? query(
+    () => (firestore) ? query(
         collection(firestore, 'tickets'),
         where('status', 'in', ['served', 'skipped']),
         orderBy('calledAt', 'desc'),
         limit(5)
       ) : null,
-    [firestore, user]
+    [firestore]
   );
   const { data: historyTickets, isLoading: isLoadingHistory } = useCollection<Ticket>(historyTicketsQuery);
 
   const waitingTicketsQuery = useMemoFirebase(
-    () => (firestore && user) ? query(
+    () => (firestore) ? query(
         collection(firestore, 'tickets'),
         where('status', '==', 'waiting'),
         orderBy('createdAt', 'asc'),
         limit(10)
       ) : null,
-    [firestore, user]
+    [firestore]
   );
   const { data: waitingTickets, isLoading: isLoadingWaiting } = useCollection<Ticket>(waitingTicketsQuery);
 
@@ -121,14 +121,18 @@ export function DisplayClient() {
   };
 
   // --- Render Logic ---
-  const isHydrated = !isLoadingSettings && !isLoadingStations && !isLoadingServing && !isLoadingHistory && !isLoadingWaiting && !isUserLoading;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServing || isLoadingHistory || isLoadingWaiting;
   const stationNameForServing = getStationName(servingTicket?.servedBy);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
       <div className="lg:col-span-1 flex flex-col gap-4 h-full">
         {/* Now Serving Card */}
-        {isHydrated && servingTicket ? (
+        {isLoading ? (
+            <Card className="flex items-center justify-center bg-muted/50 h-56">
+                <Skeleton className="h-full w-full" />
+            </Card>
+        ) : servingTicket ? (
             <NowServing ticket={servingTicket} stationName={stationNameForServing} />
         ) : (
             <Card className="flex items-center justify-center bg-muted/50 h-56">
@@ -150,9 +154,9 @@ export function DisplayClient() {
           </CardHeader>
           <CardContent className="p-4 flex-grow overflow-y-auto">
             <div className="flex flex-col gap-3">
-              {!isHydrated && [...Array(10)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              {isLoading && [...Array(10)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
 
-              {isHydrated && (historyTickets ?? []).map((ticket) => (
+              {!isLoading && (historyTickets ?? []).map((ticket) => (
                   <div
                     key={ticket.id}
                     className="grid grid-cols-3 items-center text-center p-2 rounded-lg text-lg font-semibold bg-muted/30 border"
@@ -163,7 +167,7 @@ export function DisplayClient() {
                   </div>
               ))}
 
-              {isHydrated && (waitingTickets ?? []).length > 0 && (
+              {!isLoading && (waitingTickets ?? []).length > 0 && (
                 <>
                   {(historyTickets?.length ?? 0) > 0 && <Separator className="my-2" />}
                   <h3 className="text-center text-sm text-muted-foreground font-semibold uppercase tracking-wider pb-1">
@@ -179,7 +183,7 @@ export function DisplayClient() {
                 </>
               )}
 
-              {isHydrated && !servingTicket && (historyTickets?.length ?? 0) === 0 && (waitingTickets?.length ?? 0) === 0 && (
+              {!isLoading && !servingTicket && (historyTickets?.length ?? 0) === 0 && (waitingTickets?.length ?? 0) === 0 && (
                   <div className="flex items-center justify-center h-full py-10">
                     <p className="text-muted-foreground">The queue is currently empty.</p>
                   </div>

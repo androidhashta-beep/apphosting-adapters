@@ -29,10 +29,10 @@ type DialogState = {
 } | null;
 
 export function CarouselSettings() {
-  const { firestore, user, isUserLoading } = useFirebase();
+  const { firestore } = useFirebase();
   const { toast } = useToast();
   
-  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, "settings", "app") : null), [firestore, user]);
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   
   const [dialogState, setDialogState] = useState<DialogState>(null);
@@ -146,8 +146,6 @@ export function CarouselSettings() {
     )
   }
 
-  const isHydrated = !isLoadingSettings && !isUserLoading;
-
   return (
     <>
         <Card>
@@ -157,7 +155,7 @@ export function CarouselSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3 pr-2 border rounded-lg p-2 bg-muted/20 max-h-96 overflow-y-auto">
-                {!isHydrated ? <p>Loading...</p> : (settings?.placeholderImages || []).length > 0 ? settings?.placeholderImages.map(item => {
+                {isLoadingSettings ? <p>Loading...</p> : (settings?.placeholderImages || []).length > 0 ? settings?.placeholderImages.map(item => {
                      const isVideo = item.type === 'video';
                      return (
                         <div key={item.id} className="flex items-center justify-between gap-3 p-2 border rounded-md bg-card">
@@ -191,10 +189,10 @@ export function CarouselSettings() {
             </div>
           </CardContent>
            <CardFooter className="flex flex-col sm:flex-row gap-2 border-t pt-4">
-               <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'image'})} disabled={!isHydrated}>
+               <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'image'})} disabled={isLoadingSettings}>
                    <PlusCircle className="mr-2 h-4 w-4" /> Add Image
                </Button>
-               <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'video'})} disabled={!isHydrated}>
+               <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'video'})} disabled={isLoadingSettings}>
                    <PlusCircle className="mr-2 h-4 w-4" /> Add Video
                </Button>
            </CardFooter>
@@ -207,7 +205,7 @@ export function CarouselSettings() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-3 pr-2 border rounded-lg p-2 bg-muted/20 max-h-72 overflow-y-auto">
-                    {!isHydrated ? <p>Loading...</p> : (settings?.backgroundMusic || []).length > 0 ? settings.backgroundMusic.map(track => (
+                    {isLoadingSettings ? <p>Loading...</p> : (settings?.backgroundMusic || []).length > 0 ? settings.backgroundMusic.map(track => (
                         <div key={track.id} className="flex items-center justify-between gap-3 p-2 border rounded-md bg-card">
                            <div className="flex items-center gap-3 overflow-hidden">
                                 <Music className="h-5 w-5 text-muted-foreground flex-shrink-0" />
@@ -230,7 +228,7 @@ export function CarouselSettings() {
                 </div>
             </CardContent>
             <CardFooter>
-                <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'music'})} disabled={!isHydrated}>
+                <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'music'})} disabled={isLoadingSettings}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Music
                 </Button>
             </CardFooter>

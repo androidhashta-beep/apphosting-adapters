@@ -23,9 +23,9 @@ export function StationControlCard({
   ticket: Ticket | undefined;
   waitingCounts: { [key: string]: number };
 }) {
-  const { firestore, user, isUserLoading } = useFirebase();
+  const { firestore } = useFirebase();
   const { toast } = useToast();
-  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, "settings", "app") : null), [firestore, user]);
+  const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -120,13 +120,12 @@ export function StationControlCard({
   };
 
   const callNext = async () => {
-    if (!firestore || isUserLoading || station.status === 'closed' || station.currentTicketId || !station.serviceIds || station.serviceIds.length === 0) {
+    if (!firestore || station.status === 'closed' || station.currentTicketId || !station.serviceIds || station.serviceIds.length === 0) {
       return;
     }
 
     try {
         const ticketsCollection = collection(firestore, "tickets");
-        // Query for tickets that are waiting AND have a type that this station can service.
         const q = query(
             ticketsCollection,
             where("status", "==", "waiting"),
@@ -136,7 +135,6 @@ export function StationControlCard({
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            // Sort documents by createdAt timestamp client-side to find the oldest.
             const sortedDocs = querySnapshot.docs.sort((a, b) => {
                 const timeA = a.data().createdAt as Timestamp;
                 const timeB = b.data().createdAt as Timestamp;
