@@ -4,14 +4,20 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Ticket, UsersRound, BrainCircuit, Loader2 } from 'lucide-react';
+import { Ticket, UsersRound, BrainCircuit, Loader2, Monitor } from 'lucide-react';
 import { PageWrapper } from '@/components/PageWrapper';
 
 const APP_ROLE_KEY = 'app-instance-role';
 
-type Role = 'kiosk' | 'staff' | 'admin';
+type Role = 'kiosk' | 'staff' | 'admin' | 'display';
 
 const roles = [
+    {
+        id: 'display' as Role,
+        title: 'Public Display',
+        description: 'Shows tickets being served on a public screen.',
+        icon: Monitor,
+    },
     {
         id: 'kiosk' as Role,
         title: 'Ticket Kiosk',
