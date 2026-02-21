@@ -166,35 +166,36 @@ export function KioskClient() {
       <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-24 items-center justify-items-center p-24">
         {isLoadingSettings ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-muted rounded-lg animate-pulse aspect-square" />
+            <div key={i} className="w-2/3 aspect-square bg-muted rounded-lg animate-pulse" />
           ))
         ) : settings?.services && settings.services.length > 0 ? (
           settings.services.map((service) => (
-            <Button
-              key={service.id}
-              variant="outline"
-              className="w-2/3 aspect-square flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer"
-              onClick={() => handleGetTicket(service.id)}
-              disabled={isLoadingSettings || !!isPrinting}
-            >
-              {isPrinting === service.id ? (
-                  <Loader2 className="h-24 w-24 animate-spin" />
-              ) : (
-                  <Icon name={service.icon} className="h-24 w-24" />
-              )}
-              <div className="flex flex-col text-center">
-                  <span className="text-4xl font-semibold">
-                    {isPrinting === service.id
-                      ? 'Preparing Ticket...'
-                      : !!isPrinting
-                      ? 'Please wait...'
-                      : service.label}
-                  </span>
-                  {!!isPrinting && isPrinting !== service.id && (
-                      <span className="text-xl font-normal text-muted-foreground">Another request is in progress.</span>
-                  )}
-              </div>
-            </Button>
+            <div key={service.id} className="w-2/3 aspect-square">
+              <Button
+                variant="outline"
+                className="w-full h-full flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer whitespace-normal"
+                onClick={() => handleGetTicket(service.id)}
+                disabled={isLoadingSettings || !!isPrinting}
+              >
+                {isPrinting === service.id ? (
+                    <Loader2 className="h-24 w-24 animate-spin" />
+                ) : (
+                    <Icon name={service.icon} className="h-24 w-24" />
+                )}
+                <div className="flex flex-col text-center">
+                    <span className="text-4xl font-semibold">
+                      {isPrinting === service.id
+                        ? 'Preparing Ticket...'
+                        : !!isPrinting
+                        ? 'Please wait...'
+                        : service.label}
+                    </span>
+                    {!!isPrinting && isPrinting !== service.id && (
+                        <span className="text-xl font-normal text-muted-foreground">Another request is in progress.</span>
+                    )}
+                </div>
+              </Button>
+            </div>
           ))
         ) : (
           <div className="sm:col-span-2 text-center text-muted-foreground flex items-center justify-center">
