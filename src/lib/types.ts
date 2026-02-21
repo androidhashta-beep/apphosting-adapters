@@ -46,7 +46,6 @@ export type Settings = {
   backgroundMusic: AudioTrack[];
   backgroundMusicVolume?: number;
   defaultConfiguration?: DefaultConfiguration;
-  firstUserCreated?: boolean;
 };
 
 export type TicketType = string;
