@@ -181,7 +181,7 @@ export function DisplayClient() {
       
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {/* Left Column: Ticket Info */}
-        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col md:row-span-2">
+        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
             {isLoading ? (
                 <Skeleton className="bg-slate-700/50 h-full w-full" />
             ) : (
@@ -208,9 +208,9 @@ export function DisplayClient() {
         </div>
         
         {/* Right Column */}
-        <div className="flex flex-col gap-4">
-            {/* Panel 1 */}
-            <div className="w-full h-1/2">
+        <div className="grid grid-rows-2 gap-4">
+            {/* Top Right Panel */}
+            <div className="w-full h-full">
                 <InfoPanel 
                   mediaItems={topPanelMedia} 
                   backgroundMusic={settings?.backgroundMusic || null}
@@ -220,8 +220,8 @@ export function DisplayClient() {
                 />
             </div>
 
-            {/* Panel 2 */}
-            <div className="w-full h-1/2">
+            {/* Bottom Right Panel */}
+            <div className="w-full h-full">
                 <InfoPanel 
                   mediaItems={bottomPanelMedia} 
                   backgroundMusic={null}
