@@ -169,8 +169,12 @@ export function CarouselSettings() {
         const settingsDoc = await getDoc(settingsRef);
         const currentData = settingsDoc.data() as Settings | undefined;
         
-        const currentItems = currentData?.[fieldToUpdate as keyof Settings] || [];
-        const updatedItems = [...(currentItems as any[]), newItem];
+        let existingItems = currentData?.[fieldToUpdate as keyof Settings];
+        if (!Array.isArray(existingItems)) {
+            existingItems = [];
+        }
+
+        const updatedItems = [...existingItems, newItem];
         
         await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         
@@ -198,11 +202,13 @@ export function CarouselSettings() {
         const settingsDoc = await getDoc(settingsRef);
         const currentData = settingsDoc.data() as Settings | undefined;
 
-        if (currentData && currentData[fieldToUpdate as keyof Settings]) {
-            const currentItems = (currentData[fieldToUpdate as keyof Settings] as any[]) || [];
-            const updatedItems = currentItems.filter((item: any) => item.id !== itemToDelete.id);
-            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        let existingItems = currentData?.[fieldToUpdate as keyof Settings];
+        if (!Array.isArray(existingItems)) {
+           existingItems = [];
         }
+
+        const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
+        await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         
         toast({ title: "Item removed" });
 
