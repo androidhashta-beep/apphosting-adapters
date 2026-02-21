@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -166,18 +166,16 @@ export function CarouselSettings() {
         };
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const settingsDoc = await transaction.get(settingsRef);
-            const currentData = settingsDoc.data() || {};
-            const currentItems = currentData[fieldToUpdate] || [];
-            const updatedItems = [...currentItems, newItem];
-            
-            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-        });
+        const settingsDoc = await getDoc(settingsRef);
+        const currentData = settingsDoc.data() as Settings | undefined;
+        
+        const currentItems = currentData?.[fieldToUpdate as keyof Settings] || [];
+        const updatedItems = [...(currentItems as any[]), newItem];
+        
+        await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         
         toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
         handleCloseDialog();
-
     } catch (error: any) {
         console.error("Save failed:", error);
         toast({ 
@@ -197,17 +195,16 @@ export function CarouselSettings() {
     const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
     
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const settingsDoc = await transaction.get(settingsRef);
-            const currentData = settingsDoc.data() || {};
-            const currentItems = currentData[fieldToUpdate] || [];
+        const settingsDoc = await getDoc(settingsRef);
+        const currentData = settingsDoc.data() as Settings | undefined;
+
+        if (currentData && currentData[fieldToUpdate as keyof Settings]) {
+            const currentItems = (currentData[fieldToUpdate as keyof Settings] as any[]) || [];
             const updatedItems = currentItems.filter((item: any) => item.id !== itemToDelete.id);
-            
-            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-        });
+            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        }
         
         toast({ title: "Item removed" });
-        setItemToDelete(null);
 
     } catch(error: any) {
         console.error("Delete failed:", error);
@@ -216,7 +213,7 @@ export function CarouselSettings() {
             title: "Delete Failed", 
             description: error.message || "An unknown error occurred while deleting." 
         });
-        // Still close the dialog on failure to avoid getting stuck
+    } finally {
         setItemToDelete(null);
     }
   }
