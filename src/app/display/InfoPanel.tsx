@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -51,7 +50,7 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
       autoPlay
       muted={isMuted}
     >
-      <source src={src} type="video/mp4" />
+      <source src={encodeURI(src)} type="video/mp4" />
       Your browser does not support the video tag.
     </video>
   );
@@ -85,7 +84,7 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
     
     const playTrack = (index: number) => {
         if (!musicPlaylist.current[index]) return;
-        audio.src = musicPlaylist.current[index].url;
+        audio.src = encodeURI(musicPlaylist.current[index].url);
         if (!isAudioMuted) {
             audio.play().catch(e => console.error("Audio play failed:", e));
         }
@@ -170,7 +169,7 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
             }),
             ]}
         >
-            <CarouselContent>
+            <CarouselContent className="h-full">
             {mediaItems.map((item) => (
                 <CarouselItem key={item.id} className="relative w-full h-full">
                    {item.type === 'video' ? (
@@ -180,7 +179,7 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
                           onEnded={() => { /* Need carousel API to advance */ }} />
                    ) : (
                        <Image
-                            src={item.imageUrl}
+                            src={encodeURI(item.imageUrl)}
                             alt={item.description}
                             fill
                             className="object-cover"
