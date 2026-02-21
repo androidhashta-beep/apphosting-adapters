@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Ticket, Settings, Station } from "@/lib/types";
@@ -8,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Megaphone, Check, SkipForward, Ban, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
 import { collection, doc, query, where, getDocs, Timestamp } from "firebase/firestore";
@@ -28,8 +29,6 @@ export function StationControlCard({
   const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-
   const servicesForStation = useMemo(() => {
     if (isLoadingSettings || !station.serviceIds || station.serviceIds.length === 0 || !settings?.services) {
       return [];
@@ -43,51 +42,6 @@ export function StationControlCard({
       return total + (waitingCounts[serviceId] || 0);
     }, 0);
   }, [station.serviceIds, waitingCounts]);
-  
-  useEffect(() => {
-    const handleVoicesChanged = () => {
-        setVoices(window.speechSynthesis.getVoices());
-    };
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-        if (window.speechSynthesis.getVoices().length > 0) {
-            setVoices(window.speechSynthesis.getVoices());
-        }
-        window.speechSynthesis.addEventListener('voiceschanged', handleVoicesChanged);
-        
-        return () => {
-            window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-        };
-    }
-  }, []);
-
-  const announce = useCallback((ticketNumber: string, stationName: string, ticketType: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis || !settings) return;
-    
-    window.speechSynthesis.cancel();
-
-    const service = settings.services?.find(s => s.id === ticketType);
-    const serviceLabel = service ? service.label : ticketType;
-
-    const text = `Customer number ${ticketNumber}, For ${serviceLabel} please go to ${stationName}.`;
-    const utterance = new SpeechSynthesisUtterance(text);
-
-    const filipinoMaleVoice = voices.find(voice => 
-        voice.lang.startsWith('fil') &&
-        /male/i.test(voice.name)
-    );
-
-    if (filipinoMaleVoice) {
-      utterance.voice = filipinoMaleVoice;
-    }
-
-    window.speechSynthesis.speak(utterance);
-  }, [voices, settings]);
-
-  useEffect(() => {
-    if (ticket && ticket.status === 'serving' && ticket.calledAt && (Timestamp.now().toMillis() - ticket.calledAt.toMillis() < 5000)) {
-      announce(ticket.ticketNumber, station.name, ticket.type);
-    }
-  }, [ticket?.id, ticket?.calledAt, announce, ticket, station.name]);
 
   if (!station) {
     return <Skeleton className="h-[480px] rounded-lg" />;
@@ -96,8 +50,13 @@ export function StationControlCard({
   const isClosed = station.status === 'closed';
 
   const callAgain = () => {
-    if (ticket) {
-      announce(ticket.ticketNumber, station.name, ticket.type);
+    if (ticket && firestore) {
+      const ticketRef = doc(firestore, 'tickets', ticket.id);
+      updateDocumentNonBlocking(ticketRef, { calledAt: Timestamp.now() });
+      toast({
+        title: 'Re-announcing Ticket',
+        description: `Ticket ${ticket.ticketNumber} is being announced again on the public display.`,
+      });
     }
   };
 

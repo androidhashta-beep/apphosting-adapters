@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { Ticket, Settings, Station } from '@/lib/types';
@@ -10,13 +11,15 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, query, where, Timestamp } from 'firebase/firestore';
 import { NowServing } from './NowServing';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
 import { Clock } from './Clock';
 import { InfoPanel } from './InfoPanel';
+import { textToSpeech } from '@/ai/flows/text-to-speech';
+import { useToast } from '@/hooks/use-toast';
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -30,6 +33,12 @@ function shuffleArray<T>(array: T[]): T[] {
 export function DisplayClient() {
   const { firestore } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -73,7 +82,7 @@ export function DisplayClient() {
     }).sort((a, b) => {
         if (!a.calledAt) return 1;
         if (!b.calledAt) return -1;
-        return b.calledAt.toMillis() - a.calledAt.toMillis();
+        return (b.calledAt as Timestamp).toMillis() - (a.calledAt as Timestamp).toMillis();
     });
 
     return data;
@@ -83,21 +92,61 @@ export function DisplayClient() {
   const mostRecentTicket = useMemo(() => (servingData.length > 0 ? servingData[0] : null), [servingData]);
   const otherServingTickets = useMemo(() => (servingData.length > 0 ? servingData.slice(1) : []), [servingData]);
   
-  const shuffledMedia = useMemo(() => {
-    if (!settings?.placeholderImages || settings.placeholderImages.length === 0) {
-      return { panel1Items: [], panel2Items: [] };
+  const [announcementAudio, setAnnouncementAudio] = useState<string | null>(null);
+  const [isAnnouncing, setIsAnnouncing] = useState(false);
+  const announcementAudioRef = useRef<HTMLAudioElement>(null);
+  const lastAnnouncedTicketRef = useRef<{ id: string, time: number } | null>(null);
+
+  useEffect(() => {
+    if (!mostRecentTicket || !settings?.services || !mostRecentTicket.calledAt) {
+      return;
+    }
+
+    const ticketId = mostRecentTicket.ticketNumber;
+    const callTime = (mostRecentTicket.calledAt as Timestamp).toMillis();
+
+    if (lastAnnouncedTicketRef.current?.id !== ticketId || lastAnnouncedTicketRef.current?.time !== callTime) {
+      lastAnnouncedTicketRef.current = { id: ticketId, time: callTime };
+
+      const textToAnnounce = `Ticket number ${mostRecentTicket.ticketNumber}, please proceed to ${mostRecentTicket.stationName}.`;
+
+      textToSpeech(textToAnnounce).then(result => {
+        if (result.media) {
+          setAnnouncementAudio(result.media);
+        } else if (result.error) {
+          console.error("TTS Error:", result.error);
+          toast({ variant: 'destructive', title: 'TTS Error', description: result.error });
+        }
+      }).catch(error => {
+        console.error("TTS Flow Error:", error);
+        toast({ variant: 'destructive', title: 'TTS Flow Error', description: 'Could not generate announcement audio.' });
+      });
+    }
+  }, [mostRecentTicket, settings?.services, toast]);
+
+  useEffect(() => {
+    const audio = announcementAudioRef.current;
+    if (audio && announcementAudio) {
+      audio.play().catch(e => console.warn("Announcement audio playback failed", e));
+    }
+  }, [announcementAudio]);
+
+
+  const { topPanelMedia, bottomPanelMedia } = useMemo(() => {
+    if (!isClient || !settings?.placeholderImages || settings.placeholderImages.length === 0) {
+      return { topPanelMedia: [], bottomPanelMedia: [] };
     }
 
     const shuffled = shuffleArray(settings.placeholderImages);
     const midpoint = Math.ceil(shuffled.length / 2);
-    const panel1Items = shuffled.slice(0, midpoint);
-    const panel2Items = shuffled.slice(midpoint);
+    const top = shuffled.slice(0, midpoint);
+    const bottom = shuffled.slice(midpoint);
 
-    return { panel1Items, panel2Items };
-  }, [settings?.placeholderImages]);
+    return { topPanelMedia: top, bottomPanelMedia: bottom };
+  }, [isClient, settings?.placeholderImages]);
 
   const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets;
-
+  
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
@@ -106,7 +155,8 @@ export function DisplayClient() {
   
   const logoUrl = settings?.companyLogoUrl?.trim();
   const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
-  
+  const masterVolume = settings?.backgroundMusicVolume ?? 0.5;
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
       <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
@@ -161,12 +211,24 @@ export function DisplayClient() {
         <div className="flex flex-col gap-4">
             {/* Panel 1 */}
             <div className="w-full h-1/2">
-                <InfoPanel mediaItems={shuffledMedia.panel1Items} backgroundMusic={settings?.backgroundMusic || null} />
+                <InfoPanel 
+                  mediaItems={topPanelMedia} 
+                  backgroundMusic={settings?.backgroundMusic || null}
+                  autoplayDelay={10000}
+                  isAnnouncing={isAnnouncing}
+                  masterVolume={masterVolume}
+                />
             </div>
 
             {/* Panel 2 */}
             <div className="w-full h-1/2">
-                <InfoPanel mediaItems={shuffledMedia.panel2Items} backgroundMusic={settings?.backgroundMusic || null} />
+                <InfoPanel 
+                  mediaItems={bottomPanelMedia} 
+                  backgroundMusic={null}
+                  autoplayDelay={5000}
+                  isAnnouncing={isAnnouncing}
+                  masterVolume={masterVolume}
+                />
             </div>
         </div>
       </main>
@@ -180,6 +242,14 @@ export function DisplayClient() {
         <Home className="h-6 w-6" />
         <span className="sr-only">Go Home</span>
       </Button>
+      <audio 
+          ref={announcementAudioRef} 
+          src={announcementAudio || ''}
+          onPlay={() => setIsAnnouncing(true)}
+          onEnded={() => setIsAnnouncing(false)}
+          onError={() => setIsAnnouncing(false)}
+          hidden
+      />
     </div>
   );
 }

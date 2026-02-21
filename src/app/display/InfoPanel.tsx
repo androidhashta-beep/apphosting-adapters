@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -17,6 +18,9 @@ import { useToast } from '@/hooks/use-toast';
 type InfoPanelProps = {
   mediaItems: ImagePlaceholder[] | null;
   backgroundMusic: AudioTrack[] | null;
+  autoplayDelay: number;
+  isAnnouncing: boolean;
+  masterVolume: number;
 }
 
 function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean, onEnded: () => void }) {
@@ -45,6 +49,7 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
       onEnded={onEnded}
       playsInline
       autoPlay
+      muted={isMuted}
     >
       <source src={src} type="video/mp4" />
       Your browser does not support the video tag.
@@ -53,66 +58,89 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
 }
 
 
-export function InfoPanel({ mediaItems, backgroundMusic }: InfoPanelProps) {
+export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnouncing, masterVolume }: InfoPanelProps) {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const musicPlaylist = useRef<AudioTrack[]>([]);
+  const currentTrackIndex = useRef(0);
   
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Handle background music
+  // Handle background music shuffling and playback
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !backgroundMusic || backgroundMusic.length === 0) {
       return;
     }
 
-    let currentTrackIndex = 0;
+    const shuffleAndPlay = () => {
+        musicPlaylist.current = [...backgroundMusic].sort(() => Math.random() - 0.5);
+        currentTrackIndex.current = 0;
+        playTrack(currentTrackIndex.current);
+    }
     
-    const playNextTrack = () => {
-      if (!backgroundMusic || backgroundMusic.length === 0) return;
-      currentTrackIndex = (currentTrackIndex + 1) % backgroundMusic.length;
-      audio.src = backgroundMusic[currentTrackIndex].url;
-      audio.play().catch(e => console.error("Audio play failed:", e));
-    };
+    const playTrack = (index: number) => {
+        if (!musicPlaylist.current[index]) return;
+        audio.src = musicPlaylist.current[index].url;
+        if (!isAudioMuted) {
+            audio.play().catch(e => console.error("Audio play failed:", e));
+        }
+    }
 
-    audio.src = backgroundMusic[currentTrackIndex].url;
-    audio.addEventListener('ended', playNextTrack);
-    audio.addEventListener('error', (e) => {
+    const playNextTrack = () => {
+      currentTrackIndex.current++;
+      if (currentTrackIndex.current >= musicPlaylist.current.length) {
+        shuffleAndPlay(); // Reshuffle and start over
+      } else {
+        playTrack(currentTrackIndex.current);
+      }
+    };
+    
+    shuffleAndPlay(); // Initial shuffle
+
+    const handleError = () => {
         console.error('Audio error:', audio.error);
         toast({
             variant: "destructive",
             title: 'Background Music Error',
-            description: `Could not play track: ${audio.currentSrc}. Check URL and permissions.`,
+            description: `Could not play track: ${audio.currentSrc}. Skipping.`,
             duration: 10000,
         });
-        // Try next track after a short delay
-        setTimeout(playNextTrack, 5000);
-    });
+        setTimeout(playNextTrack, 2000); // Try next track after a delay
+    };
 
-    if (!isAudioMuted) {
-      audio.play().catch(e => console.error("Audio play failed on initial load:", e));
-    }
+    audio.addEventListener('ended', playNextTrack);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('ended', playNextTrack);
+      audio.removeEventListener('error', handleError);
     };
 
-  }, [backgroundMusic, isAudioMuted, toast]);
+  }, [backgroundMusic, toast, isAudioMuted]);
 
+
+  // Handle volume changes (ducking and master volume)
   useEffect(() => {
-    if (audioRef.current) {
-        audioRef.current.muted = isAudioMuted;
-        if (!isAudioMuted) {
-            audioRef.current.play().catch(e => console.warn("Could not play audio:", e));
-        } else {
-            audioRef.current.pause();
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    if (isAudioMuted) {
+        if (!audio.paused) {
+            audio.pause();
+        }
+    } else {
+        const targetVolume = isAnnouncing ? Math.max(0, masterVolume * 0.2) : masterVolume;
+        audio.volume = targetVolume;
+        if (audio.paused && backgroundMusic && backgroundMusic.length > 0) {
+             audio.play().catch(e => console.warn("Could not play audio:", e));
         }
     }
-  }, [isAudioMuted]);
+  }, [isAudioMuted, isAnnouncing, masterVolume, backgroundMusic]);
 
 
   if (!isClient || !mediaItems) {
@@ -136,7 +164,7 @@ export function InfoPanel({ mediaItems, backgroundMusic }: InfoPanelProps) {
             className="w-full h-full"
             plugins={[
             Autoplay({
-                delay: 5000,
+                delay: autoplayDelay,
                 stopOnInteraction: false,
                 stopOnMouseEnter: true,
             }),
@@ -146,7 +174,10 @@ export function InfoPanel({ mediaItems, backgroundMusic }: InfoPanelProps) {
             {mediaItems.map((item, index) => (
                 <CarouselItem key={index} className="relative w-full h-full">
                    {item.type === 'video' ? (
-                       <VideoPlayer src={item.imageUrl} isMuted={item.useOwnAudio ? false : isAudioMuted} onEnded={() => { /* Need carousel API to advance */ }} />
+                       <VideoPlayer 
+                          src={item.imageUrl} 
+                          isMuted={!item.useOwnAudio || isAnnouncing} 
+                          onEnded={() => { /* Need carousel API to advance */ }} />
                    ) : (
                        <Image
                             src={item.imageUrl}
@@ -162,7 +193,7 @@ export function InfoPanel({ mediaItems, backgroundMusic }: InfoPanelProps) {
         </Carousel>
          {backgroundMusic && backgroundMusic.length > 0 && (
             <>
-                <audio ref={audioRef} loop={backgroundMusic.length === 1} />
+                <audio ref={audioRef} />
                 <Button 
                     size="icon" 
                     variant="ghost" 

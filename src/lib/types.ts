@@ -44,6 +44,7 @@ export type Settings = {
   services: Service[];
   placeholderImages: ImagePlaceholder[];
   backgroundMusic: AudioTrack[];
+  backgroundMusicVolume?: number;
   defaultConfiguration?: DefaultConfiguration;
 };
 

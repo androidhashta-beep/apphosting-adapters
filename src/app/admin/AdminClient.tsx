@@ -29,6 +29,7 @@ import { doc } from 'firebase/firestore';
 import { StationManagement } from './StationManagement';
 import { CarouselSettings } from './CarouselSettings';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Slider } from '@/components/ui/slider';
 
 export function AdminClient() {
   const router = useRouter();
@@ -44,6 +45,7 @@ export function AdminClient() {
     
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [backgroundMusicVolume, setBackgroundMusicVolume] = useState(50);
   const [logoUrlStatus, setLogoUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
   const [logoUrlError, setLogoUrlError] = useState<string | null>(null);
 
@@ -86,6 +88,7 @@ export function AdminClient() {
     if (settings) {
       setCompanyName(settings.companyName || '');
       setCompanyLogoUrl(settings.companyLogoUrl || '');
+      setBackgroundMusicVolume((settings.backgroundMusicVolume ?? 0.5) * 100);
     }
   }, [settings]);
 
@@ -121,7 +124,12 @@ export function AdminClient() {
         return;
     }
     if (settingsRef) {
-      setDocumentNonBlocking(settingsRef, { companyName, companyLogoUrl }, { merge: true });
+      const settingsToSave = {
+        companyName,
+        companyLogoUrl,
+        backgroundMusicVolume: backgroundMusicVolume / 100,
+      };
+      setDocumentNonBlocking(settingsRef, settingsToSave, { merge: true });
       toast({
         title: 'Settings Saved',
         description: 'Company settings have been updated.',
@@ -170,10 +178,10 @@ export function AdminClient() {
                       <CardHeader>
                       <CardTitle>Company Settings</CardTitle>
                       <CardDescription>
-                          Set the name and logo for your organization.
+                          Set the name, logo, and other global settings for your organization.
                       </CardDescription>
                       </CardHeader>
-                      <CardContent className="space-y-4">
+                      <CardContent className="space-y-6">
                       <div>
                         <Label htmlFor="company-name">Company Name</Label>
                         <Input
@@ -208,10 +216,28 @@ export function AdminClient() {
                             <strong>Advanced (less reliable):</strong> You can use public URLs from services like Google Drive, but they may fail to load due to security restrictions. For Google Drive, you must set file sharing to "Anyone with the link" and convert the share link from <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code> to <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code>.
                         </p>
                       </div>
+                       <div>
+                        <Label htmlFor="music-volume">Background Music Volume</Label>
+                        <div className="flex items-center gap-4 pt-2">
+                          <Slider
+                            id="music-volume"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[backgroundMusicVolume]}
+                            onValueChange={(value) => setBackgroundMusicVolume(value[0])}
+                            disabled={isLoadingSettings}
+                          />
+                          <span className="text-sm font-medium w-12 text-center">{backgroundMusicVolume}%</span>
+                        </div>
+                         <p className="text-xs text-muted-foreground mt-2">
+                          Controls the master volume for background music on the public display.
+                        </p>
+                      </div>
                       </CardContent>
                       <CardFooter>
                       <Button onClick={handleCompanySettingsSave} disabled={isLoadingSettings}>
-                          Save
+                          Save Settings
                       </Button>
                       </CardFooter>
                   </Card>
