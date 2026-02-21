@@ -7,9 +7,10 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    // This function must not throw an error if the user document does not exist yet.
     function isRole(role) {
-      // Check for existence before getting data to prevent errors on new user creation
-      return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      let userDocPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return request.auth != null && exists(userDocPath) && get(userDocPath).data.role == role;
     }
     
     function isAdmin() {
@@ -24,7 +25,8 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       // Allow write if user is an admin OR if we are setting up the first user by flipping the flag.
-      allow write: if isAdmin() || (request.resource.data.firstUserCreated == true && resource.data.firstUserCreated == false);
+      // This rule must handle the case where the settings document does not yet exist.
+      allow write: if isAdmin() || (request.resource.data.firstUserCreated == true && (resource == null || resource.data.firstUserCreated == false));
     }
     match /stations/{stationId} {
       allow read: if true;
@@ -51,11 +53,11 @@ service cloud.firestore {
 
       // Allow a user to read their own document.
       // Allow an admin to read any user document.
-      allow read: if (request.auth != null && request.auth.uid == userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
 
       // Allow a user to update their own document.
       // Allow an admin to update any user document.
-      allow update: if (request.auth != null && request.auth.uid == userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
 
       // Only allow admins to delete documents.
       allow delete: if isAdmin();
