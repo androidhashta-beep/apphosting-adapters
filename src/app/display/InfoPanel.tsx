@@ -60,7 +60,7 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
 export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnouncing, masterVolume }: InfoPanelProps) {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  const [isAudioMuted, setIsAudioMuted] = useState(true);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const musicPlaylist = useRef<AudioTrack[]>([]);
   const currentTrackIndex = useRef(0);
