@@ -18,6 +18,15 @@ import { Home } from 'lucide-react';
 import { Clock } from './Clock';
 import { InfoPanel } from './InfoPanel';
 
+function shuffleArray<T>(array: T[]): T[] {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
 export function DisplayClient() {
   const { firestore } = useFirebase();
   const router = useRouter();
@@ -72,8 +81,21 @@ export function DisplayClient() {
   }, [stations, servingTickets, settings]);
 
   const mostRecentTicket = useMemo(() => (servingData.length > 0 ? servingData[0] : null), [servingData]);
-  const otherServingTickets = useMemo(() => (servingData.length > 1 ? servingData.slice(1) : []), [servingData]);
+  const otherServingTickets = useMemo(() => (servingData.length > 0 ? servingData.slice(1) : []), [servingData]);
   
+  const shuffledMedia = useMemo(() => {
+    if (!settings?.placeholderImages || settings.placeholderImages.length === 0) {
+      return { panel1Items: [], panel2Items: [] };
+    }
+
+    const shuffled = shuffleArray(settings.placeholderImages);
+    const midpoint = Math.ceil(shuffled.length / 2);
+    const panel1Items = shuffled.slice(0, midpoint);
+    const panel2Items = shuffled.slice(midpoint);
+
+    return { panel1Items, panel2Items };
+  }, [settings?.placeholderImages]);
+
   const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets;
 
   const handleGoHome = () => {
@@ -107,7 +129,7 @@ export function DisplayClient() {
           </div>
       </header>
       
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-2 md:grid-rows-2 gap-4 p-4">
+      <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {/* Left Column: Ticket Info */}
         <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col md:row-span-2">
             {isLoading ? (
@@ -135,14 +157,17 @@ export function DisplayClient() {
             )}
         </div>
         
-        {/* Image Panel */}
-        <div className="w-full h-full">
-            <InfoPanel settings={settings} contentType="images" />
-        </div>
+        {/* Right Column */}
+        <div className="flex flex-col gap-4">
+            {/* Panel 1 */}
+            <div className="w-full h-1/2">
+                <InfoPanel mediaItems={shuffledMedia.panel1Items} backgroundMusic={settings?.backgroundMusic || null} />
+            </div>
 
-        {/* All Media Panel */}
-        <div className="w-full h-full">
-            <InfoPanel settings={settings} contentType="all" />
+            {/* Panel 2 */}
+            <div className="w-full h-1/2">
+                <InfoPanel mediaItems={shuffledMedia.panel2Items} backgroundMusic={settings?.backgroundMusic || null} />
+            </div>
         </div>
       </main>
 

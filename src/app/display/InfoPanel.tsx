@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import type { Settings, ImagePlaceholder } from '@/lib/types';
+import type { Settings, ImagePlaceholder, AudioTrack } from '@/lib/types';
 import {
   Carousel,
   CarouselContent,
@@ -16,8 +15,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 type InfoPanelProps = {
-  settings: Settings | null;
-  contentType: 'images' | 'videos' | 'all';
+  mediaItems: ImagePlaceholder[] | null;
+  backgroundMusic: AudioTrack[] | null;
 }
 
 function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean, onEnded: () => void }) {
@@ -54,26 +53,12 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
 }
 
 
-export function InfoPanel({ settings, contentType }: InfoPanelProps) {
+export function InfoPanel({ mediaItems, backgroundMusic }: InfoPanelProps) {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   
-  const mediaItems = useMemo(() => {
-    if (!settings?.placeholderImages) return [];
-    
-    let filteredItems = settings.placeholderImages;
-    
-    if (contentType === 'images') {
-      filteredItems = filteredItems.filter(item => item.type === 'image');
-    } else if (contentType === 'videos') {
-      filteredItems = filteredItems.filter(item => item.type === 'video');
-    }
-
-    return filteredItems;
-  }, [settings, contentType]);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -81,20 +66,20 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
   // Handle background music
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !settings?.backgroundMusic || settings.backgroundMusic.length === 0) {
+    if (!audio || !backgroundMusic || backgroundMusic.length === 0) {
       return;
     }
 
     let currentTrackIndex = 0;
     
     const playNextTrack = () => {
-      if (!settings?.backgroundMusic || settings.backgroundMusic.length === 0) return;
-      currentTrackIndex = (currentTrackIndex + 1) % settings.backgroundMusic.length;
-      audio.src = settings.backgroundMusic[currentTrackIndex].url;
+      if (!backgroundMusic || backgroundMusic.length === 0) return;
+      currentTrackIndex = (currentTrackIndex + 1) % backgroundMusic.length;
+      audio.src = backgroundMusic[currentTrackIndex].url;
       audio.play().catch(e => console.error("Audio play failed:", e));
     };
 
-    audio.src = settings.backgroundMusic[currentTrackIndex].url;
+    audio.src = backgroundMusic[currentTrackIndex].url;
     audio.addEventListener('ended', playNextTrack);
     audio.addEventListener('error', (e) => {
         console.error('Audio error:', audio.error);
@@ -116,7 +101,7 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
       audio.removeEventListener('ended', playNextTrack);
     };
 
-  }, [settings?.backgroundMusic, isAudioMuted, toast]);
+  }, [backgroundMusic, isAudioMuted, toast]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -130,7 +115,7 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
   }, [isAudioMuted]);
 
 
-  if (!isClient || !settings) {
+  if (!isClient || !mediaItems) {
     return <Skeleton className="bg-slate-700/50 h-full w-full rounded-lg" />;
   }
   
@@ -138,11 +123,9 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
      return (
         <div className="h-full w-full bg-black/20 rounded-lg flex items-center justify-center text-center text-slate-300 flex-col p-4">
              <h3 className="font-bold text-lg">
-                {contentType === 'images' && 'No Images'}
-                {contentType === 'videos' && 'No Videos'}
-                {contentType === 'all' && 'No Media Content'}
+                No Media Content
              </h3>
-             <p className="text-sm mt-1">The administrator has not added any content of this type.</p>
+             <p className="text-sm mt-1">There is no content to display in this panel.</p>
         </div>
      );
   }
@@ -177,9 +160,9 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
             ))}
             </CarouselContent>
         </Carousel>
-         {settings.backgroundMusic && settings.backgroundMusic.length > 0 && (
+         {backgroundMusic && backgroundMusic.length > 0 && (
             <>
-                <audio ref={audioRef} loop={settings.backgroundMusic.length === 1} />
+                <audio ref={audioRef} loop={backgroundMusic.length === 1} />
                 <Button 
                     size="icon" 
                     variant="ghost" 
