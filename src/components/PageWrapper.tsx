@@ -1,17 +1,38 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LogOut } from "lucide-react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { useAuth, useUser } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { Button } from "./ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export function PageWrapper({ children, title, showBackButton = true }: { children: React.ReactNode, title: string, showBackButton?: boolean }) {
   const router = useRouter();
+  const auth = useAuth();
+  const { user } = useUser();
 
-  const handleGoHome = () => {
+  const handleGoHome = async () => {
+    if (auth.currentUser && !auth.currentUser.isAnonymous) {
+      await signOut(auth);
+    }
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
   };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    localStorage.removeItem('app-instance-role');
+    sessionStorage.setItem('force-role-selection', 'true');
+    router.push('/login');
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -28,6 +49,21 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
             <ThemeSwitcher />
+             {user && !user.isAnonymous && (
+               <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                       <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                          <LogOut className="h-4 w-4" />
+                          <span className="sr-only">Sign Out</span>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Sign Out</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+            )}
           </div>
         </div>
       </header>

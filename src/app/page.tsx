@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Ticket, UsersRound, BrainCircuit, Loader2, Monitor } from 'lucide-react';
 import { PageWrapper } from '@/components/PageWrapper';
+import { useUser } from '@/firebase';
 
 const APP_ROLE_KEY = 'app-instance-role';
 
@@ -33,17 +34,22 @@ const roles = [
     {
         id: 'admin' as Role,
         title: 'Admin Panel',
-        description: 'For administrators to configure stations.',
+        description: 'For administrators to configure stations and users.',
         icon: BrainCircuit,
     }
 ];
 
 export default function RoleSelectorPage() {
     const router = useRouter();
+    const { user, isUserLoading } = useUser();
     const [isLoading, setIsLoading] = useState(true);
     const hasDecidedToShowSelector = useRef(false);
 
     useEffect(() => {
+        if (isUserLoading) {
+            return;
+        }
+
         if (hasDecidedToShowSelector.current) {
             setIsLoading(false);
             return;
@@ -57,23 +63,36 @@ export default function RoleSelectorPage() {
             return;
         }
 
-        const savedRole = localStorage.getItem(APP_ROLE_KEY);
+        const savedRole = localStorage.getItem(APP_ROLE_KEY) as Role | null;
+
         if (savedRole && roles.some(r => r.id === savedRole)) {
+            // If user is anonymous and trying to access a protected role, go to login.
+            if ((savedRole === 'admin' || savedRole === 'staff') && user?.isAnonymous) {
+                router.replace('/login');
+                return;
+            }
+             if ((savedRole === 'admin' || savedRole === 'staff') && !user) {
+                router.replace('/login');
+                return;
+            }
             router.replace(`/${savedRole}`);
         } else {
-            // If no role is saved, default to staff dashboard.
-            localStorage.setItem(APP_ROLE_KEY, 'staff');
-            router.replace('/staff');
+             hasDecidedToShowSelector.current = true;
+             setIsLoading(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [isUserLoading, user]);
 
     const handleRoleSelect = (role: Role) => {
         localStorage.setItem(APP_ROLE_KEY, role);
-        router.push(`/${role}`);
+         if ((role === 'admin' || role === 'staff') && (user?.isAnonymous || !user)) {
+            router.push('/login');
+        } else {
+            router.push(`/${role}`);
+        }
     };
     
-    if (isLoading) {
+    if (isLoading || isUserLoading) {
         return (
             <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -89,7 +108,7 @@ export default function RoleSelectorPage() {
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">Select This Device's Role</CardTitle>
                         <CardDescription>
-                            Please choose the primary function for this device. This setting will be saved.
+                            Please choose the primary function for this device. This setting will be saved for this browser.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -110,7 +129,7 @@ export default function RoleSelectorPage() {
                     </CardContent>
                 </Card>
                 <div className="mt-6 text-center text-sm text-muted-foreground">
-                    <p>To change this setting later, you will need to clear the application's stored data.</p>
+                    <p>You can return to this screen by clicking the "Home" or "Back" buttons.</p>
                 </div>
             </div>
         </PageWrapper>

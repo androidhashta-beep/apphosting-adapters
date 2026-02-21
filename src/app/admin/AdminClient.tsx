@@ -13,7 +13,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -24,16 +24,20 @@ import {
   useFirebase,
   setDocumentNonBlocking,
   useMemoFirebase,
+  useAuth,
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { StationManagement } from './StationManagement';
 import { CarouselSettings } from './CarouselSettings';
+import { UserManagement } from './UserManagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
+import { signOut } from 'firebase/auth';
 
 export function AdminClient() {
   const router = useRouter();
   const { firestore } = useFirebase();
+  const auth = useAuth();
   const { toast } = useToast();
 
   const settingsRef = useMemoFirebase(
@@ -107,8 +111,18 @@ export function AdminClient() {
         clearTimeout(handler);
     };
   }, [companyLogoUrl, verifyUrl, settings?.companyLogoUrl]);
+  
+  const handleSignOut = async () => {
+    await signOut(auth);
+    localStorage.removeItem('app-instance-role');
+    sessionStorage.setItem('force-role-selection', 'true');
+    router.push('/login');
+  }
 
-  const handleGoHome = () => {
+  const handleGoHome = async () => {
+     if (auth.currentUser && !auth.currentUser.isAnonymous) {
+      await signOut(auth);
+    }
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
@@ -155,6 +169,10 @@ export function AdminClient() {
           </h1>
           <div className="flex items-center gap-4">
             <ThemeSwitcher />
+            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4" />
+                <span className="sr-only">Sign Out</span>
+            </Button>
           </div>
         </div>
       </header>
@@ -170,6 +188,7 @@ export function AdminClient() {
             </div>
         ) : (
           <div className="space-y-8 p-6">
+              <UserManagement />
               <StationManagement />
               <CarouselSettings />
               <div className="grid grid-cols-1 items-start gap-8">

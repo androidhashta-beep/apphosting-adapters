@@ -62,3 +62,12 @@ export type Ticket = {
   calledAt?: Timestamp | null;
   servedAt?: Timestamp | null;
 };
+
+export type UserRole = 'admin' | 'staff';
+
+export type UserProfile = {
+  uid: string;
+  email: string;
+  displayName?: string;
+  role: UserRole;
+};
