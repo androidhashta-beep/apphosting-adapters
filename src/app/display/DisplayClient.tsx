@@ -90,7 +90,8 @@ export function DisplayClient() {
       ) : (
         <>
           <NowServing 
-            servingData={servingData} 
+            servingData={servingData}
+            settings={settings} 
           />
           <InfoPanel settings={settings} />
         </>
