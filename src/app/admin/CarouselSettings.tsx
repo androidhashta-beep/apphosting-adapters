@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, setDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,7 @@ export function CarouselSettings() {
                 description,
                 url: imageUrl,
             };
-            await updateDoc(settingsRef, { backgroundMusic: arrayUnion(newTrack) });
+            await setDoc(settingsRef, { backgroundMusic: arrayUnion(newTrack) }, { merge: true });
             toast({ title: `Music track added` });
         } else { // image or video
             const newItem: ImagePlaceholder = {
@@ -148,7 +148,7 @@ export function CarouselSettings() {
                 imageHint: hint,
                 ...(dialogState.type === 'video' && { useOwnAudio })
             };
-            await updateDoc(settingsRef, { placeholderImages: arrayUnion(newItem) });
+            await setDoc(settingsRef, { placeholderImages: arrayUnion(newItem) }, { merge: true });
             toast({ title: `${dialogState.type} added` });
         }
         handleCloseDialog();
@@ -166,12 +166,12 @@ export function CarouselSettings() {
         if (itemToDelete.type === 'music') {
             const trackToRemove = settings.backgroundMusic?.find(item => item.id === itemToDelete.id);
             if (trackToRemove) {
-                await updateDoc(settingsRef, { backgroundMusic: arrayRemove(trackToRemove) });
+                await setDoc(settingsRef, { backgroundMusic: arrayRemove(trackToRemove) }, { merge: true });
             }
         } else {
             const imageToRemove = settings.placeholderImages?.find(item => item.id === itemToDelete.id);
             if (imageToRemove) {
-                await updateDoc(settingsRef, { placeholderImages: arrayRemove(imageToRemove) });
+                await setDoc(settingsRef, { placeholderImages: arrayRemove(imageToRemove) }, { merge: true });
             }
         }
         
@@ -361,5 +361,7 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
 
     
