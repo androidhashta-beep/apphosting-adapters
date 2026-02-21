@@ -137,8 +137,8 @@ export function KioskClient() {
   const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
 
   return (
-    <div className="h-full flex flex-col items-center">
-      <div className="text-center p-6 w-full max-w-5xl">
+    <div className="flex h-screen flex-col items-center justify-center p-4">
+      <div className="w-full max-w-5xl flex-shrink-0 text-center">
         {isLogoValid ? (
             <div className="flex justify-center mb-2">
                 <Image
@@ -164,8 +164,8 @@ export function KioskClient() {
         </div>
       </div>
 
-      <div className="flex-grow flex items-center justify-center p-4 w-full">
-        <div className="grid w-full max-w-4xl grid-cols-1 sm:grid-cols-2 gap-8">
+      <div className="flex-grow flex w-full items-center justify-center">
+        <div className="grid w-full max-w-lg grid-cols-1 sm:grid-cols-2 gap-4">
             {isLoadingSettings ? (
             Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex justify-center items-center">
