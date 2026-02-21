@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AdminClient } from './AdminClient';
@@ -17,29 +18,29 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (!profile) {
-      router.replace('/');
+      // Still loading or failed to load, don't redirect yet
       return;
     }
 
     if (profile.role !== 'admin') {
-      localStorage.removeItem('app-instance-role');
-      sessionStorage.setItem('force-role-selection', 'true');
+      // If not an admin, redirect to home.
+      // This prevents non-admins from seeing the admin panel.
       router.replace('/');
-      return;
     }
   }, [profile, isLoading, router]);
 
+  // While loading or if profile is not available, show a loader.
+  // This prevents a flash of the admin content for non-admins.
   if (isLoading || !profile || profile.role !== 'admin') {
     return (
-      <PageWrapper title="Admin Panel" showBackButton={true}>
-        <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Verifying access...</p>
-        </div>
-      </PageWrapper>
+      <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Verifying access...</p>
+      </div>
     );
   }
 
+  // If the user is an admin, render the admin client.
   return <>{children}</>;
 }
 

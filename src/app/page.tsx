@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -92,7 +93,7 @@ export default function RoleSelectorPage() {
                             Please choose the primary function for this device. This setting will be saved for this browser.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                             {roles.map((role) => (
                             <Button
                                 key={role.id}
@@ -109,9 +110,6 @@ export default function RoleSelectorPage() {
                             ))}
                     </CardContent>
                 </Card>
-                <div className="mt-6 text-center text-sm text-muted-foreground">
-                    <p>You can return to this screen by clicking the "Home" or "Back" buttons.</p>
-                </div>
             </div>
         </PageWrapper>
     );

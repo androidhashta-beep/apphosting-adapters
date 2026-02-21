@@ -113,13 +113,16 @@ export function AdminClient() {
   }, [companyLogoUrl, verifyUrl, settings?.companyLogoUrl]);
   
   const handleSignOut = async () => {
-    await signOut(auth);
-    localStorage.removeItem('app-instance-role');
-    sessionStorage.setItem('force-role-selection', 'true');
-    router.push('/');
+    if (auth.currentUser?.isAnonymous) {
+      // For anonymous users, we just go home, which allows re-selection
+      handleGoHome();
+    } else {
+      await signOut(auth);
+      handleGoHome();
+    }
   }
 
-  const handleGoHome = async () => {
+  const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');

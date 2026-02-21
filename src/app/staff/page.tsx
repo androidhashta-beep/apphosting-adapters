@@ -1,3 +1,4 @@
+
 'use client';
 
 import { StaffClient } from './StaffClient';
@@ -13,26 +14,16 @@ function StaffAuthGuard({ children }: { children: React.ReactNode }) {
   const { isUserLoading } = useUser();
   const { profile, isLoading: isProfileLoading } = useUserProfile();
 
-  useEffect(() => {
-    if (isUserLoading || isProfileLoading) {
-      return;
-    }
-    
-    if (!profile || !['admin', 'staff'].includes(profile.role)) {
-      localStorage.removeItem('app-instance-role');
-      sessionStorage.setItem('force-role-selection', 'true');
-      router.replace('/');
-      return;
-    }
-  }, [isUserLoading, profile, isProfileLoading, router]);
-
+  // No complex auth logic here anymore, since we use anonymous users.
+  // The useUserProfile hook will ensure a profile is created.
+  // We just show a loader while things are initializing.
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading || !profile) {
+  if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Verifying access...</p>
+        <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
       </div>
     );
   }

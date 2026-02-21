@@ -23,6 +23,7 @@ export function UserManagement() {
   const { profile, isLoading } = useUserProfile();
 
   const getUsernameFromEmail = (email: string) => {
+    if (email === 'anonymous-user') return 'anonymous';
     return email.split('@')[0];
   };
 
@@ -31,8 +32,7 @@ export function UserManagement() {
       <CardHeader>
         <CardTitle>User & Role Management</CardTitle>
         <CardDescription>
-          User management is limited. New users are automatically assigned roles
-          upon their first login.
+          This panel displays your current user profile and role. To become an admin, your role must be changed in the Firestore database.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -83,10 +83,7 @@ export function UserManagement() {
               This panel currently only displays your own profile.
             </li>
             <li>
-             To create a new user, use the Firebase Authentication console. New users will be assigned the 'staff' role by default.
-            </li>
-             <li>
-              To make a user an admin, you must manually edit their 'role' field in the Firestore 'users' collection.
+             To make a user an admin, you must manually edit their 'role' field in the Firestore 'users' collection from 'staff' to 'admin'.
             </li>
           </ul>
         </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, LogOut, Shield } from "lucide-react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth } from "@/firebase";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { signOut } from "firebase/auth";
 import { Button } from "./ui/button";
@@ -21,17 +21,16 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
   const auth = useAuth();
   const { profile } = useUserProfile();
 
-  const handleGoHome = async () => {
+  const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
-    localStorage.removeItem('app-instance-role');
-    sessionStorage.setItem('force-role-selection', 'true');
-    router.push('/');
+    // For anonymous users, just go back to role selection.
+    // For email/password users, this would sign them out.
+    handleGoHome();
   }
 
   return (
@@ -71,11 +70,11 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
                 <TooltipTrigger asChild>
                    <Button variant="ghost" size="icon" onClick={handleSignOut}>
                       <LogOut className="h-4 w-4" />
-                      <span className="sr-only">Change Role / Sign Out</span>
+                      <span className="sr-only">Change Role</span>
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Change Role / Sign Out</p>
+                  <p>Change Role</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

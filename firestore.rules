@@ -31,28 +31,26 @@ service cloud.firestore {
     }
     match /stations/{stationId} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write: if isStaff() || isAdmin();
     }
     match /tickets/{ticketId} {
       allow create: if request.auth != null;
-      allow read: if request.auth != null;
-      allow update, delete: if isStaff();
+      allow read: if true; // Public display needs to read tickets
+      allow update, delete: if isStaff() || isAdmin();
     }
     match /counters/{counterId} {
       allow read, write: if request.auth != null;
     }
     match /users/{userId} {
       // Allow a user to create their own profile document.
-      // This is the most critical rule for fixing the login issue.
-      allow create: if isOwner(userId) && request.resource.data.uid == userId;
+      allow create: if isOwner(userId);
       
       // Allow a user to read their own profile.
       // Allow admins to read anyone's profile.
       allow read: if isOwner(userId) || isAdmin();
       
-      // Allow a user to update their own profile.
-      // Admins can update any profile.
-      allow update: if isOwner(userId) || isAdmin();
+      // Allow admins to update any profile.
+      allow update: if isAdmin();
 
       // Do not allow deletion of users for now.
       allow delete: if false;
