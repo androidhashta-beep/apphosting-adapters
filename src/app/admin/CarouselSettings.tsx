@@ -69,26 +69,34 @@ export function CarouselSettings() {
     const incompatibleFormatUrls: string[] = [];
 
     for (const url of urls) {
+        // Path validation: Must start with `/` or `http`.
         if (!url.startsWith('/') && !url.startsWith('http')) {
             invalidPathUrls.push(url);
             continue;
         }
 
-        try {
-            const urlObject = new URL(url, window.location.origin);
-            const pathname = urlObject.pathname.toLowerCase();
-            
-            let validExtensions: string[] = [];
-            if (dialogState.type === 'image') validExtensions = validImageExtensions;
-            else if (dialogState.type === 'video') validExtensions = validVideoExtensions;
-            else if (dialogState.type === 'music') validExtensions = validMusicExtensions;
+        // Format validation (for local files only)
+        if (url.startsWith('/')) {
+            try {
+                // Use a dummy base URL to correctly parse the pathname.
+                const pathname = new URL(url, 'http://dummybase').pathname.toLowerCase();
+                
+                let validExtensions: string[] = [];
+                if (dialogState.type === 'image') validExtensions = validImageExtensions;
+                else if (dialogState.type === 'video') validExtensions = validVideoExtensions;
+                else if (dialogState.type === 'music') validExtensions = validMusicExtensions;
 
-            if (!validExtensions.some(ext => pathname.endsWith(ext))) {
-                incompatibleFormatUrls.push(url);
+                if (!validExtensions.some(ext => pathname.endsWith(ext))) {
+                    incompatibleFormatUrls.push(url);
+                }
+            } catch (e) {
+                // This catch is a fallback, but the startsWith check should prevent most URL constructor errors.
+                invalidPathUrls.push(url);
             }
-        } catch (e) {
-            invalidPathUrls.push(url);
         }
+        // For external URLs (starting with http), we skip the extension check
+        // because it's unreliable for services like Google Drive.
+        // The user has been warned about reliability in the dialog.
     }
 
     if (invalidPathUrls.length > 0) {
@@ -105,7 +113,7 @@ export function CarouselSettings() {
         toast({
             variant: "destructive",
             title: "Incompatible File Format",
-            description: `One or more files may have a format incompatible for a ${dialogState.type}. Please check: ${incompatibleFormatUrls.join(', ')}`,
+            description: `One or more local files have an incompatible format for a ${dialogState.type}. Please check: ${incompatibleFormatUrls.join(', ')}`,
             duration: 10000,
         });
         return;
@@ -327,5 +335,7 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
 
     
