@@ -383,7 +383,7 @@ export function CarouselSettings() {
         </Card>
 
         <AlertDialog open={!!dialogState} onOpenChange={(open) => !open && handleCloseDialog()}>
-            <AlertDialogContent>
+            <AlertDialogContent className="sm:max-w-xl">
               {renderDialogContent()}
             </AlertDialogContent>
         </AlertDialog>
@@ -403,7 +403,5 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
 
     
