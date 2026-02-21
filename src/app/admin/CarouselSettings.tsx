@@ -102,6 +102,80 @@ export function CarouselSettings() {
     element.src = url;
   }, []);
 
+  const handleAddDefaultMedia = useCallback(async () => {
+    if (!settingsRef || !firestore) return;
+
+    toast({ title: "Auto-populating media...", description: "Adding default media to the carousel." });
+
+    const defaultPlaceholderImages: ImagePlaceholder[] = [
+        { id: 'img-1', type: 'image', description: 'Our Modern Training Facilities', imageUrl: '/carousel/image1.jpg', imageHint: 'training room' },
+        { id: 'vid-1', type: 'video', description: 'A Quick Tour of Our Center', imageUrl: '/carousel/video1.mp4', imageHint: 'office tour', useOwnAudio: false },
+        { id: 'img-2', type: 'image', description: 'Hands-On Learning Environment', imageUrl: '/carousel/image2.jpg', imageHint: 'students learning' },
+    ];
+
+    const defaultBackgroundMusic: AudioTrack[] = [
+        { id: 'music-1', description: 'Uplifting Corporate Track', url: '/carousel/music1.mp3' },
+        { id: 'music-2', description: 'Calm and Focused Ambient', url: '/carousel/music2.mp3' },
+    ];
+
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const settingsDoc = await transaction.get(settingsRef);
+            const currentData = settingsDoc.data() as Partial<Settings> | undefined;
+            
+            const currentImages = currentData?.placeholderImages || [];
+            const currentMusic = currentData?.backgroundMusic || [];
+
+            const imageIds = new Set(currentImages.map(i => i.id));
+            const updatedImages = [...currentImages];
+            defaultPlaceholderImages.forEach(defaultImage => {
+                if (!imageIds.has(defaultImage.id)) {
+                    updatedImages.push(defaultImage);
+                }
+            });
+
+            const musicIds = new Set(currentMusic.map(m => m.id));
+            const updatedMusic = [...currentMusic];
+            defaultBackgroundMusic.forEach(defaultTrack => {
+                if (!musicIds.has(defaultTrack.id)) {
+                    updatedMusic.push(defaultTrack);
+                }
+            });
+
+            transaction.set(settingsRef, { 
+                placeholderImages: updatedImages,
+                backgroundMusic: updatedMusic 
+            }, { merge: true });
+        });
+        
+        toast({ title: "Default Media Added", description: "Example images, video, and music have been added." });
+    } catch (error: any) {
+        console.error("Failed to add default media:", error);
+        toast({ 
+            variant: "destructive", 
+            title: "Operation Failed", 
+            description: error.message || "Could not add default media." 
+        });
+    }
+  }, [firestore, settingsRef, toast]);
+
+  useEffect(() => {
+    const runOnce = async () => {
+        if (isLoadingSettings || !settings) return;
+        if (sessionStorage.getItem('default-media-added')) return;
+        
+        sessionStorage.setItem('default-media-added', 'true');
+        
+        const currentImages = settings.placeholderImages || [];
+        if (currentImages.length === 0) {
+            await handleAddDefaultMedia();
+        }
+    };
+    runOnce();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingSettings, settings, handleAddDefaultMedia]);
+
+
   useEffect(() => {
     if (!dialogState) return;
 
@@ -163,13 +237,13 @@ export function CarouselSettings() {
         const settingsDoc = await transaction.get(settingsRef);
         const currentData = settingsDoc.data() as Partial<Settings> | undefined;
         
-        let currentArray = (currentData?.[fieldToUpdate] || []) as (ImagePlaceholder[] | AudioTrack[]);
+        const currentItems = (currentData?.[fieldToUpdate] || []) as (ImagePlaceholder[] | AudioTrack[]);
         
-        if (!Array.isArray(currentArray)) {
-            currentArray = [];
+        if (!Array.isArray(currentItems)) {
+            throw new Error("Could not update media list due to unexpected data format.");
         }
 
-        const updatedItems = [...currentArray, newItem];
+        const updatedItems = [...currentItems, newItem];
         
         transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
       });
@@ -199,7 +273,6 @@ export function CarouselSettings() {
         await runTransaction(firestore, async (transaction) => {
             const settingsDoc = await transaction.get(settingsRef);
             if (!settingsDoc.exists()) {
-                // Document doesn't exist, so there's nothing to delete.
                 return;
             }
 
@@ -208,7 +281,7 @@ export function CarouselSettings() {
 
             if (Array.isArray(existingItems)) {
                 const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-                transaction.update(settingsRef, { [fieldToUpdate]: updatedItems });
+                transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
             }
         });
         
@@ -228,10 +301,7 @@ export function CarouselSettings() {
   const handleDrop = async (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
     if (!settingsRef || !firestore) return;
     try {
-        // Use a transaction to safely update the order.
         await runTransaction(firestore, async (transaction) => {
-          // Using set with merge:true is the safest way to update an array field,
-          // as it creates the document if it doesn't exist.
           transaction.set(settingsRef, { [field]: newItems }, { merge: true });
         });
         toast({ title: "Order saved" });
