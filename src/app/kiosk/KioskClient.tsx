@@ -12,6 +12,8 @@ import { collection, doc, runTransaction, Timestamp } from "firebase/firestore";
 import { Loader2 } from "lucide-react";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
+import Image from "next/image";
+import { Clock } from "@/app/display/Clock";
 
 export function KioskClient() {
   const { firestore } = useFirebase();
@@ -131,8 +133,32 @@ export function KioskClient() {
       return settings?.services?.find(s => s.id === ticket.type);
   }
 
+  const logoUrl = settings?.companyLogoUrl?.trim();
+  const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
+
   return (
     <>
+      <div className="mb-6 text-center">
+            {isLogoValid && (
+                <div className="flex justify-center mb-4">
+                    <Image
+                        src={logoUrl}
+                        alt={`${settings?.companyName || 'Company'} Logo`}
+                        width={240}
+                        height={80}
+                        className="h-20 w-auto object-contain"
+                        priority
+                    />
+                </div>
+            )}
+            {settings?.companyName && (
+                <h1 className="text-4xl font-bold tracking-tight">{settings.companyName}</h1>
+            )}
+            <div className="mt-2 text-muted-foreground text-lg">
+                <Clock />
+            </div>
+        </div>
+
       <div className="flex justify-center">
         <Card className="w-full max-w-4xl">
           <CardContent className="p-8">
@@ -188,7 +214,7 @@ export function KioskClient() {
         </Card>
       </div>
       <div className="printable-area">
-        <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings?.companyName || ''} service={getPrintableService(ticketToPrint)} />
+        <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings?.companyName || ''} service={getPrintableService(ticketToPrint)} companyLogoUrl={logoUrl} />
       </div>
     </>
   );

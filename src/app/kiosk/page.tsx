@@ -3,7 +3,7 @@ import { PageWrapper } from '@/components/PageWrapper';
 
 export default function KioskPage() {
   return (
-    <PageWrapper title="Ticket Kiosk" showBackButton={true}>
+    <PageWrapper title="" showBackButton={true}>
       <KioskClient />
     </PageWrapper>
   );

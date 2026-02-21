@@ -7,17 +7,21 @@ import { Timestamp } from 'firebase/firestore';
 type PrintableTicketProps = {
   ticket: Ticket | null;
   companyName: string;
+  companyLogoUrl?: string | null;
   service?: Service | null;
 };
 
 export const PrintableTicket = React.forwardRef<HTMLDivElement, PrintableTicketProps>(
-  ({ ticket, companyName, service }, ref) => {
+  ({ ticket, companyName, companyLogoUrl, service }, ref) => {
     if (!ticket) return null;
 
     const createdAtDate = ticket.createdAt instanceof Timestamp ? ticket.createdAt.toDate() : new Date(ticket.createdAt);
 
     return (
       <div ref={ref} className="ticket-content">
+        {companyLogoUrl && (
+            <img src={companyLogoUrl} alt="Company Logo" style={{maxWidth: '150px', maxHeight: '50px', margin: '0 auto 1rem auto', display: 'block', objectFit: 'contain'}} />
+        )}
         <h3 className="company-name">{companyName}</h3>
         
         <div className="ticket-item">
