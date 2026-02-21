@@ -1,23 +1,11 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Settings: Allow any authenticated user to read and write.
-    match /settings/{settingId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Stations: Allow any authenticated user to read and write.
-    match /stations/{stationId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Tickets: Allow any authenticated user to read and write.
-    match /tickets/{ticketId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Counters: Allow any authenticated user to read and write.
-    match /counters/{counterId} {
+    // This rule allows any authenticated user to read and write to any document in the database.
+    // This is a simple, permissive rule suitable for development and for apps
+    // where all authenticated users have the same level of access.
+    match /{document=**} {
       allow read, write: if request.auth != null;
     }
   }
