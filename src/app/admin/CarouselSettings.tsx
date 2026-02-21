@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,52 +141,47 @@ export function CarouselSettings() {
     }
 
     setIsSaving(true);
-    let success = false;
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const settingsDoc = await transaction.get(settingsRef);
-            const currentData = settingsDoc.exists() ? settingsDoc.data() : {};
+        const settingsDoc = await getDoc(settingsRef);
+        const currentData = settingsDoc.exists() ? settingsDoc.data() : {};
 
-            const isMusic = dialogState.type === 'music';
-            const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
-
-            const newItem = isMusic 
-                ? { id: `music-${Date.now()}`, description, url: imageUrl }
-                : {
-                    id: `${dialogState.type}-${Date.now()}`,
-                    type: dialogState.type,
-                    description,
-                    imageUrl,
-                    imageHint: hint,
-                    ...(dialogState.type === 'video' && { useOwnAudio })
-                };
-
-            const currentItems = currentData[fieldToUpdate] || [];
-            if (!Array.isArray(currentItems)) {
-                throw new Error(`Database field '${fieldToUpdate}' is corrupt.`);
-            }
-            
-            const updatedItems = [...currentItems, newItem];
-            transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-        });
+        const isMusic = dialogState.type === 'music';
+        const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
         
-        success = true;
+        const newItem = isMusic 
+            ? { id: `music-${Date.now()}`, description, url: imageUrl }
+            : {
+                id: `${dialogState.type}-${Date.now()}`,
+                type: dialogState.type,
+                description,
+                imageUrl,
+                imageHint: hint,
+                ...(dialogState.type === 'video' && { useOwnAudio })
+            };
+
+        const currentItems = currentData[fieldToUpdate] || [];
+        if (!Array.isArray(currentItems)) {
+            throw new Error(`Database field '${fieldToUpdate}' is in an unexpected format.`);
+        }
+        
+        const updatedItems = [...currentItems, newItem];
+        
+        await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        
         toast({ title: "Success!", description: "Media item added." });
+        handleCloseDialog();
 
     } catch (error: any) {
-        console.error("Save transaction failed:", error);
+        console.error("Save failed:", error);
         toast({ 
             variant: "destructive", 
             title: "Save Failed", 
-            description: error.message || "An unknown error occurred.",
+            description: error.message || "An unknown error occurred. Please check the console for details.",
             duration: 10000
         });
     } finally {
         setIsSaving(false);
-        if (success) {
-            handleCloseDialog();
-        }
     }
   };
 
@@ -197,23 +192,22 @@ export function CarouselSettings() {
     const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
     
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const settingsDoc = await transaction.get(settingsRef);
-            if (!settingsDoc.exists()) {
-                return; // Nothing to delete from
-            }
+        const settingsDoc = await getDoc(settingsRef);
+        if (!settingsDoc.exists()) {
+            setItemToDelete(null);
+            return;
+        }
 
-            const currentData = settingsDoc.data();
-            const existingItems = currentData[fieldToUpdate];
+        const currentData = settingsDoc.data();
+        const existingItems = currentData[fieldToUpdate];
 
-            if (Array.isArray(existingItems)) {
-                const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-                transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-            }
-        });
-        toast({ title: "Item removed" });
+        if (Array.isArray(existingItems)) {
+            const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
+            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+            toast({ title: "Item removed" });
+        }
     } catch(error: any) {
-        console.error("Delete transaction failed:", error);
+        console.error("Delete failed:", error);
         toast({ 
             variant: "destructive", 
             title: "Delete Failed", 
@@ -228,9 +222,7 @@ export function CarouselSettings() {
   const handleDrop = async (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
     if (!settingsRef || !firestore) return;
     try {
-        await runTransaction(firestore, async (transaction) => {
-            transaction.set(settingsRef, { [field]: newItems }, { merge: true });
-        });
+        await setDoc(settingsRef, { [field]: newItems }, { merge: true });
         toast({ title: "Order saved" });
     } catch (error: any) {
         console.error("Reorder failed:", error);
@@ -490,3 +482,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
