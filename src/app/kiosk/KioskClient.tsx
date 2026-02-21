@@ -17,7 +17,7 @@ import { Clock } from "@/app/display/Clock";
 
 const KioskButton = ({ service, isPrinting, onClick }: { service: Service, isPrinting: string | null, onClick: (id: string) => void }) => (
     <div className="flex justify-center items-center">
-        <div className="w-2/3 aspect-square">
+        <div className="w-full aspect-square">
             <Button
                 variant="outline"
                 className="w-full h-full flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer whitespace-normal"
@@ -49,7 +49,7 @@ const KioskButton = ({ service, isPrinting, onClick }: { service: Service, isPri
 
 const ButtonSkeleton = () => (
     <div className="w-full flex justify-center items-center">
-        <div className="w-2/3 aspect-square bg-muted rounded-2xl animate-pulse" />
+        <div className="w-full aspect-square bg-muted rounded-2xl animate-pulse" />
     </div>
 );
 
@@ -66,9 +66,6 @@ export function KioskClient() {
   const ticketsCollection = useMemo(() => (firestore ? collection(firestore, 'tickets') : null), [firestore]);
 
   const services = useMemo(() => settings?.services || [], [settings]);
-  const midPoint = Math.ceil(services.length / 2);
-  const leftServices = useMemo(() => services.slice(0, midPoint), [services, midPoint]);
-  const rightServices = useMemo(() => services.slice(midPoint), [services, midPoint]);
 
   useEffect(() => {
     if (ticketToPrint) {
@@ -188,14 +185,14 @@ export function KioskClient() {
                 <Image
                     src={encodeURI(logoUrl)}
                     alt={`${settings?.companyName || 'Company'} Logo`}
-                    width={180}
-                    height={60}
-                    className="h-16 w-auto object-contain"
+                    width={720}
+                    height={240}
+                    className="h-64 w-auto object-contain"
                     priority
                 />
             </div>
         ) : (
-            <div className="flex justify-center mb-2 h-16 items-center" />
+            <div className="flex justify-center mb-2 h-64 items-center" />
         )}
         {settings?.companyName && (
             <h1 className="text-3xl font-bold tracking-tight">{settings.companyName}</h1>
@@ -209,44 +206,32 @@ export function KioskClient() {
       </div>
 
       <div className="flex-grow flex w-full items-center justify-center">
-        <div className="grid w-full max-w-4xl grid-cols-1 md:grid-cols-2 items-center justify-center gap-8 p-4">
-           {/* Left Column */}
-          <div className="flex flex-col items-center justify-center gap-8">
-            {isLoadingSettings ? (
-              <>
-                <ButtonSkeleton />
-                <ButtonSkeleton />
-              </>
-            ) : (
-              leftServices.map(service => (
-                <KioskButton key={service.id} service={service} isPrinting={isPrinting} onClick={handleGetTicket} />
-              ))
-            )}
-          </div>
-          
-          {/* Right Column */}
-          <div className="flex flex-col items-center justify-center gap-8">
-            {isLoadingSettings ? (
-              <>
-                <ButtonSkeleton />
-                <ButtonSkeleton />
-              </>
-            ) : (
-              rightServices.map(service => (
-                <KioskButton key={service.id} service={service} isPrinting={isPrinting} onClick={handleGetTicket} />
-              ))
-            )}
-          </div>
-
-          {/* No services available message */}
-          {!isLoadingSettings && services.length === 0 && (
-            <div className="md:col-span-2 text-center text-muted-foreground flex items-center justify-center">
-                <div className="flex flex-col items-center">
+        <div className="grid w-full max-w-4xl grid-cols-2 gap-8 p-4">
+          {isLoadingSettings ? (
+            <>
+              <ButtonSkeleton />
+              <ButtonSkeleton />
+              <ButtonSkeleton />
+              <ButtonSkeleton />
+            </>
+          ) : services.length > 0 ? (
+            services.map((service) => (
+              <KioskButton
+                key={service.id}
+                service={service}
+                isPrinting={isPrinting}
+                onClick={handleGetTicket}
+              />
+            ))
+          ) : (
+            <div className="col-span-2 text-center text-muted-foreground flex items-center justify-center py-10">
+              <div className="flex flex-col items-center">
                 <p className="text-lg font-semibold">No Services Available</p>
                 <p>
-                    This kiosk is not yet configured. Please contact an administrator.
+                  This kiosk is not yet configured. Please contact an
+                  administrator.
                 </p>
-                </div>
+              </div>
             </div>
           )}
         </div>
@@ -257,5 +242,3 @@ export function KioskClient() {
     </div>
   );
 }
-
-    
