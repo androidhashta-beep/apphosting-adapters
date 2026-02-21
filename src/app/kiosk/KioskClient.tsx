@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import type { Ticket, Service, Settings } from "@/lib/types";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -137,89 +136,80 @@ export function KioskClient() {
   const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
 
   return (
-    <>
-      <div className="mb-6 text-center">
-            {isLogoValid ? (
-                <div className="flex justify-center mb-4">
-                    <Image
-                        src={logoUrl}
-                        alt={`${settings?.companyName || 'Company'} Logo`}
-                        width={240}
-                        height={80}
-                        className="h-20 w-auto object-contain"
-                        priority
-                    />
-                </div>
-            ) : (
-                 <div className="flex justify-center mb-4 h-20 items-center">
-                    {/* Placeholder or nothing */}
-                </div>
-            )}
-            {settings?.companyName && (
-                <h1 className="text-4xl font-bold tracking-tight">{settings.companyName}</h1>
-            )}
+    <div className="h-full flex flex-col p-6">
+      <div className="text-center">
+        {isLogoValid ? (
+            <div className="flex justify-center mb-2">
+                <Image
+                    src={encodeURI(logoUrl)}
+                    alt={`${settings?.companyName || 'Company'} Logo`}
+                    width={180}
+                    height={60}
+                    className="h-16 w-auto object-contain"
+                    priority
+                />
+            </div>
+        ) : (
+              <div className="flex justify-center mb-2 h-16 items-center" />
+        )}
+        {settings?.companyName && (
+            <h1 className="text-3xl font-bold tracking-tight">{settings.companyName}</h1>
+        )}
+        <p className="text-muted-foreground mt-2 mb-4">
+          Please select a service to get your ticket.
+        </p>
+        <div className="text-muted-foreground text-lg max-w-md mx-auto">
+          <Clock />
         </div>
+      </div>
 
-      <div className="flex justify-center">
-        <Card className="w-full max-w-4xl">
-          <CardContent className="p-8">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-foreground">Get Your Ticket</h2>
-              <p className="text-muted-foreground mt-2 mb-4">
-                Please select a service.
-              </p>
-              <div className="text-muted-foreground text-lg">
-                <Clock />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {isLoadingSettings ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
-                ))
-              ) : settings?.services && settings.services.length > 0 ? (
-                settings.services.map((service) => (
-                  <Button
-                    key={service.id}
-                    variant="outline"
-                    className="h-auto text-xl flex-col gap-2 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal py-4"
-                    onClick={() => handleGetTicket(service.id)}
-                    disabled={isLoadingSettings || !!isPrinting}
-                  >
-                    {isPrinting === service.id ? (
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                        <Icon name={service.icon} className="h-8 w-8" />
-                    )}
-                    <div className="flex flex-col">
-                        <span className="font-semibold text-2xl">
-                          {isPrinting === service.id
-                            ? 'Preparing Ticket...'
-                            : !!isPrinting
-                            ? 'Please wait...'
-                            : service.label}
-                        </span>
-                        {!!isPrinting && isPrinting !== service.id && (
-                           <span className="text-sm font-normal text-muted-foreground">Another request is in progress.</span>
-                        )}
-                    </div>
-                  </Button>
-                ))
+      <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+        {isLoadingSettings ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-muted rounded-lg animate-pulse" />
+          ))
+        ) : settings?.services && settings.services.length > 0 ? (
+          settings.services.map((service) => (
+            <Button
+              key={service.id}
+              variant="outline"
+              className="h-full w-full text-4xl flex-col gap-4 rounded-lg shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 whitespace-normal p-8"
+              onClick={() => handleGetTicket(service.id)}
+              disabled={isLoadingSettings || !!isPrinting}
+            >
+              {isPrinting === service.id ? (
+                  <Loader2 className="h-16 w-16 animate-spin" />
               ) : (
-                <div className="sm:col-span-2 text-center text-muted-foreground py-10">
-                  <p className="text-lg font-semibold">No Services Available</p>
-                  <p>
-                    This kiosk is not yet configured. Please contact an administrator.
-                  </p>
-                </div>
+                  <Icon name={service.icon} className="h-16 w-16" />
               )}
+              <div className="flex flex-col text-center">
+                  <span className="font-semibold">
+                    {isPrinting === service.id
+                      ? 'Preparing Ticket...'
+                      : !!isPrinting
+                      ? 'Please wait...'
+                      : service.label}
+                  </span>
+                  {!!isPrinting && isPrinting !== service.id && (
+                      <span className="text-base font-normal text-muted-foreground">Another request is in progress.</span>
+                  )}
+              </div>
+            </Button>
+          ))
+        ) : (
+          <div className="sm:col-span-2 text-center text-muted-foreground flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <p className="text-lg font-semibold">No Services Available</p>
+              <p>
+                This kiosk is not yet configured. Please contact an administrator.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
       <div className="printable-area">
         <PrintableTicket ref={printableRef} ticket={ticketToPrint} companyName={settings?.companyName || ''} service={getPrintableService(ticketToPrint)} companyLogoUrl={logoUrl} />
       </div>
-    </>
+    </div>
   );
 }
