@@ -58,7 +58,7 @@ service cloud.firestore {
         )
       );
 
-      // Allow any authenticated user to perform a list query.
+      // Allow admins to list all users.
       allow list: if isAdmin();
 
       // Allow a user to read their own document.
