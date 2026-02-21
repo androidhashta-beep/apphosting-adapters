@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useFirebase, useDoc, setDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
@@ -52,10 +52,10 @@ export function CarouselSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [urlsInput, setUrlsInput] = useState('');
 
-  const verifyMediaUrl = (url: string, type: 'image' | 'video' | 'music'): Promise<{ url: string; status: 'valid' | 'invalid' }> => {
+  const verifyMediaUrl = useCallback((url: string, type: 'image' | 'video' | 'music'): Promise<{ status: 'valid' | 'invalid' }> => {
     return new Promise((resolve) => {
         if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
-            return resolve({ url, status: 'invalid' });
+            return resolve({ status: 'invalid' });
         }
 
         let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
@@ -74,12 +74,12 @@ export function CarouselSettings() {
 
         const handleSuccess = () => {
             cleanup();
-            resolve({ url, status: 'valid' });
+            resolve({ status: 'valid' });
         };
 
         const handleError = () => {
             cleanup();
-            resolve({ url, status: 'invalid' });
+            resolve({ status: 'invalid' });
         };
         
         timer = setTimeout(handleError, timeout);
@@ -90,12 +90,34 @@ export function CarouselSettings() {
             element.onerror = handleError;
         } else { // video or music
             element = document.createElement(type);
-            element.onloadedmetadata = handleSuccess; // Use onloadedmetadata for faster checks on media files
+            element.onloadedmetadata = handleSuccess;
             element.onerror = handleError;
         }
         element.src = url;
     });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!dialogState) return;
+
+    const idleEntries = urlEntries.filter(e => e.status === 'idle');
+    
+    if (idleEntries.length > 0) {
+        // Set all idle to verifying
+        setUrlEntries(prev => 
+            prev.map(e => (e.status === 'idle' ? { ...e, status: 'verifying' } : e))
+        );
+        
+        // Kick off verification for each
+        idleEntries.forEach(entry => {
+            verifyMediaUrl(entry.url, dialogState.type).then(result => {
+                setUrlEntries(prev => 
+                    prev.map(e => (e.id === entry.id ? { ...e, status: result.status } : e))
+                );
+            });
+        });
+    }
+  }, [urlEntries, dialogState, verifyMediaUrl]);
   
   const handleAddUrls = () => {
     const urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url);
@@ -135,36 +157,26 @@ export function CarouselSettings() {
         return;
     }
 
-    setIsSaving(true);
-
-    const verificationPromises = urlEntries.map(entry => {
-        setUrlEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: 'verifying' } : e));
-        return verifyMediaUrl(entry.url, dialogState.type).then(result => ({ ...result, id: entry.id }));
-    });
-
-    const results = await Promise.all(verificationPromises);
-
-    let allValid = true;
-    results.forEach(result => {
-        setUrlEntries(prev => prev.map(e => {
-            if (e.id === result.id) {
-                if (result.status === 'invalid') allValid = false;
-                return { ...e, status: result.status };
-            }
-            return e;
-        }));
-    });
-    
-    if (!allValid) {
+    const isVerifying = urlEntries.some(e => e.status === 'verifying');
+    if (isVerifying) {
         toast({
-            variant: "destructive",
-            title: "Could Not Load Some Media",
-            description: `One or more URLs are invalid. Please remove them and try again.`,
-            duration: 10000,
+            title: "Please Wait",
+            description: "Some URLs are still being verified.",
         });
-        setIsSaving(false);
         return;
     }
+
+    const hasInvalid = urlEntries.some(e => e.status === 'invalid');
+    if (hasInvalid) {
+        toast({
+            variant: "destructive",
+            title: "Invalid URLs Found",
+            description: "Please remove the items marked with a red icon before saving.",
+        });
+        return;
+    }
+
+    setIsSaving(true);
 
     try {
         const validUrls = urlEntries.map(entry => entry.url);
@@ -220,6 +232,9 @@ export function CarouselSettings() {
     const isVideo = dialogState.type === 'video';
     const isMusic = dialogState.type === 'music';
     const title = isMusic ? "Add Background Music" : isVideo ? "Add Video(s)" : "Add Image(s)";
+    
+    const hasInvalid = urlEntries.some(e => e.status === 'invalid');
+    const isVerifying = urlEntries.some(e => e.status === 'verifying');
     
     return (
         <form onSubmit={handleSave}>
@@ -282,12 +297,16 @@ export function CarouselSettings() {
             </div>
             <AlertDialogFooter>
                 <AlertDialogCancel type="button" onClick={handleCloseDialog}>Cancel</AlertDialogCancel>
-                <AlertDialogAction type="submit" disabled={isSaving}>
+                <AlertDialogAction type="submit" disabled={isSaving || isVerifying || hasInvalid || urlEntries.length === 0}>
                     {isSaving ? (
                         <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying & Saving...
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
                         </>
-                    ) : 'Verify & Save'}
+                    ) : isVerifying ? (
+                         <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...
+                        </>
+                    ) : 'Save'}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </form>
@@ -403,3 +422,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
