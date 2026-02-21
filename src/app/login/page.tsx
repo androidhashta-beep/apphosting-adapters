@@ -124,9 +124,6 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
-       <Button variant="link" size="sm" className="mt-6" onClick={() => router.push('/')}>
-            Back to Role Selection
-        </Button>
     </div>
   );
 }
