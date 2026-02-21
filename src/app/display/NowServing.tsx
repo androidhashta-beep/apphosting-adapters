@@ -1,7 +1,6 @@
 'use client';
 
 import type { Service } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 type ServingData = {
@@ -23,12 +22,15 @@ function abbreviateService(label: string): string {
 export function NowServing({ servingData, services }: { servingData: ServingData[], services: Service[] }) {
   
   const getServiceAbbreviation = (label: string) => {
-    const service = services.find(s => s.label === label);
+    const service = services.find(s => s.label.toLowerCase() === label.toLowerCase());
     if (!service) return abbreviateService(label);
     
-    if (service.label.toLowerCase().includes('payment')) return 'PAYMENT';
-    if (service.label.toLowerCase().includes('registration')) return 'NEW CON';
-    if (service.label.toLowerCase().includes('information')) return 'INQUIRY';
+    const serviceLabelLower = service.label.toLowerCase();
+
+    if (serviceLabelLower.includes('payment')) return 'PAYMENT';
+    if (serviceLabelLower.includes('registrar')) return 'REGISTRAR';
+    if (serviceLabelLower.includes('certificate')) return 'CERTIFICATE';
+    if (serviceLabelLower.includes('information')) return 'INQUIRY';
     return abbreviateService(service.label);
   };
     
@@ -51,7 +53,6 @@ export function NowServing({ servingData, services }: { servingData: ServingData
             >
               <span className={cn(index > 0 && 'text-blue-300')}>{getServiceAbbreviation(item.serviceLabel)}</span>
               <div className="flex flex-col items-center">
-                 { index === 0 && <Badge className="bg-red-600 text-white text-lg mb-1 -mt-1">PRIORITY</Badge>}
                 <span className="leading-none">{item.ticketNumber}</span>
                 { index > 0 && <div className="h-1 w-16 bg-white/50 mt-1"></div> }
               </div>

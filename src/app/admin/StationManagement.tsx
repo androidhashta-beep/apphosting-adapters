@@ -159,9 +159,9 @@ export function StationManagement() {
             });
         } else {
             const defaultServices: Service[] = [
-                { id: 'registration', label: 'Registration', description: 'Student registration process', icon: 'UserPlus' },
-                { id: 'cashier', label: 'Cashier', description: 'Payment of fees', icon: 'DollarSign' },
-                { id: 'certificate-claiming', label: 'Certificate Claiming', description: 'Claiming of certificates', icon: 'Award' },
+                { id: 'registrar', label: 'Registrar', description: 'Student registration process', icon: 'UserPlus' },
+                { id: 'payment', label: 'Payment', description: 'Payment of fees', icon: 'DollarSign' },
+                { id: 'certificate', label: 'Certificate', description: 'Claiming of certificates', icon: 'Award' },
                 { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
             ];
             
