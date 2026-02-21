@@ -163,7 +163,7 @@ export function KioskClient() {
         </div>
       </div>
 
-      <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-24 items-center justify-items-center p-24">
+      <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-16 items-center justify-items-center p-16">
         {isLoadingSettings ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="w-1/3 aspect-square bg-muted rounded-lg animate-pulse" />
