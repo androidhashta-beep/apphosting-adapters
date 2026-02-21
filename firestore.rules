@@ -26,9 +26,7 @@ service cloud.firestore {
     // Collection Rules
     match /settings/{settingId} {
       allow read: if true;
-      // Allow any authenticated user to write to settings ONLY if they are creating the 'firstUserCreated' flag
-      // OR if they are an admin.
-      allow write: if isAdmin() || (request.auth != null && request.resource.data.keys().hasOnly(['firstUserCreated']) && !resource.data.firstUserCreated);
+      allow write: if isAdmin();
     }
     match /stations/{stationId} {
       allow read: if true;
@@ -44,8 +42,6 @@ service cloud.firestore {
     }
     match /users/{userId} {
       // Allow a user to create their own profile document.
-      // The role is determined by the application logic inside a transaction.
-      // This rule just ensures the user is creating their own document.
       allow create: if isOwner(userId) && request.resource.data.uid == userId;
       
       // Allow a user to read their own profile.
