@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useFirebase, useDoc, setDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
@@ -23,17 +23,10 @@ import {
 import { Film, Image as ImageIcon, PlusCircle, Music, Trash2, Volume2, VolumeX, Folder, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Textarea } from "@/components/ui/textarea";
 
 type DialogState = {
     type: 'image' | 'video' | 'music';
 } | null;
-
-type UrlEntry = {
-    id: number;
-    url: string;
-    status: 'idle' | 'verifying' | 'valid' | 'invalid';
-};
 
 export function CarouselSettings() {
   const { firestore } = useFirebase();
@@ -45,159 +38,127 @@ export function CarouselSettings() {
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [itemToDelete, setItemToDelete] = useState<{type: 'image' | 'music', id: string} | null>(null);
   
-  const [urlEntries, setUrlEntries] = useState<UrlEntry[]>([]);
+  // State for the add/edit dialog
   const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [hint, setHint] = useState('');
   const [useOwnAudio, setUseOwnAudio] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [urlsInput, setUrlsInput] = useState('');
+  const [imageUrlStatus, setImageUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
 
-  const verifyMediaUrl = useCallback((url: string, type: 'image' | 'video' | 'music'): Promise<{ status: 'valid' | 'invalid' }> => {
-    return new Promise((resolve) => {
-        if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
-            return resolve({ status: 'invalid' });
-        }
-
-        let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
-        const timeout = 5000;
-        let timer: ReturnType<typeof setTimeout>;
-
-        const cleanup = () => {
-            clearTimeout(timer);
-            if (element) {
-                element.onload = null;
-                element.onerror = null;
-                (element as any).onloadedmetadata = null;
-                if ('src' in element) element.src = '';
-            }
-        };
-
-        const handleSuccess = () => {
-            cleanup();
-            resolve({ status: 'valid' });
-        };
-
-        const handleError = () => {
-            cleanup();
-            resolve({ status: 'invalid' });
-        };
-        
-        timer = setTimeout(handleError, timeout);
-
-        if (type === 'image') {
-            element = new window.Image();
-            element.onload = handleSuccess;
-            element.onerror = handleError;
-        } else { // video or music
-            element = document.createElement(type);
-            element.onloadedmetadata = handleSuccess;
-            element.onerror = handleError;
-        }
-        element.src = url;
-    });
-  }, []);
-  
-  const handleAddUrls = () => {
-    if (!dialogState) return;
-    const urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url);
-    const newEntries: UrlEntry[] = urls.map((url, index) => ({
-        id: Date.now() + index,
-        url,
-        status: 'verifying',
-    }));
-
-    setUrlEntries(prev => [...prev, ...newEntries]);
-    setUrlsInput('');
+  const verifyMediaUrl = useCallback((url: string, type: 'image' | 'video' | 'music') => {
+    if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
+        setImageUrlStatus(url.trim() ? 'invalid' : 'idle');
+        return;
+    }
     
-    newEntries.forEach(entry => {
-      verifyMediaUrl(entry.url, dialogState.type).then(result => {
-        setUrlEntries(prev =>
-          prev.map(e => (e.id === entry.id ? { ...e, status: result.status } : e))
-        );
-      });
-    });
-  };
+    setImageUrlStatus('verifying');
 
-  const handleRemoveUrl = (id: number) => {
-      setUrlEntries(prev => prev.filter(entry => entry.id !== id));
-  };
+    let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
+    const timeout = 5000;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
+        clearTimeout(timer);
+        if (element) {
+            element.onload = null;
+            element.onerror = null;
+            (element as any).onloadedmetadata = null;
+            if ('src' in element) element.src = '';
+        }
+    };
+
+    const handleSuccess = () => {
+        cleanup();
+        setImageUrlStatus('valid');
+    };
+
+    const handleError = () => {
+        cleanup();
+        setImageUrlStatus('invalid');
+    };
+    
+    timer = setTimeout(handleError, timeout);
+
+    if (type === 'image') {
+        element = new window.Image();
+        element.onload = handleSuccess;
+        element.onerror = handleError;
+    } else { // video or music
+        element = document.createElement(type);
+        element.onloadedmetadata = handleSuccess;
+        element.onerror = handleError;
+    }
+    element.src = url;
+  }, []);
+
+  useEffect(() => {
+    if (!dialogState) return;
+
+    if (imageUrl === '') {
+        setImageUrlStatus('idle');
+        return;
+    }
+
+    const handler = setTimeout(() => {
+        verifyMediaUrl(imageUrl, dialogState.type);
+    }, 500); // 500ms debounce
+
+    return () => {
+        clearTimeout(handler);
+    };
+  }, [imageUrl, dialogState, verifyMediaUrl]);
   
   const handleCloseDialog = () => {
     setDialogState(null);
-    setUrlEntries([]);
     setDescription('');
+    setImageUrl('');
     setHint('');
     setUseOwnAudio(false);
-    setUrlsInput('');
     setIsSaving(false);
+    setImageUrlStatus('idle');
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!dialogState || !settings || !settingsRef || isSaving) return;
-
-    if (!description) {
-        toast({ variant: "destructive", title: "Save Failed", description: "Description field is required." });
-        return;
-    }
-    if (urlEntries.length === 0) {
-        toast({ variant: "destructive", title: "Save Failed", description: "Please add at least one URL." });
-        return;
-    }
-
-    const isVerifying = urlEntries.some(e => e.status === 'verifying');
-    if (isVerifying) {
-        toast({
-            title: "Please Wait",
-            description: "Some URLs are still being verified.",
-        });
-        return;
-    }
-
-    const hasInvalid = urlEntries.some(e => e.status === 'invalid');
-    if (hasInvalid) {
-        toast({
-            variant: "destructive",
-            title: "Invalid URLs Found",
-            description: "Please remove the items marked with a red icon before saving.",
-        });
+    if (!dialogState || !settings || !settingsRef || isSaving || imageUrlStatus !== 'valid') {
+        if (imageUrlStatus !== 'valid') {
+             toast({ variant: "destructive", title: "Invalid URL", description: "Please provide a valid and accessible URL." });
+        }
         return;
     }
 
     setIsSaving(true);
 
     try {
-        const validUrls = urlEntries.map(entry => entry.url);
-
         if (dialogState.type === 'music') {
-            const newTracks: AudioTrack[] = validUrls.map((url, index) => ({
-                id: `music-${Date.now()}-${index}`,
-                description: validUrls.length > 1 ? `${description} (${index + 1})` : description,
-                url,
-            }));
-            const backgroundMusic = [...(settings.backgroundMusic || []), ...newTracks];
+            const newTrack: AudioTrack = {
+                id: `music-${Date.now()}`,
+                description,
+                url: imageUrl,
+            };
+            const backgroundMusic = [...(settings.backgroundMusic || []), newTrack];
             setDocumentNonBlocking(settingsRef, { backgroundMusic }, { merge: true });
-            toast({ title: `${newTracks.length} music track(s) added` });
+            toast({ title: `Music track added` });
         } else { // image or video
-            const newImages: ImagePlaceholder[] = validUrls.map((url, index) => ({
-                id: `${dialogState.type}-${Date.now()}-${index}`,
+            const newItem: ImagePlaceholder = {
+                id: `${dialogState.type}-${Date.now()}`,
                 type: dialogState.type,
-                description: validUrls.length > 1 ? `${description} (${index + 1})` : description,
-                imageUrl: url,
-                imageHint: hint,
+                description,
+                imageUrl,
+                imageHint,
                 ...(dialogState.type === 'video' && { useOwnAudio })
-            }));
-            const placeholderImages = [...(settings.placeholderImages || []), ...newImages];
+            };
+            const placeholderImages = [...(settings.placeholderImages || []), newItem];
             setDocumentNonBlocking(settingsRef, { placeholderImages }, { merge: true });
-            toast({ title: `${newImages.length} ${dialogState.type}(s) added` });
+            toast({ title: `${dialogState.type} added` });
         }
     } catch(error: any) {
         toast({ variant: "destructive", title: "Save Failed", description: error.message });
+    } finally {
         setIsSaving(false);
-        return;
+        handleCloseDialog();
     }
-
-    handleCloseDialog();
   };
 
   const handleDeleteItem = () => {
@@ -219,10 +180,8 @@ export function CarouselSettings() {
     if (!dialogState) return null;
     const isVideo = dialogState.type === 'video';
     const isMusic = dialogState.type === 'music';
-    const title = isMusic ? "Add Background Music" : isVideo ? "Add Video(s)" : "Add Image(s)";
-    
-    const hasInvalid = urlEntries.some(e => e.status === 'invalid');
-    const isVerifying = urlEntries.some(e => e.status === 'verifying');
+    const title = isMusic ? "Add Background Music" : isVideo ? "Add Video" : "Add Image";
+    const urlLabel = isMusic ? "File URL" : "Image/Video URL";
     
     return (
         <form onSubmit={handleSave}>
@@ -231,7 +190,7 @@ export function CarouselSettings() {
                  <AlertDialogDescription asChild>
                      <div className="space-y-4 text-left pt-4 text-sm text-muted-foreground">
                         <p>
-                           Add media by pasting URLs (one per line) into the text box and clicking "Add". Local file paths must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> and point to a file in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder.
+                           Provide a URL for your media file. Local files must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> and point to a file in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder. The URL will be verified automatically.
                         </p>
                     </div>
                 </AlertDialogDescription>
@@ -239,53 +198,46 @@ export function CarouselSettings() {
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="item-description">Description</Label>
-                    <Input id="item-description" name="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="A short description for the media item(s)" required />
-                    <p className="text-xs text-muted-foreground">If adding multiple items, a number will be appended (e.g., "My Item (1)").</p>
+                    <Input id="item-description" name="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="A short description for the media item" required />
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="item-urls">File URLs</Label>
-                    <div className="flex items-start gap-2">
-                        <Textarea id="item-urls" value={urlsInput} onChange={e => setUrlsInput(e.target.value)} placeholder={"/carousel/item1.jpg\n/carousel/item2.mp4\nhttps://drive.google.com/uc?id=YOUR_FILE_ID"} rows={4} />
-                        <Button type="button" variant="outline" onClick={handleAddUrls} disabled={!urlsInput.trim()}>Add</Button>
-                    </div>
-                </div>
-
-                <div className="space-y-2 rounded-lg border bg-muted/20 p-2 min-h-[6rem] max-h-48 overflow-y-auto">
-                    {urlEntries.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-4">No URLs added yet.</p>
-                    ) : urlEntries.map(entry => (
-                        <div key={entry.id} className="flex items-center justify-between gap-2 text-sm p-1.5 rounded-md bg-background border my-1">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                                {entry.status === 'idle' && <ImageIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-                                {entry.status === 'verifying' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground flex-shrink-0" />}
-                                {entry.status === 'valid' && <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />}
-                                {entry.status === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />}
-                                <span className="truncate" title={entry.url}>{entry.url}</span>
-                            </div>
-                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive flex-shrink-0" onClick={() => handleRemoveUrl(entry.id)} disabled={isSaving}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                <div className="space-y-2">
+                    <Label htmlFor="item-url">{urlLabel}</Label>
+                    <div className="relative">
+                        <Input
+                            id="item-url"
+                            name="url"
+                            value={imageUrl}
+                            onChange={e => setImageUrl(e.target.value)}
+                            placeholder="/carousel/item.jpg or https://..."
+                            required
+                            className="pr-10"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            {imageUrlStatus === 'verifying' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                            {imageUrlStatus === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                            {imageUrlStatus === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive" />}
                         </div>
-                    ))}
+                    </div>
+                    {imageUrlStatus === 'invalid' && <p className="text-xs text-destructive mt-1">Could not load media. Check if the URL is correct and publicly accessible.</p>}
                 </div>
 
                 {!isMusic && (
                     <div className="space-y-2">
                         <Label htmlFor="item-hint">AI Image Hint (Optional)</Label>
                         <Input id="item-hint" name="hint" value={hint} onChange={e => setHint(e.target.value)} placeholder="e.g., 'training room'" />
-                        <p className="text-xs text-muted-foreground">A hint for AI to find a better stock photo later. Applied to all added images.</p>
+                        <p className="text-xs text-muted-foreground">A hint for AI to find a better stock photo later.</p>
                     </div>
                 )}
                  {isVideo && (
                     <div className="flex items-center space-x-2">
                         <Switch id="useOwnAudio" name="useOwnAudio" checked={useOwnAudio} onCheckedChange={setUseOwnAudio} />
-                        <Label htmlFor="useOwnAudio">Play video's own audio (for all added videos)</Label>
+                        <Label htmlFor="useOwnAudio">Play video's own audio</Label>
                     </div>
                 )}
             </div>
             <AlertDialogFooter>
                 <AlertDialogCancel type="button" onClick={handleCloseDialog}>Cancel</AlertDialogCancel>
-                <AlertDialogAction type="submit" disabled={isSaving || isVerifying || hasInvalid || urlEntries.length === 0}>
+                <AlertDialogAction type="submit" disabled={isSaving || imageUrlStatus !== 'valid'}>
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isSaving ? 'Saving...' : 'Save'}
                 </AlertDialogAction>
@@ -338,10 +290,10 @@ export function CarouselSettings() {
           </CardContent>
            <CardFooter className="flex flex-col sm:flex-row gap-2 border-t pt-4">
                <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'image'})} disabled={isLoadingSettings}>
-                   <PlusCircle className="mr-2 h-4 w-4" /> Add Image(s)
+                   <PlusCircle className="mr-2 h-4 w-4" /> Add Image
                </Button>
                <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'video'})} disabled={isLoadingSettings}>
-                   <PlusCircle className="mr-2 h-4 w-4" /> Add Video(s)
+                   <PlusCircle className="mr-2 h-4 w-4" /> Add Video
                </Button>
            </CardFooter>
         </Card>
@@ -377,7 +329,7 @@ export function CarouselSettings() {
             </CardContent>
             <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'music'})} disabled={isLoadingSettings}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Music Track(s)
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Music Track
                 </Button>
             </CardFooter>
         </Card>
@@ -403,5 +355,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
