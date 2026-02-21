@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, updateDoc } from "firebase/firestore";
+import { doc, runTransaction } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -163,15 +163,15 @@ export function CarouselSettings() {
         const settingsDoc = await transaction.get(settingsRef);
         const currentData = settingsDoc.exists() ? settingsDoc.data() as Partial<Settings> : {};
         
-        const existingItems = currentData[fieldToUpdate as keyof Settings] || [];
-
-        if (Array.isArray(existingItems)) {
-            const updatedItems = [...existingItems, newItem];
-            transaction.set(settingsRef, { ...currentData, [fieldToUpdate]: updatedItems });
-        } else {
-             // If for some reason it's not an array, start a new one
-             transaction.set(settingsRef, { ...currentData, [fieldToUpdate]: [newItem] });
-        }
+        const existingItems = currentData[fieldToUpdate as keyof Settings];
+        const currentArray = Array.isArray(existingItems) ? existingItems : [];
+        
+        const updatedItems = [...currentArray, newItem];
+        
+        transaction.set(settingsRef, { 
+            ...currentData, 
+            [fieldToUpdate]: updatedItems 
+        });
       });
         
       toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
@@ -199,7 +199,6 @@ export function CarouselSettings() {
         await runTransaction(firestore, async (transaction) => {
             const settingsDoc = await transaction.get(settingsRef);
             if (!settingsDoc.exists()) {
-                // Document doesn't exist, so there's nothing to delete from.
                 return;
             }
 
@@ -208,7 +207,10 @@ export function CarouselSettings() {
 
             if (Array.isArray(existingItems)) {
                 const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-                transaction.set(settingsRef, { ...currentData, [fieldToUpdate]: updatedItems });
+                transaction.set(settingsRef, { 
+                    ...currentData,
+                    [fieldToUpdate]: updatedItems
+                });
             }
         });
         
@@ -225,6 +227,23 @@ export function CarouselSettings() {
     }
   }
 
+  const handleDrop = async (newItems: any[], field: 'placeholderImages' | 'backgroundMusic') => {
+    if (!settingsRef || !firestore) return;
+    try {
+        await runTransaction(firestore, async (transaction) => {
+          const settingsDoc = await transaction.get(settingsRef);
+          const currentData = settingsDoc.exists() ? settingsDoc.data() as Partial<Settings> : {};
+          transaction.set(settingsRef, {
+            ...currentData,
+            [field]: newItems
+          });
+        });
+        toast({ title: "Carousel order saved" });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Save Failed", description: error.message });
+    }
+  };
+
   const handleCarouselDragStart = (index: number, id: string) => {
     dragItem.current = index;
     setDraggedItemId(id);
@@ -234,23 +253,17 @@ export function CarouselSettings() {
   };
   const handleCarouselDrop = async () => {
     setDraggedItemId(null);
-    if (dragItem.current === null || dragOverItem.current === null || !settingsRef) return;
+    if (dragItem.current === null || dragOverItem.current === null) return;
     if (dragItem.current === dragOverItem.current) return;
 
-    const currentItems = settings?.placeholderImages || [];
-    const newItems = [...currentItems];
-    const draggedItemContent = newItems.splice(dragItem.current, 1)[0];
-    newItems.splice(dragOverItem.current, 0, draggedItemContent);
+    const currentItems = [...carouselItems];
+    const draggedItemContent = currentItems.splice(dragItem.current, 1)[0];
+    currentItems.splice(dragOverItem.current, 0, draggedItemContent);
     
     dragItem.current = null;
     dragOverItem.current = null;
     
-    try {
-        await updateDoc(settingsRef, { placeholderImages: newItems });
-        toast({ title: "Carousel order saved" });
-    } catch (error: any) {
-        toast({ variant: "destructive", title: "Save Failed", description: error.message });
-    }
+    await handleDrop(currentItems, 'placeholderImages');
   };
 
   const handleMusicDragStart = (index: number, id: string) => {
@@ -262,23 +275,17 @@ export function CarouselSettings() {
   };
   const handleMusicDrop = async () => {
     setDraggedItemId(null);
-    if (dragMusicItem.current === null || dragOverMusicItem.current === null || !settingsRef) return;
+    if (dragMusicItem.current === null || dragOverMusicItem.current === null) return;
     if (dragMusicItem.current === dragOverMusicItem.current) return;
 
-    const currentTracks = settings?.backgroundMusic || [];
-    const newTracks = [...currentTracks];
-    const draggedTrackContent = newTracks.splice(dragMusicItem.current, 1)[0];
-    newTracks.splice(dragOverMusicItem.current, 0, draggedTrackContent);
+    const currentTracks = [...musicTracks];
+    const draggedTrackContent = currentTracks.splice(dragMusicItem.current, 1)[0];
+    currentTracks.splice(dragOverMusicItem.current, 0, draggedTrackContent);
 
     dragMusicItem.current = null;
     dragOverMusicItem.current = null;
 
-    try {
-        await updateDoc(settingsRef, { backgroundMusic: newTracks });
-        toast({ title: "Music order saved" });
-    } catch (error: any) {
-        toast({ variant: "destructive", title: "Save Failed", description: error.message });
-    }
+    await handleDrop(currentTracks, 'backgroundMusic');
   };
 
   const renderDialogContent = () => {
@@ -484,7 +491,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
-
-    
