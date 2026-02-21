@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, setDoc, getDoc } from "firebase/firestore";
+import { doc, runTransaction } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -153,7 +153,7 @@ export function CarouselSettings() {
     setUrlError(null);
   };
 
- const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!dialogState || !settingsRef || !firestore || isSaving) return;
 
@@ -197,12 +197,21 @@ export function CarouselSettings() {
       handleCloseDialog();
     } catch (error: any) {
       console.error("Save Failed:", error);
-      toast({
-          variant: "destructive",
-          title: "Save Failed",
-          description: `An unexpected error occurred: ${error.message}. Please try again.`,
-          duration: 9000,
-      });
+      if (error.code === 'unavailable' || error.code === 'network-request-failed') {
+        toast({
+            variant: "destructive",
+            title: "CRITICAL: Connection Blocked by Firewall",
+            description: "The application cannot connect to the local database because your PC's firewall is blocking it. Please allow the app through your firewall.",
+            duration: 20000,
+        });
+      } else {
+        toast({
+            variant: "destructive",
+            title: "Save Failed",
+            description: `An unexpected error occurred: ${error.message}. Please try again.`,
+            duration: 9000,
+        });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -218,14 +227,14 @@ export function CarouselSettings() {
       await runTransaction(firestore, async (transaction) => {
         const settingsDoc = await transaction.get(settingsRef);
         if (!settingsDoc.exists()) {
-            throw new Error("Settings document does not exist, cannot delete item.");
+            return;
         }
         const currentData = settingsDoc.data() as Settings | undefined;
         
         const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
         const updatedItems = currentItems.filter((item: any) => item.id !== itemToDelete.id);
         
-        transaction.update(settingsRef, { [fieldToUpdate]: updatedItems });
+        transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
       });
 
       toast({ title: "Item removal successful" });
@@ -518,3 +527,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
