@@ -84,12 +84,13 @@ export function DisplayClient() {
        <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-4">
               {settings?.companyLogoUrl && (
-                  <div className="relative h-12 w-28">
+                  <div className="relative h-12">
                       <Image 
                           src={settings.companyLogoUrl}
                           alt={`${settings.companyName || 'Company'} Logo`}
-                          fill
-                          className="object-contain"
+                          width={200}
+                          height={48}
+                          className="h-full w-auto object-contain"
                       />
                   </div>
               )}
