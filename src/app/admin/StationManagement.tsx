@@ -57,13 +57,13 @@ const handleFirestoreError = (error: any, toast: any, operation: string) => {
 }
 
 export function StationManagement() {
-  const { firestore, isUserLoading } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
 
-  const settingsRef = useMemoFirebase(() => (firestore && !isUserLoading ? doc(firestore, 'settings', 'app') : null), [firestore, isUserLoading]);
+  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, 'settings', 'app') : null), [firestore, user]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   
-  const stationsCollectionRef = useMemoFirebase(() => (firestore && !isUserLoading ? collection(firestore, 'stations') : null), [firestore, isUserLoading]);
+  const stationsCollectionRef = useMemoFirebase(() => (firestore && user ? collection(firestore, 'stations') : null), [firestore, user]);
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsCollectionRef);
 
   const [stationToDelete, setStationToDelete] = useState<Station | null>(null);
@@ -140,7 +140,7 @@ export function StationManagement() {
             batch.delete(doc.ref);
         });
 
-        if (settings?.defaultConfiguration?.stations?.length > 0) {
+        if (settings?.defaultConfiguration?.stations?.length) {
             const { services: defaultServices, stations: defaultStations } = settings.defaultConfiguration;
 
             const settingsDocRef = doc(firestore, 'settings', 'app');

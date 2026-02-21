@@ -14,15 +14,15 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 
 export function KioskClient() {
-  const { firestore, isUserLoading } = useFirebase();
-  const settingsRef = useMemoFirebase(() => (firestore && !isUserLoading ? doc(firestore, "settings", "app") : null), [firestore, isUserLoading]);
+  const { firestore, user, isUserLoading } = useFirebase();
+  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, "settings", "app") : null), [firestore, user]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   const { toast } = useToast();
   const [ticketToPrint, setTicketToPrint] = useState<Ticket | null>(null);
   const printableRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState<string | null>(null);
   
-  const ticketsCollection = useMemoFirebase(() => (firestore && !isUserLoading ? collection(firestore, 'tickets') : null), [firestore, isUserLoading]);
+  const ticketsCollection = useMemoFirebase(() => (firestore && user ? collection(firestore, 'tickets') : null), [firestore, user]);
 
 
   useEffect(() => {

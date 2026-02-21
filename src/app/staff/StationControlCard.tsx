@@ -23,9 +23,9 @@ export function StationControlCard({
   ticket: Ticket | undefined;
   waitingCounts: { [key: string]: number };
 }) {
-  const { firestore, isUserLoading } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
-  const settingsRef = useMemoFirebase(() => (firestore && !isUserLoading ? doc(firestore, "settings", "app") : null), [firestore, isUserLoading]);
+  const settingsRef = useMemoFirebase(() => (firestore && user ? doc(firestore, "settings", "app") : null), [firestore, user]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
 
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);

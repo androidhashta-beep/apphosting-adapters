@@ -17,25 +17,25 @@ import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
 
 export function StaffClient() {
-  const { firestore, isUserLoading } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
 
   const settingsRef = useMemoFirebase(
-    () => (firestore && !isUserLoading ? doc(firestore, 'settings', 'app') : null),
-    [firestore, isUserLoading]
+    () => (firestore && user ? doc(firestore, 'settings', 'app') : null),
+    [firestore, user]
   );
   const { data: settings, isLoading: isLoadingSettings } =
     useDoc<Settings>(settingsRef);
 
   const stationsRef = useMemoFirebase(
-    () => (firestore && !isUserLoading ? collection(firestore, 'stations') : null),
-    [firestore, isUserLoading]
+    () => (firestore && user ? collection(firestore, 'stations') : null),
+    [firestore, user]
   );
   const { data: stations, isLoading: isLoadingStations } =
     useCollection<Station>(stationsRef);
 
   const ticketsRef = useMemoFirebase(
-    () => (firestore && !isUserLoading ? collection(firestore, 'tickets') : null),
-    [firestore, isUserLoading]
+    () => (firestore && user ? collection(firestore, 'tickets') : null),
+    [firestore, user]
   );
   const { data: tickets, isLoading: isLoadingTickets } =
     useCollection<Ticket>(ticketsRef);
