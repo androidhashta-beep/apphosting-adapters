@@ -255,12 +255,15 @@ export function CarouselSettings() {
        toast({ variant: 'destructive', title: 'Invalid Media URL', description: 'Please fix the URL before saving.' });
        return;
     }
+
+    const isVideo = newMediaUrl.trim().toLowerCase().endsWith('.mp4') || newMediaUrl.trim().toLowerCase().endsWith('.webm');
+    
     const newMedia: ImagePlaceholder = {
       id: `media-${Date.now()}`,
       description: newMediaDescription,
       imageUrl: newMediaUrl,
       imageHint: newMediaHint,
-      type: 'image', // This should be determined by the URL or a user selection
+      type: isVideo ? 'video' : 'image',
     };
     
     await handleDataUpdate((currentSettings) => ({

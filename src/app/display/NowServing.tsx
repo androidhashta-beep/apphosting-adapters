@@ -1,8 +1,8 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Settings } from '@/lib/types';
 
 type ServingData = {
   stationName: string;
@@ -33,32 +33,37 @@ export function NowServing({ servingData }: { servingData: ServingData[] }) {
   return (
     <>
         {/* Main Header */}
-        <div className="grid grid-cols-[1fr,auto,auto] gap-x-8 px-6 pb-2 border-b-2 border-white/50 flex-shrink-0 pt-4">
-            <h2 className="text-3xl font-bold text-left justify-self-start">Services</h2>
-            <h2 className="text-3xl font-bold text-center min-w-[12rem]">Queue No.</h2>
-            <h2 className="text-3xl font-bold text-center min-w-[12rem]">Counter</h2>
+        <div className="grid grid-cols-[1fr,auto,auto] gap-x-4 px-4 pt-4 pb-2 border-b-2 border-white/50 flex-shrink-0">
+            <h2 className="text-2xl font-bold text-left justify-self-start">Service</h2>
+            <h2 className="text-2xl font-bold text-center min-w-[8rem]">Ticket</h2>
+            <h2 className="text-2xl font-bold text-center min-w-[8rem]">Counter</h2>
         </div>
 
         {/* Scrollable content area */}
         <ScrollArea className="flex-grow">
             {/* Serving List */}
-            <ul className="flex flex-col">
-            {servingData.map((item) => (
-                <li
-                key={`${item.stationName}-${item.ticketNumber}`}
-                className={cn(
-                    "grid grid-cols-[1fr,auto,auto] items-center gap-x-8 px-6 py-3 text-5xl font-extrabold border-b border-white/20 transition-all duration-500",
-                    "bg-yellow-400 text-blue-900 animate-pulse-slow"
-                )}
-                >
-                <span className="text-left justify-self-start">{abbreviateService(item.serviceLabel)}</span>
-                <div className="flex flex-col items-center justify-center text-center min-w-[12rem]">
-                    <span className="leading-none">{item.ticketNumber}</span>
+            {servingData.length > 0 ? (
+                <ul className="flex flex-col">
+                {servingData.map((item) => (
+                    <li
+                    key={`${item.stationName}-${item.ticketNumber}`}
+                    className={cn(
+                        "grid grid-cols-[1fr,auto,auto] items-center gap-x-4 px-4 py-3 text-4xl font-extrabold border-b border-white/20",
+                    )}
+                    >
+                    <span className="text-left justify-self-start text-3xl">{abbreviateService(item.serviceLabel)}</span>
+                    <div className="flex flex-col items-center justify-center text-center min-w-[8rem]">
+                        <span className="leading-none">{item.ticketNumber}</span>
+                    </div>
+                    <span className="text-center min-w-[8rem]">{item.stationName.replace('Window ', '')}</span>
+                    </li>
+                ))}
+                </ul>
+            ) : (
+                 <div className="flex h-full items-center justify-center text-center text-slate-300">
+                    <p>Other serving tickets will appear here.</p>
                 </div>
-                <span className="text-center min-w-[12rem]">{item.stationName.replace('Window ', '')}</span>
-                </li>
-            ))}
-            </ul>
+            )}
         </ScrollArea>
     </>
   );

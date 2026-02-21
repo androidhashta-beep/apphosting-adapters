@@ -137,8 +137,12 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
   if (mediaItems.length === 0) {
      return (
         <div className="h-full w-full bg-black/20 rounded-lg flex items-center justify-center text-center text-slate-300 flex-col p-4">
-             <h3 className="font-bold text-lg">No Media Content</h3>
-             <p className="text-sm">The administrator has not added any images or videos to display.</p>
+             <h3 className="font-bold text-lg">
+                {contentType === 'images' && 'No Images'}
+                {contentType === 'videos' && 'No Videos'}
+                {contentType === 'all' && 'No Media Content'}
+             </h3>
+             <p className="text-sm mt-1">The administrator has not added any content of this type.</p>
         </div>
      );
   }
