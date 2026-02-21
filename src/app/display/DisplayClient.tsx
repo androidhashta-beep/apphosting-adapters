@@ -164,7 +164,7 @@ export function DisplayClient() {
               {isLogoValid && (
                   <div className="relative h-12">
                       <Image 
-                          src={logoUrl}
+                          src={encodeURI(logoUrl)}
                           alt={`${settings?.companyName || 'Company'} Logo`}
                           width={300}
                           height={48}
@@ -244,7 +244,7 @@ export function DisplayClient() {
       </Button>
       <audio 
           ref={announcementAudioRef} 
-          src={announcementAudio || ''}
+          src={announcementAudio || undefined}
           onPlay={() => setIsAnnouncing(true)}
           onEnded={() => setIsAnnouncing(false)}
           onError={() => setIsAnnouncing(false)}
