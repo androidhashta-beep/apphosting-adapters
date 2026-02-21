@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 function StaffAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  // useUserProfile now handles the password change redirect internally
   const { profile, isLoading: isProfileLoading } = useUserProfile();
 
   useEffect(() => {
@@ -22,13 +23,9 @@ function StaffAuthGuard({ children }: { children: React.ReactNode }) {
       router.replace('/login?redirect=/staff');
       return;
     }
-
-    if (profile?.mustChangePassword) {
-      router.replace('/change-password?redirect=/staff');
-      return;
-    }
-
-    // Admins can also access the staff dashboard
+    
+    // The password change redirect is handled by the hook.
+    // We just need to check for the correct role.
     if (!profile || !['admin', 'staff'].includes(profile.role)) {
       localStorage.removeItem('app-instance-role');
       sessionStorage.setItem('force-role-selection', 'true');
@@ -39,7 +36,7 @@ function StaffAuthGuard({ children }: { children: React.ReactNode }) {
 
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading || !user || !profile || profile.mustChangePassword) {
+  if (isLoading || !profile || profile.mustChangePassword) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

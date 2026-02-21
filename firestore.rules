@@ -9,8 +9,8 @@ service cloud.firestore {
 
     function isRole(role) {
       let userDocPath = /databases/$(database)/documents/users/$(request.auth.uid);
-      // This is safe. If the doc or the role field doesn't exist, it returns false, not an error.
-      return request.auth != null && get(userDocPath).data.role == role;
+      // This is now safe. It checks for existence before trying to access data.
+      return request.auth != null && exists(userDocPath) && get(userDocPath).data.role == role;
     }
     
     function isAdmin() {
@@ -59,7 +59,7 @@ service cloud.firestore {
       );
 
       // Allow any authenticated user to perform a list query.
-      allow list: if request.auth != null;
+      allow list: if isAdmin();
 
       // Allow a user to read their own document.
       // Allow an admin to read any user document.

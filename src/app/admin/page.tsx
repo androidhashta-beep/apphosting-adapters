@@ -11,6 +11,7 @@ import { doc } from 'firebase/firestore';
 function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  // useUserProfile now handles the password change redirect internally
   const { profile, isLoading: isProfileLoading } = useUserProfile();
 
   useEffect(() => {
@@ -18,28 +19,18 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!user) {
+    if (!user || user.isAnonymous) {
       router.replace('/login?redirect=/admin');
       return;
     }
 
-    if (user.isAnonymous) {
-      router.replace('/login?redirect=/admin');
-      return;
-    }
-
-    if (profile?.mustChangePassword) {
-      router.replace('/change-password?redirect=/admin');
-      return;
-    }
-
+    // The password change redirect is now handled by the useUserProfile hook,
+    // but we still need to gate access based on role.
     if (profile?.role !== 'admin') {
-      // If the user is not an admin, send them back to the role selector
-      // and show a message.
       localStorage.removeItem('app-instance-role');
       sessionStorage.setItem('force-role-selection', 'true');
       router.replace('/');
-      // Consider showing a toast message here in a real app.
+      // You could add a toast here to inform the user they don't have access.
       return;
     }
 
@@ -47,7 +38,9 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading || !user || !profile || profile.role !== 'admin' || profile.mustChangePassword) {
+  // We show a loader if auth is loading, if the profile is loading,
+  // or if the profile is loaded but requires a password change (to prevent a flash of content before redirect).
+  if (isLoading || !profile || profile.role !== 'admin' || profile.mustChangePassword) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

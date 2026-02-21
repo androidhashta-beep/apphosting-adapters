@@ -5,11 +5,13 @@ import { doc, runTransaction } from 'firebase/firestore';
 import { useUser, useDoc, useFirebase, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export function useUserProfile() {
   const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
+  const router = useRouter();
 
   const userProfileRef = useMemoFirebase(
     () => (firestore && user && !user.isAnonymous ? doc(firestore, 'users', user.uid) : null),
@@ -34,26 +36,20 @@ export function useUserProfile() {
             }
             
             const settingsDoc = await transaction.get(settingsRef);
-            // Assume settings doc might not exist, though it should.
             const firstUserHasBeenCreated = settingsDoc.exists() && settingsDoc.data().firstUserCreated === true;
 
             let role: 'admin' | 'staff';
             let mustChangePassword: boolean;
 
             if (!firstUserHasBeenCreated) {
-                // This is the first user.
                 role = 'admin';
                 mustChangePassword = true;
-                // Update the settings to mark that the first user has been created.
-                // It's crucial this write happens, protected by security rules.
                 if (settingsDoc.exists()) {
                     transaction.update(settingsRef, { firstUserCreated: true });
                 } else {
-                    // This case is unlikely but handled for safety.
                     transaction.set(settingsRef, { firstUserCreated: true }, { merge: true });
                 }
             } else {
-                // A first user/admin already exists.
                 role = 'staff';
                 mustChangePassword = false;
             }
@@ -66,19 +62,22 @@ export function useUserProfile() {
               mustChangePassword: mustChangePassword,
             };
             
-            // Create the new user profile document within the transaction.
             transaction.set(userProfileRef, newProfile);
             
-            // Return details for toast message
-            return { isFirstUser: !firstUserHasBeenCreated, role: role };
+            return { isFirstUser: !firstUserHasBeenCreated, mustChange: mustChangePassword };
 
           }).then((result) => {
-              if (result?.isFirstUser) {
-                toast({
-                    title: "Welcome, Administrator!",
-                    description: "You have been assigned the admin role. You will be asked to change your password for security.",
-                    duration: 8000,
-                });
+              if (result) {
+                if (result.isFirstUser) {
+                  toast({
+                      title: "Welcome, Administrator!",
+                      description: "You have been assigned the admin role. You will be asked to change your password for security.",
+                      duration: 8000,
+                  });
+                }
+                if (result.mustChange) {
+                    router.replace('/change-password');
+                }
               }
           });
         } catch (e) {
@@ -93,7 +92,20 @@ export function useUserProfile() {
 
       createProfileWithRole();
     }
-  }, [user, profile, isProfileLoading, userProfileRef, firestore, toast]);
+  }, [user, profile, isProfileLoading, userProfileRef, firestore, toast, router]);
+
+  useEffect(() => {
+    // This effect ensures that if a user already has a profile but needs to change their password,
+    // they are redirected from any page they land on.
+    if (profile?.mustChangePassword) {
+      const currentPath = window.location.pathname;
+      const redirectParam = currentPath !== '/' ? `?redirect=${currentPath}` : '';
+      const targetPath = `/change-password${redirectParam}`;
+      if (currentPath !== '/change-password') {
+        router.replace(targetPath);
+      }
+    }
+  }, [profile, router]);
 
   return {
     profile,
