@@ -173,6 +173,7 @@ export function StationManagement() {
                 companyLogoUrl: "/logo.png",
                 placeholderImages: [],
                 backgroundMusic: [],
+                firstUserCreated: false,
             }, { merge: true });
 
             for (let i = 1; i <= 5; i++) {

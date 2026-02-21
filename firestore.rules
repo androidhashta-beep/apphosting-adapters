@@ -23,7 +23,8 @@ service cloud.firestore {
     // Collection Rules
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if isAdmin();
+      // Allow write if user is an admin OR if we are setting up the first user by flipping the flag.
+      allow write: if isAdmin() || (request.resource.data.firstUserCreated == true && resource.data.firstUserCreated == false);
     }
     match /stations/{stationId} {
       allow read: if true;
@@ -44,13 +45,13 @@ service cloud.firestore {
       // Allow a user to create their own user document, and check that the uid in the document is their own.
       allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == request.auth.uid;
 
+      // Allow any authenticated user to perform a list query.
+      // The results will be filtered by the 'read' rules below.
+      allow list: if request.auth != null;
+
       // Allow a user to read their own document.
       // Allow an admin to read any user document.
       allow read: if (request.auth != null && request.auth.uid == userId) || isAdmin();
-
-      // Allow any authenticated user to perform a list query.
-      // The results will be filtered by the 'read' rules above.
-      allow list: if request.auth != null;
 
       // Allow a user to update their own document.
       // Allow an admin to update any user document.
