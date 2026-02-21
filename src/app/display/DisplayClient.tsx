@@ -107,6 +107,19 @@ export function DisplayClient() {
       }
   }, [tracks.length]);
 
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio && tracks.length > 0 && tracks[currentTrackIndex]) {
+        audio.src = tracks[currentTrackIndex].url;
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error("Audio playback failed. User interaction may be required.", error);
+            });
+        }
+    }
+  }, [tracks, currentTrackIndex]);
+
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -176,10 +189,7 @@ export function DisplayClient() {
         {tracks.length > 0 && (
             <audio
                 ref={audioRef}
-                src={tracks[currentTrackIndex]?.url}
                 onEnded={playNextTrack}
-                autoPlay
-                onPlay={() => { if(audioRef.current) audioRef.current.muted = isBgMusicMuted; }}
             />
         )}
       </div>

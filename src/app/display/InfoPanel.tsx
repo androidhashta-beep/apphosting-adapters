@@ -27,10 +27,9 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
     const filteredItems = items.filter(item => {
       if (contentType === 'images') return item.type === 'image';
       if (contentType === 'videos') return item.type === 'video';
-      return true;
+      if (contentType === 'all') return true;
+      return false;
     });
-
-    const itemsToShuffle = filteredItems.length > 0 ? filteredItems : (items.length > 0 && contentType !== 'all' ? items : []);
 
     // Fisher-Yates shuffle algorithm
     const shuffle = (array: ImagePlaceholder[]) => {
@@ -44,9 +43,9 @@ export function InfoPanel({ settings, contentType }: InfoPanelProps) {
       return array;
     }
     
-    setShuffledItems(shuffle([...itemsToShuffle]));
+    setShuffledItems(shuffle([...filteredItems]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings]);
+  }, [settings, contentType]);
 
   const handleVideoStateChange = (isPlaying: boolean, hasOwnAudio: boolean) => {
     if (hasOwnAudio) {
