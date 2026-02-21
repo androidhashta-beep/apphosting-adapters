@@ -14,11 +14,10 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 import Image from "next/image";
 import { Clock } from "@/app/display/Clock";
-import { InfoPanel } from "@/app/display/InfoPanel";
 
 const KioskButton = ({ service, isPrinting, onClick }: { service: Service, isPrinting: string | null, onClick: (id: string) => void }) => (
     <div className="w-full flex justify-center items-center">
-        <div className="w-2/3 aspect-square">
+        <div className="w-1/3 aspect-square">
             <Button
                 variant="outline"
                 className="w-full h-full flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer whitespace-normal"
@@ -50,7 +49,7 @@ const KioskButton = ({ service, isPrinting, onClick }: { service: Service, isPri
 
 const ButtonSkeleton = () => (
     <div className="w-full flex justify-center items-center">
-        <div className="w-2/3 aspect-square bg-muted rounded-2xl animate-pulse" />
+        <div className="w-1/3 aspect-square bg-muted rounded-2xl animate-pulse" />
     </div>
 );
 
@@ -210,7 +209,7 @@ export function KioskClient() {
       </div>
 
       <div className="flex-grow flex w-full items-center justify-center">
-        <div className="grid w-full max-w-screen-xl grid-cols-1 md:grid-cols-3 items-center justify-center gap-8 px-8">
+        <div className="grid w-full max-w-4xl grid-cols-1 md:grid-cols-2 items-center justify-center gap-8">
            {/* Left Column */}
           <div className="flex flex-col items-center justify-center gap-8">
             {isLoadingSettings ? (
@@ -225,23 +224,6 @@ export function KioskClient() {
             )}
           </div>
           
-          {/* Middle Column */}
-          <div className="w-full h-full hidden md:flex items-center justify-center">
-            {isLoadingSettings ? (
-                <div className="w-full aspect-[9/16] max-h-[70vh] rounded-lg bg-muted animate-pulse" />
-            ) : (
-                <div className="w-full aspect-[9/16] max-h-[70vh] rounded-lg overflow-hidden">
-                    <InfoPanel 
-                        mediaItems={settings?.placeholderImages ?? null} 
-                        backgroundMusic={null} 
-                        autoplayDelay={8000} 
-                        isAnnouncing={false} 
-                        masterVolume={0} 
-                    />
-                </div>
-            )}
-          </div>
-
           {/* Right Column */}
           <div className="flex flex-col items-center justify-center gap-8">
             {isLoadingSettings ? (
@@ -258,7 +240,7 @@ export function KioskClient() {
 
           {/* No services available message */}
           {!isLoadingSettings && services.length === 0 && (
-            <div className="md:col-span-3 text-center text-muted-foreground flex items-center justify-center">
+            <div className="md:col-span-2 text-center text-muted-foreground flex items-center justify-center">
                 <div className="flex flex-col items-center">
                 <p className="text-lg font-semibold">No Services Available</p>
                 <p>
