@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,7 @@ export function CarouselSettings() {
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!dialogState || !settings || !settingsRef || isSaving || imageUrlStatus !== 'valid') {
+    if (!dialogState || !settingsRef || isSaving || imageUrlStatus !== 'valid') {
         if (imageUrlStatus !== 'valid') {
              toast({ variant: "destructive", title: "Invalid URL", description: "Please provide a valid and accessible URL." });
         }
@@ -137,8 +137,7 @@ export function CarouselSettings() {
                 description,
                 url: imageUrl,
             };
-            const backgroundMusic = [...(settings.backgroundMusic || []), newTrack];
-            await setDoc(settingsRef, { backgroundMusic }, { merge: true });
+            await updateDoc(settingsRef, { backgroundMusic: arrayUnion(newTrack) });
             toast({ title: `Music track added` });
         } else { // image or video
             const newItem: ImagePlaceholder = {
@@ -149,8 +148,7 @@ export function CarouselSettings() {
                 imageHint: hint,
                 ...(dialogState.type === 'video' && { useOwnAudio })
             };
-            const placeholderImages = [...(settings.placeholderImages || []), newItem];
-            await setDoc(settingsRef, { placeholderImages }, { merge: true });
+            await updateDoc(settingsRef, { placeholderImages: arrayUnion(newItem) });
             toast({ title: `${dialogState.type} added` });
         }
         handleCloseDialog();
@@ -166,11 +164,15 @@ export function CarouselSettings() {
     
     try {
         if (itemToDelete.type === 'music') {
-            const backgroundMusic = (settings.backgroundMusic || []).filter(item => item.id !== itemToDelete.id);
-            await setDoc(settingsRef, { backgroundMusic }, { merge: true });
+            const trackToRemove = settings.backgroundMusic?.find(item => item.id === itemToDelete.id);
+            if (trackToRemove) {
+                await updateDoc(settingsRef, { backgroundMusic: arrayRemove(trackToRemove) });
+            }
         } else {
-            const placeholderImages = (settings.placeholderImages || []).filter(item => item.id !== itemToDelete.id);
-            await setDoc(settingsRef, { placeholderImages }, { merge: true });
+            const imageToRemove = settings.placeholderImages?.find(item => item.id === itemToDelete.id);
+            if (imageToRemove) {
+                await updateDoc(settingsRef, { placeholderImages: arrayRemove(imageToRemove) });
+            }
         }
         
         toast({ title: "Item removed" });
