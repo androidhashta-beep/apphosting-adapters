@@ -40,6 +40,7 @@ export type DefaultConfiguration = {
 
 export type Settings = {
   companyName: string;
+  companyLogoUrl?: string;
   services: Service[];
   placeholderImages: ImagePlaceholder[];
   backgroundMusic: AudioTrack[];

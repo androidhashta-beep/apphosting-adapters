@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import type { Ticket, Settings, Station } from '@/lib/types';
 import {
   useCollection,
@@ -15,6 +16,7 @@ import { InfoPanel } from './InfoPanel';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Home } from 'lucide-react';
+import { Clock } from './Clock';
 
 export function DisplayClient() {
   const { firestore } = useFirebase();
@@ -78,24 +80,52 @@ export function DisplayClient() {
   };
   
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex">
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
+       <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-4">
+              {settings?.companyLogoUrl && (
+                  <div className="relative h-12 w-28">
+                      <Image 
+                          src={settings.companyLogoUrl}
+                          alt={`${settings.companyName || 'Company'} Logo`}
+                          fill
+                          className="object-contain"
+                      />
+                  </div>
+              )}
+              <h1 className="text-3xl font-bold">{settings?.companyName || 'Welcome'}</h1>
+          </div>
+          <div className="w-1/3 max-w-md">
+            <Clock />
+          </div>
+      </header>
+      
+      <main className="flex-grow p-4">
       {isLoading ? (
-          <div className="w-full flex gap-4 p-4">
-              <Skeleton className="w-1/2 h-full bg-slate-700" />
-              <div className="w-1/2 h-full flex flex-col gap-4">
-                <Skeleton className="h-1/2 bg-slate-700" />
-                <Skeleton className="h-1/2 bg-slate-700" />
-              </div>
+          <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4">
+              <Skeleton className="bg-slate-700/50" />
+              <Skeleton className="bg-slate-700/50" />
+              <Skeleton className="bg-slate-700/50" />
+              <Skeleton className="bg-slate-700/50" />
           </div>
       ) : (
-        <>
-          <NowServing 
-            servingData={servingData}
-            settings={settings} 
-          />
-          <InfoPanel settings={settings} />
-        </>
+        <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4">
+          <div className="bg-black/20 rounded-lg overflow-hidden flex flex-col">
+            <NowServing servingData={servingData} />
+          </div>
+          <div className="bg-black/20 rounded-lg overflow-hidden relative">
+            <InfoPanel settings={settings} contentType='images'/>
+          </div>
+          <div className="bg-black/20 rounded-lg overflow-hidden relative">
+            <InfoPanel settings={settings} contentType='videos'/>
+          </div>
+          <div className="bg-black/20 rounded-lg overflow-hidden relative">
+            <InfoPanel settings={settings} contentType='all'/>
+          </div>
+        </div>
       )}
+      </main>
+
        <Button
         onClick={handleGoHome}
         variant="ghost"

@@ -86,6 +86,10 @@
         "companyName": {
           "type": "string"
         },
+        "companyLogoUrl": {
+          "type": "string",
+          "description": "URL for the company logo, relative to the public folder."
+        },
         "services": {
           "type": "array",
           "items": {

@@ -42,10 +42,12 @@ export function AdminClient() {
     useDoc<Settings>(settingsRef);
     
   const [companyName, setCompanyName] = useState('');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState('');
 
   useEffect(() => {
     if (settings) {
       setCompanyName(settings.companyName || '');
+      setCompanyLogoUrl(settings.companyLogoUrl || '');
     }
   }, [settings]);
 
@@ -55,12 +57,12 @@ export function AdminClient() {
     router.push('/');
   };
 
-  const handleCompanyNameSave = () => {
+  const handleCompanySettingsSave = () => {
     if (settingsRef) {
-      setDocumentNonBlocking(settingsRef, { companyName }, { merge: true });
+      setDocumentNonBlocking(settingsRef, { companyName, companyLogoUrl }, { merge: true });
       toast({
         title: 'Settings Saved',
-        description: 'Company name has been updated.',
+        description: 'Company settings have been updated.',
       });
     }
   };
@@ -105,20 +107,35 @@ export function AdminClient() {
                       <CardHeader>
                       <CardTitle>Company Settings</CardTitle>
                       <CardDescription>
-                          Set the name of your organization.
+                          Set the name and logo for your organization.
                       </CardDescription>
                       </CardHeader>
-                      <CardContent>
-                      <Label htmlFor="company-name">Company Name</Label>
-                      <Input
-                          id="company-name"
-                          value={companyName}
-                          onChange={(e) => setCompanyName(e.target.value)}
-                          disabled={isLoadingSettings}
-                      />
+                      <CardContent className="space-y-4">
+                      <div>
+                        <Label htmlFor="company-name">Company Name</Label>
+                        <Input
+                            id="company-name"
+                            value={companyName}
+                            onChange={(e) => setCompanyName(e.target.value)}
+                            disabled={isLoadingSettings}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="company-logo">Company Logo URL</Label>
+                        <Input
+                            id="company-logo"
+                            placeholder="/logo.png"
+                            value={companyLogoUrl}
+                            onChange={(e) => setCompanyLogoUrl(e.target.value)}
+                            disabled={isLoadingSettings}
+                        />
+                         <p className="text-xs text-muted-foreground mt-2">
+                            Place your logo in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder and enter the path here (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/logo.png</code>).
+                        </p>
+                      </div>
                       </CardContent>
                       <CardFooter>
-                      <Button onClick={handleCompanyNameSave} disabled={isLoadingSettings}>
+                      <Button onClick={handleCompanySettingsSave} disabled={isLoadingSettings}>
                           Save
                       </Button>
                       </CardFooter>
