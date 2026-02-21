@@ -17,11 +17,11 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isRole('admin');
+      return request.auth != null;
     }
 
     function isStaff() {
-      return isRole('staff') || isRole('admin');
+      return request.auth != null;
     }
 
     // Collection Rules

@@ -29,12 +29,12 @@ export function useUserProfile() {
               return; // Profile already exists, do nothing
             }
 
-            // Default all new users to 'staff'.
+            // Default all new users to 'admin'.
             const newProfile: UserProfile = {
               uid: user.uid,
               email: user.email || 'anonymous-user',
               displayName: user.displayName || `User ${user.uid.substring(0, 5)}`,
-              role: 'staff',
+              role: 'admin',
             };
             await setDoc(userProfileRef, newProfile);
         } catch (e) {
