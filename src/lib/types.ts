@@ -70,5 +70,4 @@ export type UserProfile = {
   email: string;
   displayName?: string;
   role: UserRole;
-  mustChangePassword?: boolean;
 };

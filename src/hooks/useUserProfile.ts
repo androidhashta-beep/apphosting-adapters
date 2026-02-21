@@ -13,7 +13,7 @@ export function useUserProfile() {
   const router = useRouter();
 
   const userProfileRef = useMemoFirebase(
-    () => (firestore && user && !user.isAnonymous ? doc(firestore, 'users', user.uid) : null),
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
   );
 
@@ -21,7 +21,7 @@ export function useUserProfile() {
 
   useEffect(() => {
     // If the user is authenticated but has no profile document, create one.
-    if (user && !user.isAnonymous && !isProfileLoading && !profile && userProfileRef) {
+    if (user && !isProfileLoading && !profile && userProfileRef) {
       const createProfile = async () => {
         try {
             const profileDoc = await getDoc(userProfileRef);
@@ -29,14 +29,12 @@ export function useUserProfile() {
               return; // Profile already exists, do nothing
             }
 
-            // Default all new users to 'staff' to ensure stable login.
-            // Admin promotion is a manual step for now.
+            // Default all new users to 'staff'.
             const newProfile: UserProfile = {
               uid: user.uid,
-              email: user.email || 'unknown',
-              displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-              role: 'staff', 
-              mustChangePassword: true, // Force password change for all new users.
+              email: user.email || 'anonymous-user',
+              displayName: user.displayName || `User ${user.uid.substring(0, 5)}`,
+              role: 'staff',
             };
             await setDoc(userProfileRef, newProfile);
         } catch (e) {
@@ -47,19 +45,6 @@ export function useUserProfile() {
       createProfile();
     }
   }, [user, profile, isProfileLoading, userProfileRef]);
-
-  useEffect(() => {
-    // This effect ensures that if a user already has a profile but needs to change their password,
-    // they are redirected from any page they land on.
-    if (profile?.mustChangePassword) {
-      const currentPath = window.location.pathname;
-      const redirectParam = currentPath !== '/' ? `?redirect=${currentPath}` : '';
-      const targetPath = `/change-password${redirectParam}`;
-      if (currentPath !== '/change-password') {
-        router.replace(targetPath);
-      }
-    }
-  }, [profile, router]);
 
 
   return {

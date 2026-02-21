@@ -35,7 +35,7 @@ const roles = [
 
 export default function RoleSelectorPage() {
     const router = useRouter();
-    const { user, isUserLoading } = useUser();
+    const { isUserLoading } = useUser();
     const [isLoading, setIsLoading] = useState(true);
     const hasDecidedToShowSelector = useRef(false);
 
@@ -60,30 +60,17 @@ export default function RoleSelectorPage() {
         const savedRole = localStorage.getItem(APP_ROLE_KEY) as Role | null;
 
         if (savedRole && roles.some(r => r.id === savedRole)) {
-            // If user is anonymous and trying to access a protected role, go to login.
-            if (savedRole === 'staff' && user?.isAnonymous) {
-                router.replace('/login');
-                return;
-            }
-             if (savedRole === 'staff' && !user) {
-                router.replace('/login');
-                return;
-            }
             router.replace(`/${savedRole}`);
         } else {
              hasDecidedToShowSelector.current = true;
              setIsLoading(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isUserLoading, user]);
+    }, [isUserLoading]);
 
     const handleRoleSelect = (role: Role) => {
         localStorage.setItem(APP_ROLE_KEY, role);
-         if (role === 'staff' && (user?.isAnonymous || !user)) {
-            router.push('/login');
-        } else {
-            router.push(`/${role}`);
-        }
+        router.push(`/${role}`);
     };
     
     if (isLoading || isUserLoading) {

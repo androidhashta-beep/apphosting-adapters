@@ -17,7 +17,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (!profile) {
-      router.replace('/login?redirect=/admin');
+      router.replace('/');
       return;
     }
 
@@ -29,7 +29,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [profile, isLoading, router]);
 
-  if (isLoading || !profile || profile.role !== 'admin' || profile.mustChangePassword) {
+  if (isLoading || !profile || profile.role !== 'admin') {
     return (
       <PageWrapper title="Admin Panel" showBackButton={true}>
         <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">

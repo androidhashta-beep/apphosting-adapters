@@ -116,13 +116,10 @@ export function AdminClient() {
     await signOut(auth);
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
-    router.push('/login');
+    router.push('/');
   }
 
   const handleGoHome = async () => {
-     if (auth.currentUser && !auth.currentUser.isAnonymous) {
-      await signOut(auth);
-    }
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
@@ -171,7 +168,7 @@ export function AdminClient() {
             <ThemeSwitcher />
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />
-                <span className="sr-only">Sign Out</span>
+                <span className="sr-only">Sign Out / Change Role</span>
             </Button>
           </div>
         </div>

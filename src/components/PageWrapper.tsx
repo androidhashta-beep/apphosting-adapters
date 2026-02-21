@@ -19,13 +19,9 @@ import {
 export function PageWrapper({ children, title, showBackButton = true }: { children: React.ReactNode, title: string, showBackButton?: boolean }) {
   const router = useRouter();
   const auth = useAuth();
-  const { user } = useUser();
   const { profile } = useUserProfile();
 
   const handleGoHome = async () => {
-    if (auth.currentUser && !auth.currentUser.isAnonymous) {
-      await signOut(auth);
-    }
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
@@ -35,7 +31,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
     await signOut(auth);
     localStorage.removeItem('app-instance-role');
     sessionStorage.setItem('force-role-selection', 'true');
-    router.push('/login');
+    router.push('/');
   }
 
   return (
@@ -70,21 +66,19 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
                     </Tooltip>
                 </TooltipProvider>
             )}
-            {user && !user.isAnonymous && (
-               <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                       <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                          <LogOut className="h-4 w-4" />
-                          <span className="sr-only">Sign Out</span>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Sign Out</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-            )}
+            <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                   <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4" />
+                      <span className="sr-only">Change Role / Sign Out</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Change Role / Sign Out</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </header>
