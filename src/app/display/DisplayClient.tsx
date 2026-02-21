@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Ticket, Settings, Station } from '@/lib/types';
 import {
   useCollection,
@@ -12,9 +13,12 @@ import { collection, doc, query, where } from 'firebase/firestore';
 import { NowServing } from './NowServing';
 import { InfoPanel } from './InfoPanel';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Home } from 'lucide-react';
 
 export function DisplayClient() {
   const { firestore } = useFirebase();
+  const router = useRouter();
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -67,13 +71,19 @@ export function DisplayClient() {
   }, [stations, tickets, settings]);
   
   const isLoading = isLoadingSettings || isLoadingStations || isLoadingTickets;
+
+  const handleGoHome = () => {
+    localStorage.removeItem('app-instance-role');
+    sessionStorage.setItem('force-role-selection', 'true');
+    router.push('/');
+  };
   
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex">
       {isLoading ? (
           <div className="w-full flex gap-4 p-4">
-              <Skeleton className="w-2/3 h-full bg-slate-700" />
-              <div className="w-1/3 h-full flex flex-col gap-4">
+              <Skeleton className="w-1/2 h-full bg-slate-700" />
+              <div className="w-1/2 h-full flex flex-col gap-4">
                 <Skeleton className="h-1/2 bg-slate-700" />
                 <Skeleton className="h-1/2 bg-slate-700" />
               </div>
@@ -84,6 +94,15 @@ export function DisplayClient() {
           <InfoPanel settings={settings} />
         </>
       )}
+       <Button
+        onClick={handleGoHome}
+        variant="ghost"
+        size="icon"
+        className="fixed bottom-4 right-4 h-12 w-12 rounded-full bg-black/30 hover:bg-black/50 text-white hover:text-white z-50"
+      >
+        <Home className="h-6 w-6" />
+        <span className="sr-only">Go Home</span>
+      </Button>
     </div>
   );
 }
