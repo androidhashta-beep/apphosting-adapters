@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useFirebase, useDoc, setDocumentNonBlocking, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
@@ -96,38 +96,26 @@ export function CarouselSettings() {
         element.src = url;
     });
   }, []);
-
-  useEffect(() => {
-    if (!dialogState) return;
-
-    const idleEntries = urlEntries.filter(e => e.status === 'idle');
-    
-    if (idleEntries.length > 0) {
-        // Set all idle to verifying
-        setUrlEntries(prev => 
-            prev.map(e => (e.status === 'idle' ? { ...e, status: 'verifying' } : e))
-        );
-        
-        // Kick off verification for each
-        idleEntries.forEach(entry => {
-            verifyMediaUrl(entry.url, dialogState.type).then(result => {
-                setUrlEntries(prev => 
-                    prev.map(e => (e.id === entry.id ? { ...e, status: result.status } : e))
-                );
-            });
-        });
-    }
-  }, [urlEntries, dialogState, verifyMediaUrl]);
   
   const handleAddUrls = () => {
+    if (!dialogState) return;
     const urls = urlsInput.split('\n').map(url => url.trim()).filter(url => url);
     const newEntries: UrlEntry[] = urls.map((url, index) => ({
         id: Date.now() + index,
         url,
-        status: 'idle',
+        status: 'verifying',
     }));
+
     setUrlEntries(prev => [...prev, ...newEntries]);
     setUrlsInput('');
+    
+    newEntries.forEach(entry => {
+      verifyMediaUrl(entry.url, dialogState.type).then(result => {
+        setUrlEntries(prev =>
+          prev.map(e => (e.id === entry.id ? { ...e, status: result.status } : e))
+        );
+      });
+    });
   };
 
   const handleRemoveUrl = (id: number) => {
@@ -298,15 +286,8 @@ export function CarouselSettings() {
             <AlertDialogFooter>
                 <AlertDialogCancel type="button" onClick={handleCloseDialog}>Cancel</AlertDialogCancel>
                 <AlertDialogAction type="submit" disabled={isSaving || isVerifying || hasInvalid || urlEntries.length === 0}>
-                    {isSaving ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
-                        </>
-                    ) : isVerifying ? (
-                         <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...
-                        </>
-                    ) : 'Save'}
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSaving ? 'Saving...' : 'Save'}
                 </AlertDialogAction>
             </AlertDialogFooter>
         </form>
@@ -422,5 +403,7 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
 
     
