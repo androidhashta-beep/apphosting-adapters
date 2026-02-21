@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useFirebase, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -167,17 +167,17 @@ export function CarouselSettings() {
         
         const updatedItems = [...currentItems, newItem];
         
-        await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        setDocumentNonBlocking(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
         
-        toast({ title: "Success!", description: "Media item added." });
+        toast({ title: "Save Initiated", description: "Media item is being added." });
         handleCloseDialog();
 
     } catch (error: any) {
-        console.error("Save failed:", error);
+        console.error("Save preparation failed:", error);
         toast({ 
             variant: "destructive", 
             title: "Save Failed", 
-            description: error.message || "An unknown error occurred. Please check the console for details.",
+            description: error.message || "An unknown error occurred while preparing the data.",
             duration: 10000
         });
     } finally {
@@ -203,8 +203,8 @@ export function CarouselSettings() {
 
         if (Array.isArray(existingItems)) {
             const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-            toast({ title: "Item removed" });
+            setDocumentNonBlocking(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+            toast({ title: "Item removal initiated" });
         }
     } catch(error: any) {
         console.error("Delete failed:", error);
@@ -219,20 +219,12 @@ export function CarouselSettings() {
     }
   }
 
-  const handleDrop = async (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
+  const handleDrop = (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
     if (!settingsRef || !firestore) return;
-    try {
-        await setDoc(settingsRef, { [field]: newItems }, { merge: true });
-        toast({ title: "Order saved" });
-    } catch (error: any) {
-        console.error("Reorder failed:", error);
-        toast({ 
-            variant: "destructive", 
-            title: "Save Failed", 
-            description: error.message || "An unknown error occurred while saving the new order.",
-            duration: 10000
-        });
-    }
+    
+    setDocumentNonBlocking(settingsRef, { [field]: newItems }, { merge: true });
+
+    toast({ title: "Reorder initiated" });
   };
 
   const handleCarouselDragStart = (index: number, id: string) => {
@@ -254,7 +246,7 @@ export function CarouselSettings() {
     dragItem.current = null;
     dragOverItem.current = null;
     
-    await handleDrop(currentItems, 'placeholderImages');
+    handleDrop(currentItems, 'placeholderImages');
   };
 
   const handleMusicDragStart = (index: number, id: string) => {
@@ -276,7 +268,7 @@ export function CarouselSettings() {
     dragMusicItem.current = null;
     dragOverMusicItem.current = null;
 
-    await handleDrop(currentTracks, 'backgroundMusic');
+    handleDrop(currentTracks, 'backgroundMusic');
   };
 
   const renderDialogContent = () => {
