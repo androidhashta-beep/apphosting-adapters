@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { useFirebase, useDoc, useMemoFirebase, FirestorePermissionError, errorEmitter } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
+import { doc, runTransaction } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -143,17 +143,11 @@ export function CarouselSettings() {
     setUrlError(null);
   };
 
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
+ const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("1. handleSave triggered.");
-
-    if (!dialogState || !settingsRef || !firestore || isSaving) {
-      console.error("2. Aborting save: missing prerequisites.", { dialogState, settingsRef, firestore, isSaving });
-      return;
-    }
+    if (!dialogState || !settingsRef || !firestore || isSaving) return;
 
     if (imageUrlStatus !== 'valid') {
-      console.error("3. Aborting save: URL is invalid.");
       toast({ 
         variant: "destructive", 
         title: "Invalid URL", 
@@ -163,122 +157,95 @@ export function CarouselSettings() {
     }
 
     setIsSaving(true);
-    console.log("4. isSaving set to true. Proceeding with save.", { description, imageUrl, hint, useOwnAudio });
     
     const isMusic = dialogState.type === 'music';
     const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
 
     const newItem = isMusic 
-        ? { id: `music-${Date.now()}`, description, url: imageUrl }
-        : {
-            id: `${dialogState.type}-${Date.now()}`,
-            type: dialogState.type,
-            description,
-            imageUrl,
-            imageHint: hint,
-            ...(dialogState.type === 'video' && { useOwnAudio })
+      ? { id: `music-${Date.now()}`, description, url: imageUrl }
+      : {
+          id: `${dialogState.type}-${Date.now()}`,
+          type: dialogState.type,
+          description,
+          imageUrl,
+          imageHint: hint,
+          ...(dialogState.type === 'video' && { useOwnAudio })
         };
-    
-    const currentItems = (settings?.[fieldToUpdate] as (ImagePlaceholder[] | AudioTrack[])) || [];
-    const newItems = [...currentItems, newItem];
-    const updatedField = { [fieldToUpdate]: newItems };
-
-    console.log("5. Prepared data to be saved:", updatedField);
 
     try {
-        console.log("6. Calling setDoc to write to Firestore...");
-        await setDoc(settingsRef, updatedField, { merge: true });
-        console.log("7. setDoc promise resolved successfully.");
+      await runTransaction(firestore, async (transaction) => {
+        const settingsDoc = await transaction.get(settingsRef);
+        const currentData = settingsDoc.data() as Settings | undefined;
         
-        toast({ title: "Save Successful", description: "Media item has been added." });
-        handleCloseDialog();
+        const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
+        const newItems = [...currentItems, newItem];
+        
+        transaction.set(settingsRef, { [fieldToUpdate]: newItems }, { merge: true });
+      });
 
+      toast({ title: "Save Successful", description: "Media item has been added." });
+      handleCloseDialog();
     } catch (error: any) {
-        console.error("8. An error occurred during setDoc:", error);
-        toast({
-            variant: "destructive",
-            title: "Save Failed",
-            description: `An unexpected error occurred: ${error.message}. Please check the console for details.`,
-            duration: 9000,
-        });
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: settingsRef.path,
-            operation: 'update',
-            requestResourceData: updatedField,
-        }));
+      console.error("Save Failed:", error);
+      toast({
+          variant: "destructive",
+          title: "Save Failed",
+          description: `An unexpected error occurred: ${error.message}. Please try again.`,
+          duration: 9000,
+      });
     } finally {
-        console.log("9. Save operation finished. Setting isSaving to false.");
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
   const handleDeleteItem = async () => {
-    console.log("A. handleDeleteItem triggered for:", itemToDelete);
-    if (!itemToDelete || !settingsRef || !firestore || !settings) {
-        console.error("B. Aborting delete: missing prerequisites.");
-        setItemToDelete(null);
-        return;
-    };
-    
+    if (!itemToDelete || !settingsRef || !firestore) return;
+
     const isMusic = itemToDelete.type === 'music';
     const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
     
-    const currentItems = (settings?.[fieldToUpdate] as (ImagePlaceholder[] | AudioTrack[])) || [];
-    const updatedItems = currentItems.filter((item: any) => item.id !== itemToDelete.id);
-    const updatedField = { [fieldToUpdate]: updatedItems };
-
-    console.log("C. Prepared data for deletion (new array):", updatedField);
-    
     try {
-      console.log("D. Calling setDoc to write deletion to Firestore...");
-      await setDoc(settingsRef, updatedField, { merge: true });
-      console.log("E. setDoc for deletion promise resolved successfully.");
+      await runTransaction(firestore, async (transaction) => {
+        const settingsDoc = await transaction.get(settingsRef);
+        const currentData = settingsDoc.data() as Settings | undefined;
+        
+        const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
+        const updatedItems = currentItems.filter((item: any) => item.id !== itemToDelete.id);
+        
+        transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+      });
+
       toast({ title: "Item removal successful" });
-    } catch(error: any) {
-        console.error("F. An error occurred during setDoc for deletion:", error);
-        toast({
-            variant: "destructive",
-            title: "Delete Failed",
-            description: `An unexpected error occurred: ${error.message}. Please check the console for details.`,
-            duration: 9000,
-        });
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: settingsRef.path,
-            operation: 'update',
-            requestResourceData: updatedField,
-        }));
-    } finally {
-        console.log("G. Delete operation finished.");
-        setItemToDelete(null);
-    }
-  }
-
-  const handleDrop = async (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
-    console.log(`X. handleDrop triggered for ${field}`);
-    if (!settingsRef || !firestore) {
-        console.error("Y. Aborting drop: missing prerequisites.");
-        return;
-    }
-    const updatedField = { [field]: newItems };
-    
-    try {
-        console.log("Z. Calling setDoc to write reorder to Firestore...");
-        await setDoc(settingsRef, updatedField, { merge: true });
-        console.log("AA. setDoc for reorder promise resolved successfully.");
-        toast({ title: "Reorder successful" });
     } catch (error: any) {
-        console.error("BB. An error occurred during setDoc for reorder:", error);
-        toast({
-            variant: "destructive",
-            title: "Reorder Failed",
-            description: `An unexpected error occurred: ${error.message}. Please check the console for details.`,
-            duration: 9000,
-        });
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: settingsRef.path,
-            operation: 'update',
-            requestResourceData: updatedField,
-        }));
+      console.error("Delete Failed:", error);
+      toast({
+          variant: "destructive",
+          title: "Delete Failed",
+          description: `An unexpected error occurred: ${error.message}. Please try again.`,
+          duration: 9000,
+      });
+    } finally {
+      setItemToDelete(null);
+    }
+  };
+
+ const handleDrop = async (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
+    if (!settingsRef || !firestore) return;
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        // No need to read, we are replacing the whole array
+        transaction.set(settingsRef, { [field]: newItems }, { merge: true });
+      });
+      toast({ title: "Reorder successful" });
+    } catch (error: any) {
+      console.error("Reorder Failed:", error);
+      toast({
+          variant: "destructive",
+          title: "Reorder Failed",
+          description: `An unexpected error occurred: ${error.message}. Please try again.`,
+          duration: 9000,
+      });
     }
   };
 
@@ -342,7 +309,7 @@ export function CarouselSettings() {
                         <p>
                            Provide a URL for your media file. Local files must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> and point to a file in the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder. The URL will be verified automatically.
                         </p>
-                        <p><strong>Recommendations:</strong> For best performance, keep images under 1MB and videos under 50MB.</p>
+                         <p><strong>Recommendations:</strong> For best performance, keep images under 1MB and videos under 50MB.</p>
                     </div>
                 </AlertDialogDescription>
             </AlertDialogHeader>
@@ -530,3 +497,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
