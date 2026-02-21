@@ -16,7 +16,7 @@ import Image from "next/image";
 import { Clock } from "@/app/display/Clock";
 
 const KioskButton = ({ service, isPrinting, onClick }: { service: Service, isPrinting: string | null, onClick: (id: string) => void }) => (
-    <div className="w-full flex justify-center items-center">
+    <div className="flex justify-center items-center">
         <div className="w-1/3 aspect-square">
             <Button
                 variant="outline"
