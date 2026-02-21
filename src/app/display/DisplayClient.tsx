@@ -37,22 +37,29 @@ export function DisplayClient() {
     return stations.filter(s => s.currentTicketId).map(s => s.currentTicketId as string);
   }, [stations]);
 
-  const ticketsQuery = useMemoFirebase(
+  const servingTicketsQuery = useMemoFirebase(
     () => {
         if (!firestore || servingTicketIds.length === 0) return null;
         return query(collection(firestore, 'tickets'), where('__name__', 'in', servingTicketIds));
     }, [firestore, servingTicketIds]
   );
+  const { data: servingTickets, isLoading: isLoadingServingTickets } = useCollection<Ticket>(servingTicketsQuery);
 
-  const { data: tickets, isLoading: isLoadingTickets } = useCollection<Ticket>(ticketsQuery);
+  const waitingTicketsQuery = useMemoFirebase(
+      () => {
+          if (!firestore) return null;
+          return query(collection(firestore, 'tickets'), where('status', '==', 'waiting'), orderBy('createdAt', 'asc'));
+      }, [firestore]
+  );
+  const { data: waitingTickets, isLoading: isLoadingWaitingTickets } = useCollection<Ticket>(waitingTicketsQuery);
 
   const servingData = useMemo(() => {
-    if (!stations || !tickets || !settings) return [];
+    if (!stations || !servingTickets || !settings) return [];
     
     const servingStations = stations.filter(s => s.currentTicketId);
     
     const data = servingStations.map(station => {
-      const ticket = tickets.find(t => t.id === station.currentTicketId);
+      const ticket = servingTickets.find(t => t.id === station.currentTicketId);
       const service = settings.services.find(s => s.id === ticket?.type);
       return {
         stationName: station.name,
@@ -68,9 +75,9 @@ export function DisplayClient() {
 
     return data;
 
-  }, [stations, tickets, settings]);
+  }, [stations, servingTickets, settings]);
   
-  const isLoading = isLoadingSettings || isLoadingStations || isLoadingTickets;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingWaitingTickets;
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -90,7 +97,11 @@ export function DisplayClient() {
           </div>
       ) : (
         <>
-          <NowServing servingData={servingData} services={settings?.services || []} />
+          <NowServing 
+            servingData={servingData} 
+            waitingData={waitingTickets || []} 
+            services={settings?.services || []} 
+          />
           <InfoPanel settings={settings} />
         </>
       )}
