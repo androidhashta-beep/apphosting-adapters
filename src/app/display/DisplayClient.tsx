@@ -158,7 +158,7 @@ export function DisplayClient() {
                         <Image 
                             src={settings.companyLogoUrl}
                             alt={`${settings.companyName || 'Company'} Logo`}
-                            width={200}
+                            width={300}
                             height={48}
                             className="h-full w-auto object-contain"
                         />
