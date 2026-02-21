@@ -232,6 +232,10 @@
             "staff"
           ],
           "description": "The role of the user, which determines their access level."
+        },
+        "mustChangePassword": {
+          "type": "boolean",
+          "description": "If true, the user must change their password on the next login."
         }
       },
       "required": [

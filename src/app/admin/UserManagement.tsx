@@ -10,7 +10,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,7 +29,8 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Users, PlusCircle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 export function UserManagement() {
   const { firestore, user: currentUser } = useFirebase();
@@ -42,8 +42,8 @@ export function UserManagement() {
   );
   const { data: users, isLoading } = useCollection<UserProfile>(usersCollectionRef);
 
-  // Use local state to manage role changes before saving
   const [userRoles, setUserRoles] = useState<{ [uid: string]: UserRole }>({});
+  const [passwordChangeFlags, setPasswordChangeFlags] = useState<{ [uid: string]: boolean }>({});
 
   const sortedUsers = useMemo(() => {
     if (!users) return [];
@@ -54,21 +54,41 @@ export function UserManagement() {
     setUserRoles(prev => ({ ...prev, [uid]: role }));
   };
 
+  const handlePasswordChangeFlagChange = (uid: string, mustChange: boolean) => {
+    setPasswordChangeFlags(prev => ({ ...prev, [uid]: mustChange }));
+  };
+
   const handleSaveChanges = (uid: string) => {
     if (!firestore) return;
+    
+    const userDocRef = doc(firestore, 'users', uid);
     const newRole = userRoles[uid];
+    const mustChangePassword = passwordChangeFlags[uid];
+
+    const dataToUpdate: Partial<UserProfile> = {};
     if (newRole) {
-      const userDocRef = doc(firestore, 'users', uid);
-      updateDocumentNonBlocking(userDocRef, { role: newRole });
+      dataToUpdate.role = newRole;
+    }
+    if (mustChangePassword !== undefined) {
+      dataToUpdate.mustChangePassword = mustChangePassword;
+    }
+
+    if (Object.keys(dataToUpdate).length > 0) {
+      updateDocumentNonBlocking(userDocRef, dataToUpdate);
       toast({
-        title: 'Role Updated',
-        description: `The role has been successfully updated to ${newRole}.`,
+        title: 'User Updated',
+        description: `The user's profile has been successfully updated.`,
       });
-      // Clear the pending change for this user
+      // Clear the pending changes for this user
       setUserRoles(prev => {
         const newRoles = { ...prev };
         delete newRoles[uid];
         return newRoles;
+      });
+      setPasswordChangeFlags(prev => {
+        const newFlags = { ...prev };
+        delete newFlags[uid];
+        return newFlags;
       });
     }
   };
@@ -89,6 +109,7 @@ export function UserManagement() {
                 <TableHead>Display Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead className="w-[120px]">Role</TableHead>
+                <TableHead className="w-[200px]">Force Password Change</TableHead>
                 <TableHead className="w-[100px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -98,6 +119,7 @@ export function UserManagement() {
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-8 w-full" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-full" /></TableCell>
                     <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                   </TableRow>
@@ -111,7 +133,6 @@ export function UserManagement() {
                       <Select
                         value={userRoles[user.uid] || user.role}
                         onValueChange={(value: UserRole) => handleRoleChange(user.uid, value)}
-                        // Disable role change for the current admin user to prevent self-lockout
                         disabled={user.uid === currentUser?.uid}
                       >
                         <SelectTrigger>
@@ -123,12 +144,23 @@ export function UserManagement() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id={`password-change-${user.uid}`}
+                          checked={passwordChangeFlags[user.uid] ?? user.mustChangePassword ?? false}
+                          onCheckedChange={(checked) => handlePasswordChangeFlagChange(user.uid, checked)}
+                          disabled={user.uid === currentUser?.uid}
+                          aria-label="Force password change"
+                        />
+                        <Label htmlFor={`password-change-${user.uid}`} className="cursor-pointer">Required</Label>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                        <Button
                         size="sm"
                         onClick={() => handleSaveChanges(user.uid)}
-                        // Disable if no change is pending
-                        disabled={!userRoles[user.uid]}
+                        disabled={userRoles[user.uid] === undefined && passwordChangeFlags[user.uid] === undefined}
                       >
                         Save
                       </Button>
@@ -137,7 +169,7 @@ export function UserManagement() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     No users found.
                   </TableCell>
                 </TableRow>
@@ -147,10 +179,11 @@ export function UserManagement() {
         </div>
          <div className="text-xs text-muted-foreground mt-4">
             <p className="font-bold">Note:</p>
-            <ul className="list-disc pl-5 mt-1">
-                <li>Users are automatically added to this list with the 'staff' role when they first sign in to the application.</li>
-                <li>To add a new user, create their account in the <strong>Firebase Authentication console</strong>, then have them log in once.</li>
-                <li>An admin cannot change their own role to prevent accidental lock-out.</li>
+            <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>Users are automatically added here with the 'staff' role upon their first login. The first user to sign in becomes an 'admin'.</li>
+                <li><strong>To add a new user:</strong> create their account in the <strong>Firebase Authentication console</strong> with an email and a temporary password. Have them log in once to appear here.</li>
+                <li>You can then use the <strong>"Force Password Change"</strong> switch to require them to set a new password on their next login.</li>
+                <li>An admin cannot change their own role or force a password change on themselves to prevent accidental lock-out.</li>
             </ul>
         </div>
       </CardContent>

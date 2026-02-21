@@ -38,12 +38,14 @@ export function useUserProfile() {
 
             const isFirstUser = adminSnapshot.empty;
             const role: 'admin' | 'staff' = isFirstUser ? 'admin' : 'staff';
+            const mustChangePassword = isFirstUser; // Force password change for first user
 
             const newProfile: UserProfile = {
               uid: user.uid,
               email: user.email || 'unknown',
               displayName: user.displayName || user.email?.split('@')[0] || 'New User',
               role: role,
+              mustChangePassword: mustChangePassword,
             };
             
             // Create the new user profile document within the transaction.
@@ -55,7 +57,7 @@ export function useUserProfile() {
              if (result?.isFirstUser) {
                 toast({
                     title: "Welcome, Administrator!",
-                    description: "You have been assigned the admin role as the first user.",
+                    description: "You have been assigned the admin role. You will be asked to change your password for security.",
                     duration: 8000,
                 });
              }

@@ -28,6 +28,11 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (profile?.mustChangePassword) {
+      router.replace('/change-password?redirect=/admin');
+      return;
+    }
+
     if (profile?.role !== 'admin') {
       // If the user is not an admin, send them back to the role selector
       // and show a message.
@@ -42,7 +47,7 @@ function AdminAuthGuard({ children }: { children: React.ReactNode }) {
 
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading || !user || profile?.role !== 'admin') {
+  if (isLoading || !user || !profile || profile.role !== 'admin' || profile.mustChangePassword) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

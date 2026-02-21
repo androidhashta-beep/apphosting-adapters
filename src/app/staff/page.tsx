@@ -23,6 +23,11 @@ function StaffAuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (profile?.mustChangePassword) {
+      router.replace('/change-password?redirect=/staff');
+      return;
+    }
+
     // Admins can also access the staff dashboard
     if (!profile || !['admin', 'staff'].includes(profile.role)) {
       localStorage.removeItem('app-instance-role');
@@ -34,7 +39,7 @@ function StaffAuthGuard({ children }: { children: React.ReactNode }) {
 
   const isLoading = isUserLoading || isProfileLoading;
 
-  if (isLoading || !user || !profile) {
+  if (isLoading || !user || !profile || profile.mustChangePassword) {
     return (
       <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
