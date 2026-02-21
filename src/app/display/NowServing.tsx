@@ -44,7 +44,7 @@ export function NowServing({ servingData, settings }: { servingData: ServingData
   return (
     <div className="w-1/2 h-full flex flex-col p-4 gap-4">
         {/* Top Part: Now Serving List */}
-        <div className="h-2/3 flex flex-col bg-black/20 rounded-lg overflow-hidden">
+        <div className="h-1/2 flex flex-col bg-black/20 rounded-lg overflow-hidden">
             {/* Main Header */}
             <div className="grid grid-cols-[1fr,auto,auto] gap-x-8 px-6 pb-2 border-b-2 border-white/50 flex-shrink-0 pt-4">
                 <h2 className="text-3xl font-bold text-left justify-self-start">Services</h2>
@@ -76,7 +76,7 @@ export function NowServing({ servingData, settings }: { servingData: ServingData
         </div>
         
         {/* Bottom Part: New Carousel */}
-        <div className="h-1/3 relative rounded-lg overflow-hidden">
+        <div className="h-1/2 relative rounded-lg overflow-hidden">
             <Carousel
                 className="absolute inset-0 h-full w-full"
                 plugins={[Autoplay({ delay: 7000, stopOnInteraction: false, stopOnMouseEnter: true })]}
