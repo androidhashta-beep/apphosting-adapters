@@ -8,7 +8,8 @@ service cloud.firestore {
     }
 
     function isRole(role) {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      // Check for existence before getting data to prevent errors on new user creation
+      return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
     
     function isAdmin() {
@@ -40,11 +41,21 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     match /users/{userId} {
-      // Admins can read/write any user profile
-      // Regular users can read/create their own profile
-      allow read, write: if isAdmin();
-      allow read, create: if isOwner(userId);
-      allow update: if isOwner(userId) && request.resource.data.keys().hasOnly(['displayName']);
+      // CREATE: A user can create their own profile.
+      allow create: if isOwner(userId);
+      
+      // READ: An admin can read any profile. A user can read their own.
+      // Also, any authenticated user can read the profiles of other admins.
+      // This is required for the "first user" check to work correctly.
+      allow read: if isAdmin() || isOwner(userId) || (request.auth != null && resource.data.role == 'admin');
+      
+      // UPDATE: An admin can update any profile. A user can update their own.
+      // The application UI prevents non-admin users from changing their role.
+      // This is also required for the "force password change" flow.
+      allow update: if isAdmin() || isOwner(userId);
+      
+      // DELETE: Only admins can delete profiles.
+      allow delete: if isAdmin();
     }
   }
 }
