@@ -1,29 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Settings: Allow any authenticated user to read and write.
+    // Settings: Allow any authenticated user to get and write settings.
     match /settings/{settingId} {
-      allow read, write: if request.auth != null;
+      allow get, write: if request.auth != null;
     }
 
-    // Stations: Allow authenticated users to access.
+    // Stations: Control access to the stations collection.
     match /stations/{stationId} {
-      // Allow individual doc reads (get) and all writes (create, update, delete)
-      allow read, write: if request.auth != null;
+      // Allow getting, updating, and deleting a single station document.
+      allow get, update, delete: if request.auth != null;
     }
     match /stations {
-        // Allow collection reads (list)
-        allow read: if request.auth != null;
+        // Allow listing the collection and creating new documents in it.
+        allow list, create: if request.auth != null;
     }
 
-    // Tickets: Allow authenticated users to access.
+    // Tickets: Control access to the tickets collection.
     match /tickets/{ticketId} {
-      // Allow individual doc reads (get) and all writes (update, delete)
-      allow read, write: if request.auth != null;
+      // Allow getting, updating, and deleting a single ticket document.
+      allow get, update, delete: if request.auth != null;
     }
     match /tickets {
-      // Allow collection reads (list) and creating new tickets (addDoc)
-      allow read, create: if request.auth != null;
+      // Allow listing the collection and creating new documents in it.
+      allow list, create: if request.auth != null;
     }
 
     // Counters: Allow any authenticated user to read and write.
