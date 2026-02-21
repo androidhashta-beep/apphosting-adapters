@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Settings } from '@/lib/types';
 import {
@@ -12,7 +12,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +43,19 @@ export function AdminClient() {
     
   const [companyName, setCompanyName] = useState('');
   const [companyLogoUrl, setCompanyLogoUrl] = useState('');
+  const [logoUrlStatus, setLogoUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
+
+  const verifyUrl = useCallback((url: string) => {
+    if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
+        setLogoUrlStatus('idle');
+        return;
+    }
+    setLogoUrlStatus('verifying');
+    const img = new window.Image();
+    img.onload = () => setLogoUrlStatus('valid');
+    img.onerror = () => setLogoUrlStatus('invalid');
+    img.src = url;
+  }, []);
 
   useEffect(() => {
     if (settings) {
@@ -50,6 +63,21 @@ export function AdminClient() {
       setCompanyLogoUrl(settings.companyLogoUrl || '');
     }
   }, [settings]);
+
+  useEffect(() => {
+    if (companyLogoUrl === (settings?.companyLogoUrl || '')) {
+        setLogoUrlStatus('idle');
+        return;
+    }
+
+    const handler = setTimeout(() => {
+        verifyUrl(companyLogoUrl);
+    }, 500);
+
+    return () => {
+        clearTimeout(handler);
+    };
+  }, [companyLogoUrl, verifyUrl, settings?.companyLogoUrl]);
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -122,13 +150,22 @@ export function AdminClient() {
                       </div>
                       <div>
                         <Label htmlFor="company-logo">Company Logo URL</Label>
-                        <Input
-                            id="company-logo"
-                            placeholder="/logo.png"
-                            value={companyLogoUrl}
-                            onChange={(e) => setCompanyLogoUrl(e.target.value)}
-                            disabled={isLoadingSettings}
-                        />
+                        <div className="relative">
+                            <Input
+                                id="company-logo"
+                                placeholder="/logo.png"
+                                value={companyLogoUrl}
+                                onChange={(e) => setCompanyLogoUrl(e.target.value)}
+                                disabled={isLoadingSettings}
+                                className="pr-10"
+                            />
+                             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                {logoUrlStatus === 'verifying' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                {logoUrlStatus === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                {logoUrlStatus === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive" />}
+                            </div>
+                        </div>
+                        {logoUrlStatus === 'invalid' && <p className="text-xs text-destructive mt-1">Could not load image. Check if the URL is correct and publicly accessible.</p>}
                          <p className="text-xs text-muted-foreground mt-2">
                             <strong>Recommended:</strong> In the file explorer, use the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder (all lowercase) located at the top level of your project (alongside the `src` folder). Place your logo inside it, then enter its <strong>URL path</strong> here. The path must start with a forward slash (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/logo.png</code>). Next.js requires the folder to be named `public` in all lowercase.
                         </p>
