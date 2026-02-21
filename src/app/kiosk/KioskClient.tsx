@@ -136,8 +136,8 @@ export function KioskClient() {
   const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
 
   return (
-    <div className="h-full flex flex-col p-6">
-      <div className="text-center">
+    <div className="h-full flex flex-col">
+      <div className="text-center p-6">
         {isLogoValid ? (
             <div className="flex justify-center mb-2">
                 <Image
@@ -163,7 +163,7 @@ export function KioskClient() {
         </div>
       </div>
 
-      <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-24 items-center justify-center p-24">
+      <div className="flex-grow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-24 items-center justify-items-center p-24">
         {isLoadingSettings ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-muted rounded-lg animate-pulse aspect-square" />
@@ -173,7 +173,7 @@ export function KioskClient() {
             <Button
               key={service.id}
               variant="outline"
-              className="h-full w-full aspect-square flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer"
+              className="w-2/3 aspect-square flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer"
               onClick={() => handleGetTicket(service.id)}
               disabled={isLoadingSettings || !!isPrinting}
             >
