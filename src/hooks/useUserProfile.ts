@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { doc, runTransaction } from 'firebase/firestore';
+import { doc, runTransaction, getDoc } from 'firebase/firestore';
 import { useUser, useDoc, useFirebase, useMemoFirebase } from '@/firebase';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, Settings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 
@@ -32,16 +32,29 @@ export function useUserProfile() {
             if (freshProfileDoc.exists()) {
               return; // Profile was created by another process, abort.
             }
+
+            const settingsRef = doc(firestore, 'settings', 'app');
+            const settingsDoc = await transaction.get(settingsRef);
+            
+            let isFirstUser = true;
+            if (settingsDoc.exists()) {
+                const settingsData = settingsDoc.data() as Settings;
+                isFirstUser = !settingsData.firstUserCreated;
+            }
             
             const newProfile: UserProfile = {
               uid: user.uid,
               email: user.email || 'unknown',
               displayName: user.displayName || user.email?.split('@')[0] || 'New User',
-              role: 'staff',
-              mustChangePassword: false, // Simplified: no forced password change
+              role: isFirstUser ? 'admin' : 'staff',
+              mustChangePassword: isFirstUser, // Force password change only for the first admin
             };
             
             transaction.set(userProfileRef, newProfile);
+            
+            if (isFirstUser) {
+                transaction.set(settingsRef, { firstUserCreated: true }, { merge: true });
+            }
           });
         } catch (e) {
             console.error("User profile creation transaction failed: ", e);

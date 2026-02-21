@@ -15,9 +15,11 @@ import { collection, doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 export function StaffClient() {
   const { firestore } = useFirebase();
+  const { profile } = useUserProfile();
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -108,9 +110,11 @@ export function StaffClient() {
               Please use the admin panel to add services and stations to get
               started.
             </p>
-            <Button asChild className="mt-6">
-              <Link href="/admin">Go to Admin Panel</Link>
-            </Button>
+            {profile?.role === 'admin' && (
+                <Button asChild className="mt-6">
+                    <Link href="/admin">Go to Admin Panel</Link>
+                </Button>
+            )}
           </CardContent>
         </Card>
       </div>

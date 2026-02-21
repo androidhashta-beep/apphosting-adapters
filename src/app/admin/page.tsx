@@ -1,27 +1,53 @@
 'use client';
 
+import { AdminClient } from './AdminClient';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { PageWrapper } from '@/components/PageWrapper';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Construction } from 'lucide-react';
+
+function AdminAuthGuard({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { profile, isLoading } = useUserProfile();
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!profile) {
+      router.replace('/login?redirect=/admin');
+      return;
+    }
+
+    if (profile.role !== 'admin') {
+      localStorage.removeItem('app-instance-role');
+      sessionStorage.setItem('force-role-selection', 'true');
+      router.replace('/');
+      return;
+    }
+  }, [profile, isLoading, router]);
+
+  if (isLoading || !profile || profile.role !== 'admin' || profile.mustChangePassword) {
+    return (
+      <PageWrapper title="Admin Panel" showBackButton={true}>
+        <div className="flex h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Verifying access...</p>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 
 export default function AdminPage() {
   return (
-    <PageWrapper title="Admin Panel" showBackButton={true}>
-        <div className="flex items-center justify-center py-20">
-            <Card className="max-w-lg text-center">
-            <CardHeader>
-                <CardTitle className="flex flex-col items-center gap-4">
-                <Construction className="h-12 w-12 text-primary" />
-                <span>Admin Panel Under Construction</span>
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-                <p className="text-muted-foreground">
-                This feature is temporarily disabled and will be added back later.
-                </p>
-            </CardContent>
-            </Card>
-      </div>
-    </PageWrapper>
+    <AdminAuthGuard>
+      <AdminClient />
+    </AdminAuthGuard>
   );
 }
