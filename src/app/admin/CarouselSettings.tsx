@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useFirebase, useDoc, setDocumentNonBlocking, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,7 +138,7 @@ export function CarouselSettings() {
                 url: imageUrl,
             };
             const backgroundMusic = [...(settings.backgroundMusic || []), newTrack];
-            setDocumentNonBlocking(settingsRef, { backgroundMusic }, { merge: true });
+            await setDoc(settingsRef, { backgroundMusic }, { merge: true });
             toast({ title: `Music track added` });
         } else { // image or video
             const newItem: ImagePlaceholder = {
@@ -150,30 +150,34 @@ export function CarouselSettings() {
                 ...(dialogState.type === 'video' && { useOwnAudio })
             };
             const placeholderImages = [...(settings.placeholderImages || []), newItem];
-            setDocumentNonBlocking(settingsRef, { placeholderImages }, { merge: true });
+            await setDoc(settingsRef, { placeholderImages }, { merge: true });
             toast({ title: `${dialogState.type} added` });
         }
+        handleCloseDialog();
     } catch(error: any) {
-        toast({ variant: "destructive", title: "Save Failed", description: error.message });
+        toast({ variant: "destructive", title: "Save Failed", description: error.message || "An unknown error occurred while saving." });
     } finally {
         setIsSaving(false);
-        handleCloseDialog();
     }
   };
 
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (!itemToDelete || !settings || !settingsRef) return;
     
-    if (itemToDelete.type === 'music') {
-        const backgroundMusic = (settings.backgroundMusic || []).filter(item => item.id !== itemToDelete.id);
-        setDocumentNonBlocking(settingsRef, { backgroundMusic }, { merge: true });
-    } else {
-        const placeholderImages = (settings.placeholderImages || []).filter(item => item.id !== itemToDelete.id);
-        setDocumentNonBlocking(settingsRef, { placeholderImages }, { merge: true });
+    try {
+        if (itemToDelete.type === 'music') {
+            const backgroundMusic = (settings.backgroundMusic || []).filter(item => item.id !== itemToDelete.id);
+            await setDoc(settingsRef, { backgroundMusic }, { merge: true });
+        } else {
+            const placeholderImages = (settings.placeholderImages || []).filter(item => item.id !== itemToDelete.id);
+            await setDoc(settingsRef, { placeholderImages }, { merge: true });
+        }
+        
+        toast({ title: "Item removed" });
+        setItemToDelete(null);
+    } catch(error: any) {
+        toast({ variant: "destructive", title: "Delete Failed", description: error.message || "An unknown error occurred while deleting." });
     }
-    
-    toast({ title: "Item removed" });
-    setItemToDelete(null);
   }
 
   const renderDialogContent = () => {
@@ -355,3 +359,5 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
