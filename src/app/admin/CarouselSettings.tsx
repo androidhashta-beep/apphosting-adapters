@@ -110,8 +110,8 @@ export function CarouselSettings() {
     if (!dialogState) return null;
     const isVideo = dialogState.type === 'video';
     const isMusic = dialogState.type === 'music';
-    const title = isMusic ? "Add Background Music" : isVideo ? "Add Videos" : "Add Images";
-    const type = isMusic ? "music" : isVideo ? "video" : "image";
+    const title = isMusic ? "Add Background Music Track(s)" : isVideo ? "Add Video(s)" : "Add Image(s)";
+    const type = isMusic ? "music track" : isVideo ? "video" : "image";
     
     return (
         <form onSubmit={handleSaveItem}>
@@ -132,7 +132,7 @@ export function CarouselSettings() {
                 <div className="space-y-2">
                     <Label htmlFor="item-description">Description</Label>
                     <Input id="item-description" name="description" placeholder={`A short description for the ${type}(s)`} required />
-                    <p className="text-xs text-muted-foreground">If adding multiple items, a number will be appended to each description (e.g., "My Image (1)").</p>
+                    <p className="text-xs text-muted-foreground">If adding multiple items, a number will be appended to each description (e.g., "My Item (1)").</p>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="item-urls">File URLs (one per line)</Label>
@@ -243,7 +243,7 @@ export function CarouselSettings() {
             </CardContent>
             <CardFooter>
                 <Button variant="outline" className="w-full" onClick={() => setDialogState({type: 'music'})} disabled={isLoadingSettings}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Music
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Music Track(s)
                 </Button>
             </CardFooter>
         </Card>
@@ -269,5 +269,7 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
 
     
