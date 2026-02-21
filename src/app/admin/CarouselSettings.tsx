@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction, updateDoc, setDoc } from "firebase/firestore";
+import { doc, runTransaction } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function CarouselSettings() {
 
   const verifyMediaUrl = useCallback((url: string, type: 'image' | 'video' | 'music') => {
     if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
-        setImageUrlStatus(url.trim() ? 'invalid' : 'idle');
+        setImageUrlStatus(url.trim() ? 'idle' : 'idle'); // Reset if empty, but don't show invalid for partial URLs
         return;
     }
     
@@ -85,7 +85,7 @@ export function CarouselSettings() {
         element.onload = handleSuccess;
         element.onerror = handleError;
     } else { // video or music
-        element = document.createElement(type as 'video' | 'audio');
+        element = document.createElement(type === 'video' ? 'video' : 'audio');
         element.onloadedmetadata = handleSuccess;
         element.onerror = handleError;
     }
@@ -140,9 +140,13 @@ export function CarouselSettings() {
                     description,
                     url: imageUrl,
                 };
-                const currentTracks = settingsDoc.exists() ? (settingsDoc.data().backgroundMusic || []) : [];
-                const updatedTracks = [...currentTracks, newTrack];
-                transaction.set(settingsRef, { backgroundMusic: updatedTracks }, { merge: true });
+
+                if (settingsDoc.exists()) {
+                    const currentTracks = settingsDoc.data().backgroundMusic || [];
+                    transaction.update(settingsRef, { backgroundMusic: [...currentTracks, newTrack] });
+                } else {
+                    transaction.set(settingsRef, { backgroundMusic: [newTrack] });
+                }
 
             } else { // image or video
                 const newItem: ImagePlaceholder = {
@@ -153,9 +157,13 @@ export function CarouselSettings() {
                     imageHint: hint,
                     ...(dialogState.type === 'video' && { useOwnAudio })
                 };
-                const currentImages = settingsDoc.exists() ? (settingsDoc.data().placeholderImages || []) : [];
-                const updatedImages = [...currentImages, newItem];
-                transaction.set(settingsRef, { placeholderImages: updatedImages }, { merge: true });
+                
+                if (settingsDoc.exists()) {
+                    const currentImages = settingsDoc.data().placeholderImages || [];
+                    transaction.update(settingsRef, { placeholderImages: [...currentImages, newItem] });
+                } else {
+                    transaction.set(settingsRef, { placeholderImages: [newItem] });
+                }
             }
         });
 
@@ -176,13 +184,13 @@ export function CarouselSettings() {
             const settingsDoc = await transaction.get(settingsRef);
             if (!settingsDoc.exists()) { return; }
             
-            const currentData = settingsDoc.data() as Settings;
-
             if (itemToDelete.type === 'music') {
-                const updatedMusic = (currentData.backgroundMusic || []).filter(item => item.id !== itemToDelete.id);
+                const currentTracks = settingsDoc.data().backgroundMusic || [];
+                const updatedMusic = currentTracks.filter(item => item.id !== itemToDelete.id);
                 transaction.update(settingsRef, { backgroundMusic: updatedMusic });
             } else {
-                const updatedImages = (currentData.placeholderImages || []).filter(item => item.id !== itemToDelete.id);
+                const currentImages = settingsDoc.data().placeholderImages || [];
+                const updatedImages = currentImages.filter(item => item.id !== itemToDelete.id);
                 transaction.update(settingsRef, { placeholderImages: updatedImages });
             }
         });
@@ -269,7 +277,7 @@ export function CarouselSettings() {
         <Card>
           <CardHeader>
             <CardTitle>Carousel Content</CardTitle>
-            <CardDescription>Manage images and videos for the public display. Changes are saved automatically.</CardDescription>
+            <CardDescription>Manage images and videos for the public display.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3 pr-2 border rounded-lg p-2 bg-muted/20 max-h-96 overflow-y-auto">
