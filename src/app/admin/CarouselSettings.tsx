@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, runTransaction } from "firebase/firestore";
+import { doc, runTransaction, setDoc, getDoc } from "firebase/firestore";
 import type { Settings, ImagePlaceholder, AudioTrack } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,17 +65,21 @@ export function CarouselSettings() {
       setUrlError(null);
       return;
     }
-    
-    if (trimmedUrl.startsWith('/home/') || trimmedUrl.startsWith('/Users/') || trimmedUrl.includes('studio/public/')) {
+
+    const isHttp = trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://');
+    const isLocal = trimmedUrl.startsWith('/');
+    const isFileSystemPath = trimmedUrl.includes('/home/') || trimmedUrl.includes('/Users/') || /^[a-zA-Z]:\\/.test(trimmedUrl);
+
+    if (!isHttp && !isLocal) {
         setImageUrlStatus('invalid');
-        setUrlError("Invalid URL format. Please provide a web path starting from the 'public' folder (e.g., '/image.jpg'), not a full file system path.");
+        setUrlError("URL must start with '/' (for local files) or 'http' for external files.");
         return;
     }
 
-    if (!trimmedUrl.startsWith('/') && !trimmedUrl.startsWith('http')) {
-      setImageUrlStatus('invalid');
-      setUrlError("URL must start with '/' (for local files) or 'http'.");
-      return;
+    if (isLocal && isFileSystemPath) {
+        setImageUrlStatus('invalid');
+        setUrlError("Invalid path. For local files, use the path from the 'public' folder (e.g., '/video.mp4'), not the full file system path.");
+        return;
     }
     
     setImageUrlStatus('verifying');
@@ -181,16 +185,12 @@ export function CarouselSettings() {
     try {
       await runTransaction(firestore, async (transaction) => {
         const settingsDoc = await transaction.get(settingsRef);
-        if (!settingsDoc.exists()) {
-            // Document doesn't exist, so create it with the new item in its array
-            transaction.set(settingsRef, { [fieldToUpdate]: [newItem] });
-        } else {
-            // Document exists, update the array
-            const currentData = settingsDoc.data() as Settings | undefined;
-            const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
-            const newItems = [...currentItems, newItem];
-            transaction.update(settingsRef, { [fieldToUpdate]: newItems });
-        }
+        
+        const currentData = settingsDoc.exists() ? settingsDoc.data() : {};
+        const currentItems = (currentData?.[fieldToUpdate] as any[]) || [];
+        const newItems = [...currentItems, newItem];
+        
+        transaction.set(settingsRef, { [fieldToUpdate]: newItems }, { merge: true });
       });
 
       toast({ title: "Save Successful", description: "Media item has been added." });
@@ -247,13 +247,7 @@ export function CarouselSettings() {
 
     try {
       await runTransaction(firestore, async (transaction) => {
-         const settingsDoc = await transaction.get(settingsRef);
-         if (!settingsDoc.exists()) {
-            // This case is unlikely if items exist, but as a safeguard:
-            transaction.set(settingsRef, { [field]: newItems });
-         } else {
-            transaction.update(settingsRef, { [field]: newItems });
-         }
+        transaction.set(settingsRef, { [field]: newItems }, { merge: true });
       });
       toast({ title: "Reorder successful" });
     } catch (error: any) {
@@ -363,6 +357,7 @@ export function CarouselSettings() {
                         </div>
                     </div>
                     {urlError && <p className="text-xs text-destructive mt-1">{urlError}</p>}
+                    <p className="text-xs text-muted-foreground mt-1">Recommended file size: Images &lt; 1MB, Videos &lt; 50MB.</p>
                 </div>
 
                 {!isMusic && (

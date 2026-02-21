@@ -54,11 +54,23 @@ export function AdminClient() {
       setLogoUrlError(null);
       return;
     }
-    if (!trimmedUrl.startsWith('/') && !trimmedUrl.startsWith('http')) {
-      setLogoUrlStatus('invalid');
-      setLogoUrlError("URL must start with '/' (for local files) or 'http'.");
-      return;
+
+    const isHttp = trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://');
+    const isLocal = trimmedUrl.startsWith('/');
+    const isFileSystemPath = trimmedUrl.includes('/home/') || trimmedUrl.includes('/Users/') || /^[a-zA-Z]:\\/.test(trimmedUrl);
+
+    if (!isHttp && !isLocal) {
+        setLogoUrlStatus('invalid');
+        setLogoUrlError("URL must start with '/' (for local files) or 'http'.");
+        return;
     }
+
+    if (isLocal && isFileSystemPath) {
+        setLogoUrlStatus('invalid');
+        setLogoUrlError("Invalid path. Use path from 'public' folder, e.g., '/logo.png', not a full file system path.");
+        return;
+    }
+    
     setLogoUrlStatus('verifying');
     setLogoUrlError(null);
     const img = new window.Image();
