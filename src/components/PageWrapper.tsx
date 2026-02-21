@@ -48,23 +48,21 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
             <ThemeSwitcher />
-            {profile?.role === 'admin' && (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button asChild variant="ghost" size="icon">
-                                <Link href="/admin">
-                                    <Shield className="h-4 w-4" />
-                                    <span className="sr-only">Admin Panel</span>
-                                </Link>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Admin Panel</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            )}
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button asChild variant="ghost" size="icon">
+                            <Link href="/admin">
+                                <Shield className="h-4 w-4" />
+                                <span className="sr-only">Admin Panel</span>
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Admin Panel</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
             <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
