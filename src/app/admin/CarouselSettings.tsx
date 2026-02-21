@@ -120,7 +120,7 @@ export function CarouselSettings() {
                 <AlertDialogDescription asChild>
                      <div className="space-y-4 text-left pt-4 text-sm text-muted-foreground">
                         <p>
-                           <strong>Recommended:</strong> Add local files. First, create a <code className="font-mono bg-muted text-foreground rounded px-1">carousel</code> folder inside the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder in your project. Place your images, videos, and music there. Then, add their paths below (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/carousel/my-video.mp4</code>).
+                           <strong>Recommended:</strong> In the file explorer, create a <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder, and then a <code className="font-mono bg-muted text-foreground rounded px-1">carousel</code> folder inside it. Upload your media files there, then add their paths below (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/carousel/my-video.mp4</code>).
                         </p>
                          <p>
                             <strong>Advanced (less reliable):</strong> You can use public URLs from services like Google Drive, but they may fail to load due to security restrictions. For Google Drive, set sharing to "Anyone with the link" and convert the link from <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code> to <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code>.
@@ -269,7 +269,3 @@ export function CarouselSettings() {
     </>
   );
 }
-
-    
-
-    
