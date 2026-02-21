@@ -141,7 +141,7 @@ export function CarouselSettings() {
     setIsSaving(true);
     
     const isMusic = dialogState.type === 'music';
-    const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
+    const fieldToUpdate: 'backgroundMusic' | 'placeholderImages' = isMusic ? 'backgroundMusic' : 'placeholderImages';
     
     const newItem: ImagePlaceholder | AudioTrack = isMusic 
         ? {
@@ -161,17 +161,17 @@ export function CarouselSettings() {
     try {
       await runTransaction(firestore, async (transaction) => {
         const settingsDoc = await transaction.get(settingsRef);
-        const currentData = settingsDoc.exists() ? settingsDoc.data() as Partial<Settings> : {};
+        const currentData = settingsDoc.data() as Partial<Settings> | undefined;
         
-        const existingItems = currentData[fieldToUpdate as keyof Settings];
-        const currentArray = Array.isArray(existingItems) ? existingItems : [];
+        let currentArray = (currentData?.[fieldToUpdate] || []) as (ImagePlaceholder[] | AudioTrack[]);
         
+        if (!Array.isArray(currentArray)) {
+            currentArray = [];
+        }
+
         const updatedItems = [...currentArray, newItem];
         
-        transaction.set(settingsRef, { 
-            ...currentData, 
-            [fieldToUpdate]: updatedItems 
-        });
+        transaction.set(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
       });
         
       toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
@@ -193,24 +193,22 @@ export function CarouselSettings() {
     if (!itemToDelete || !settingsRef || !firestore) return;
 
     const isMusic = itemToDelete.type === 'music';
-    const fieldToUpdate = isMusic ? 'backgroundMusic' : 'placeholderImages';
+    const fieldToUpdate: 'backgroundMusic' | 'placeholderImages' = isMusic ? 'backgroundMusic' : 'placeholderImages';
     
     try {
         await runTransaction(firestore, async (transaction) => {
             const settingsDoc = await transaction.get(settingsRef);
             if (!settingsDoc.exists()) {
+                // Document doesn't exist, so there's nothing to delete.
                 return;
             }
 
             const currentData = settingsDoc.data() as Partial<Settings>;
-            const existingItems = currentData[fieldToUpdate as keyof Settings];
+            const existingItems = currentData[fieldToUpdate];
 
             if (Array.isArray(existingItems)) {
                 const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-                transaction.set(settingsRef, { 
-                    ...currentData,
-                    [fieldToUpdate]: updatedItems
-                });
+                transaction.update(settingsRef, { [fieldToUpdate]: updatedItems });
             }
         });
         
@@ -227,18 +225,16 @@ export function CarouselSettings() {
     }
   }
 
-  const handleDrop = async (newItems: any[], field: 'placeholderImages' | 'backgroundMusic') => {
+  const handleDrop = async (newItems: (ImagePlaceholder | AudioTrack)[], field: 'placeholderImages' | 'backgroundMusic') => {
     if (!settingsRef || !firestore) return;
     try {
+        // Use a transaction to safely update the order.
         await runTransaction(firestore, async (transaction) => {
-          const settingsDoc = await transaction.get(settingsRef);
-          const currentData = settingsDoc.exists() ? settingsDoc.data() as Partial<Settings> : {};
-          transaction.set(settingsRef, {
-            ...currentData,
-            [field]: newItems
-          });
+          // Using set with merge:true is the safest way to update an array field,
+          // as it creates the document if it doesn't exist.
+          transaction.set(settingsRef, { [field]: newItems }, { merge: true });
         });
-        toast({ title: "Carousel order saved" });
+        toast({ title: "Order saved" });
     } catch (error: any) {
         toast({ variant: "destructive", title: "Save Failed", description: error.message });
     }
