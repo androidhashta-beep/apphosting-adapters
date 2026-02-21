@@ -37,8 +37,8 @@ export function CarouselSettings() {
   const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, "settings", "app") : null), [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<Settings>(settingsRef);
   
-  const [carouselItems, setCarouselItems] = useState<ImagePlaceholder[]>([]);
-  const [musicTracks, setMusicTracks] = useState<AudioTrack[]>([]);
+  const carouselItems = settings?.placeholderImages || [];
+  const musicTracks = settings?.backgroundMusic || [];
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -55,13 +55,6 @@ export function CarouselSettings() {
   const [useOwnAudio, setUseOwnAudio] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [imageUrlStatus, setImageUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
-  
-  useEffect(() => {
-    if (settings) {
-        setCarouselItems(settings.placeholderImages || []);
-        setMusicTracks(settings.backgroundMusic || []);
-    }
-  }, [settings]);
 
   const verifyMediaUrl = useCallback((url: string, type: 'image' | 'video' | 'music') => {
     if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
@@ -169,14 +162,15 @@ export function CarouselSettings() {
         const settingsDoc = await getDoc(settingsRef);
         const currentData = settingsDoc.data() as Settings | undefined;
         
-        let existingItems = currentData?.[fieldToUpdate as keyof Settings];
-        if (!Array.isArray(existingItems)) {
-            existingItems = [];
-        }
+        const existingItems = currentData?.[fieldToUpdate as keyof Settings];
 
-        const updatedItems = [...existingItems, newItem];
-        
-        await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        if (Array.isArray(existingItems)) {
+            const updatedItems = [...existingItems, newItem];
+            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+        } else {
+            // If the field doesn't exist or is not an array, create it.
+            await setDoc(settingsRef, { [fieldToUpdate]: [newItem] }, { merge: true });
+        }
         
         toast({ title: `${dialogState.type.charAt(0).toUpperCase() + dialogState.type.slice(1)} added successfully.` });
         handleCloseDialog();
@@ -202,15 +196,15 @@ export function CarouselSettings() {
         const settingsDoc = await getDoc(settingsRef);
         const currentData = settingsDoc.data() as Settings | undefined;
 
-        let existingItems = currentData?.[fieldToUpdate as keyof Settings];
-        if (!Array.isArray(existingItems)) {
-           existingItems = [];
-        }
+        const existingItems = currentData?.[fieldToUpdate as keyof Settings];
 
-        const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
-        await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
-        
-        toast({ title: "Item removed" });
+        if (Array.isArray(existingItems)) {
+            const updatedItems = existingItems.filter((item: any) => item.id !== itemToDelete.id);
+            await setDoc(settingsRef, { [fieldToUpdate]: updatedItems }, { merge: true });
+            toast({ title: "Item removed" });
+        } else {
+            toast({ variant: "destructive", title: "Cannot Delete", description: "The list does not exist." });
+        }
 
     } catch(error: any) {
         console.error("Delete failed:", error);
@@ -233,26 +227,22 @@ export function CarouselSettings() {
   };
   const handleCarouselDrop = async () => {
     setDraggedItemId(null);
-    if (dragItem.current === null || dragOverItem.current === null) return;
+    if (dragItem.current === null || dragOverItem.current === null || !settingsRef) return;
     if (dragItem.current === dragOverItem.current) return;
 
-    const newItems = [...carouselItems];
+    const currentItems = settings?.placeholderImages || [];
+    const newItems = [...currentItems];
     const draggedItemContent = newItems.splice(dragItem.current, 1)[0];
     newItems.splice(dragOverItem.current, 0, draggedItemContent);
     
     dragItem.current = null;
     dragOverItem.current = null;
     
-    setCarouselItems(newItems);
-    
-    if (settingsRef) {
-        try {
-            await updateDoc(settingsRef, { placeholderImages: newItems });
-            toast({ title: "Carousel order saved" });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Save Failed", description: error.message });
-            setCarouselItems(settings?.placeholderImages || []);
-        }
+    try {
+        await updateDoc(settingsRef, { placeholderImages: newItems });
+        toast({ title: "Carousel order saved" });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Save Failed", description: error.message });
     }
   };
 
@@ -265,26 +255,22 @@ export function CarouselSettings() {
   };
   const handleMusicDrop = async () => {
     setDraggedItemId(null);
-    if (dragMusicItem.current === null || dragOverMusicItem.current === null) return;
+    if (dragMusicItem.current === null || dragOverMusicItem.current === null || !settingsRef) return;
     if (dragMusicItem.current === dragOverMusicItem.current) return;
 
-    const newTracks = [...musicTracks];
+    const currentTracks = settings?.backgroundMusic || [];
+    const newTracks = [...currentTracks];
     const draggedTrackContent = newTracks.splice(dragMusicItem.current, 1)[0];
     newTracks.splice(dragOverMusicItem.current, 0, draggedTrackContent);
 
     dragMusicItem.current = null;
     dragOverMusicItem.current = null;
 
-    setMusicTracks(newTracks);
-
-    if (settingsRef) {
-        try {
-            await updateDoc(settingsRef, { backgroundMusic: newTracks });
-            toast({ title: "Music order saved" });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Save Failed", description: error.message });
-            setMusicTracks(settings?.backgroundMusic || []);
-        }
+    try {
+        await updateDoc(settingsRef, { backgroundMusic: newTracks });
+        toast({ title: "Music order saved" });
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Save Failed", description: error.message });
     }
   };
 
