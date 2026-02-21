@@ -1,9 +1,11 @@
 'use client';
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, LogOut } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, LogOut, Shield } from "lucide-react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useAuth, useUser } from "@/firebase";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { signOut } from "firebase/auth";
 import { Button } from "./ui/button";
 import {
@@ -17,6 +19,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
   const router = useRouter();
   const auth = useAuth();
   const { user } = useUser();
+  const { profile } = useUserProfile();
 
   const handleGoHome = async () => {
     if (auth.currentUser && !auth.currentUser.isAnonymous) {
@@ -49,7 +52,24 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
             <ThemeSwitcher />
-             {user && !user.isAnonymous && (
+            {profile?.role === 'admin' && title !== 'Admin Panel' && (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button asChild variant="ghost" size="icon">
+                                <Link href="/admin">
+                                    <Shield className="h-4 w-4" />
+                                    <span className="sr-only">Admin Panel</span>
+                                </Link>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Admin Panel</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            )}
+            {user && !user.isAnonymous && (
                <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
