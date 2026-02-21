@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Film, Image as ImageIcon, PlusCircle, Music, Trash2, Volume2, VolumeX, Folder } from "lucide-react";
+import { Film, Image as ImageIcon, PlusCircle, Music, Trash2, Volume2, VolumeX, Folder, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,10 +38,59 @@ export function CarouselSettings() {
   
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [itemToDelete, setItemToDelete] = useState<{type: 'image' | 'music', id: string} | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleSaveItem = (e: React.FormEvent<HTMLFormElement>) => {
+  const verifyMediaUrl = (url: string, type: 'image' | 'video' | 'music'): Promise<{ url: string; status: 'valid' | 'invalid' }> => {
+    return new Promise((resolve) => {
+        if (!url || !url.trim() || (!url.startsWith('/') && !url.startsWith('http'))) {
+            return resolve({ url, status: 'invalid' });
+        }
+
+        let element: HTMLImageElement | HTMLVideoElement | HTMLAudioElement;
+        const timeout = 5000;
+        let timer: ReturnType<typeof setTimeout>;
+
+        const cleanup = () => {
+            clearTimeout(timer);
+            if (element) {
+                element.onload = null;
+                element.onerror = null;
+                (element as any).oncanplay = null;
+                (element as any).onloadedmetadata = null;
+                if ('src' in element) element.src = '';
+            }
+        };
+
+        const handleSuccess = () => {
+            cleanup();
+            resolve({ url, status: 'valid' });
+        };
+
+        const handleError = () => {
+            cleanup();
+            resolve({ url, status: 'invalid' });
+        };
+        
+        timer = setTimeout(handleError, timeout);
+
+        if (type === 'image') {
+            element = new window.Image();
+            element.onload = handleSuccess;
+            element.onerror = handleError;
+        } else { // video or music
+            element = document.createElement(type);
+            element.oncanplay = handleSuccess;
+            element.onerror = handleError;
+        }
+        element.src = url;
+    });
+  };
+
+  const handleSaveItem = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!dialogState || !settings || !settingsRef) return;
+    if (!dialogState || !settings || !settingsRef || isVerifying) return;
+
+    setIsVerifying(true);
 
     const formData = new FormData(e.currentTarget);
     const description = formData.get('description') as string;
@@ -51,6 +100,7 @@ export function CarouselSettings() {
 
     if (!description || !urlsInput) {
         toast({ variant: "destructive", title: "Save Failed", description: "Description and URLs are required." });
+        setIsVerifying(false);
         return;
     }
 
@@ -58,64 +108,22 @@ export function CarouselSettings() {
 
     if (urls.length === 0) {
         toast({ variant: "destructive", title: "Save Failed", description: "Please provide at least one valid URL." });
+        setIsVerifying(false);
         return;
     }
 
-    const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-    const validVideoExtensions = ['.mp4', '.webm', '.ogg'];
-    const validMusicExtensions = ['.mp3', '.wav', '.ogg'];
-
-    const invalidPathUrls: string[] = [];
-    const incompatibleFormatUrls: string[] = [];
-
-    for (const url of urls) {
-        // Path validation: Must start with `/` or `http`.
-        if (!url.startsWith('/') && !url.startsWith('http')) {
-            invalidPathUrls.push(url);
-            continue;
-        }
-
-        // Format validation (for local files only)
-        if (url.startsWith('/')) {
-            try {
-                // Use a dummy base URL to correctly parse the pathname.
-                const pathname = new URL(url, 'http://dummybase').pathname.toLowerCase();
-                
-                let validExtensions: string[] = [];
-                if (dialogState.type === 'image') validExtensions = validImageExtensions;
-                else if (dialogState.type === 'video') validExtensions = validVideoExtensions;
-                else if (dialogState.type === 'music') validExtensions = validMusicExtensions;
-
-                if (!validExtensions.some(ext => pathname.endsWith(ext))) {
-                    incompatibleFormatUrls.push(url);
-                }
-            } catch (e) {
-                // This catch is a fallback, but the startsWith check should prevent most URL constructor errors.
-                invalidPathUrls.push(url);
-            }
-        }
-        // For external URLs (starting with http), we skip the extension check
-        // because it's unreliable for services like Google Drive.
-        // The user has been warned about reliability in the dialog.
-    }
-
-    if (invalidPathUrls.length > 0) {
+    const verificationPromises = urls.map(url => verifyMediaUrl(url, dialogState.type));
+    const results = await Promise.all(verificationPromises);
+    const invalidUrls = results.filter(result => result.status === 'invalid').map(result => result.url);
+    
+    if (invalidUrls.length > 0) {
         toast({
             variant: "destructive",
-            title: "Invalid Path Detected",
-            description: `One or more URLs have an invalid path. Paths must start with "/" for local files or "http(s)://". Please correct: ${invalidPathUrls.join(', ')}`,
+            title: "Could Not Load Media",
+            description: `The following URLs could not be loaded. Check if the paths are correct and accessible: ${invalidUrls.join(', ')}`,
             duration: 10000,
         });
-        return;
-    }
-
-    if (incompatibleFormatUrls.length > 0) {
-        toast({
-            variant: "destructive",
-            title: "Incompatible File Format",
-            description: `One or more local files have an incompatible format for a ${dialogState.type}. Please check: ${incompatibleFormatUrls.join(', ')}`,
-            duration: 10000,
-        });
+        setIsVerifying(false);
         return;
     }
 
@@ -144,8 +152,11 @@ export function CarouselSettings() {
         }
     } catch(error: any) {
         toast({ variant: "destructive", title: "Save Failed", description: error.message });
+        setIsVerifying(false);
         return;
     }
+
+    setIsVerifying(false);
     setDialogState(null);
   };
 
@@ -200,8 +211,8 @@ export function CarouselSettings() {
                 <div className="space-y-2">
                     <Label htmlFor="item-urls">File URLs (one per line)</Label>
                     <Textarea id="item-urls" name="urls" placeholder={"/carousel/item1.jpg\n/carousel/item2.mp4\nhttps://drive.google.com/uc?id=YOUR_FILE_ID"} required rows={5} />
-                    <p className="text-xs text-muted-foreground">
-                        Paths must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code> for local files. {supportedFormatsNotice}
+                     <p className="text-xs text-muted-foreground">
+                        Your URLs will be verified on save. For local files, paths must start with <code className="font-mono bg-muted text-foreground rounded px-1">/</code>. {supportedFormatsNotice}
                     </p>
                 </div>
                 {!isMusic && (
@@ -220,7 +231,13 @@ export function CarouselSettings() {
             </div>
             <AlertDialogFooter>
                 <AlertDialogCancel type="button" onClick={() => setDialogState(null)}>Cancel</AlertDialogCancel>
-                <AlertDialogAction type="submit">Save</AlertDialogAction>
+                <AlertDialogAction type="submit" disabled={isVerifying}>
+                    {isVerifying ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...
+                        </>
+                    ) : 'Save'}
+                </AlertDialogAction>
             </AlertDialogFooter>
         </form>
     )
@@ -335,6 +352,8 @@ export function CarouselSettings() {
     </>
   );
 }
+
+    
 
     
 
