@@ -45,12 +45,13 @@ service cloud.firestore {
       allow create: if isOwner(userId);
       
       // READ: An admin can read any profile. A user can read their own.
-      // Also, any authenticated user can read the profiles of other admins.
-      // This is required for the "first user" check to work correctly.
-      allow read: if isAdmin() || isOwner(userId) || (request.auth != null && resource.data.role == 'admin');
+      allow read: if isAdmin() || isOwner(userId);
+      
+      // LIST: Any authenticated user can query the users collection.
+      // This is required for the initial "first admin" check to succeed.
+      allow list: if request.auth != null;
       
       // UPDATE: An admin can update any profile. A user can update their own.
-      // The application UI prevents non-admin users from changing their role.
       // This is also required for the "force password change" flow.
       allow update: if isAdmin() || isOwner(userId);
       
