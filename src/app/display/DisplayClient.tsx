@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import type { Ticket, Settings, Station, AudioTrack } from '@/lib/types';
+import type { Ticket, Settings, Station } from '@/lib/types';
 import {
   useCollection,
   useFirebase,
@@ -109,13 +109,34 @@ export function DisplayClient() {
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio && tracks.length > 0 && tracks[currentTrackIndex]) {
-        audio.src = tracks[currentTrackIndex].url;
+    if (!audio) return;
+
+    const playAudio = () => {
         const playPromise = audio.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
                 console.error("Audio playback failed. User interaction may be required.", error);
             });
+        }
+    };
+    
+    if (tracks.length > 0 && tracks[currentTrackIndex]) {
+        const currentSrc = tracks[currentTrackIndex].url;
+        if (audio.src !== currentSrc) {
+            audio.src = currentSrc;
+            // Listen for when the new audio can be played
+            const canPlayListener = () => {
+                playAudio();
+            };
+            audio.addEventListener('canplaythrough', canPlayListener, { once: true });
+            audio.load(); // Trigger loading the new source
+
+            return () => {
+                audio.removeEventListener('canplaythrough', canPlayListener);
+            };
+        } else if (audio.paused) {
+           // If src is the same but it's paused, try playing
+           playAudio();
         }
     }
   }, [tracks, currentTrackIndex]);
@@ -190,6 +211,7 @@ export function DisplayClient() {
             <audio
                 ref={audioRef}
                 onEnded={playNextTrack}
+                crossOrigin="anonymous"
             />
         )}
       </div>
