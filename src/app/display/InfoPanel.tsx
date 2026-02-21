@@ -16,7 +16,7 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
   const videoItems = settings?.placeholderImages?.filter(p => p.type === 'video') || [];
 
   return (
-    <div className="w-1/3 h-full flex flex-col p-4 gap-4">
+    <div className="w-1/2 h-full flex flex-col p-4 gap-4">
         {/* Top Image Carousel */}
         <div className="flex-1 relative">
             <Carousel
@@ -27,14 +27,14 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
                 <CarouselContent className="h-full">
                     {infoItems.length > 0 ? infoItems.map((item) => (
                         <CarouselItem key={item.id} className="h-full">
-                            <Card className="h-full w-full overflow-hidden bg-transparent">
+                            <Card className="h-full w-full overflow-hidden bg-transparent border-none">
                                 <CardContent className="relative h-full w-full p-0">
                                     <Image
                                         src={item.imageUrl}
                                         alt={item.description}
                                         fill
                                         className="object-cover"
-                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                        sizes="(max-width: 768px) 100vw, 50vw"
                                     />
                                     <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2 text-center">
                                         <p className="font-bold text-white">{item.description}</p>
@@ -44,7 +44,7 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
                         </CarouselItem>
                     )) : (
                          <CarouselItem className="h-full">
-                             <Card className="h-full w-full overflow-hidden bg-transparent flex items-center justify-center">
+                             <Card className="h-full w-full overflow-hidden bg-transparent border-none flex items-center justify-center">
                                  <CardContent className="p-0 text-center">
                                      <p className="text-muted-foreground">No informational slides.</p>
                                  </CardContent>
@@ -86,7 +86,7 @@ export function InfoPanel({ settings }: { settings: Settings | null }) {
                                     alt={item.description}
                                     fill
                                     className="object-cover"
-                                    sizes="(max-width: 768px) 100vw, 33vw"
+                                    sizes="(max-width: 768px) 100vw, 50vw"
                                 />
                              </div>
                         </CarouselItem>

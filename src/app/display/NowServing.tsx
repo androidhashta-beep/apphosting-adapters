@@ -7,6 +7,7 @@ type ServingData = {
   stationName: string;
   ticketNumber: string;
   serviceLabel: string;
+  calledAt: any;
 };
 
 // Function to abbreviate service names
@@ -34,7 +35,7 @@ export function NowServing({ servingData, services }: { servingData: ServingData
   };
     
   return (
-    <div className="w-2/3 h-full p-4 flex flex-col">
+    <div className="w-1/2 h-full p-4 flex flex-col">
       <div className="grid grid-cols-[1fr,auto,auto] gap-x-8 px-6 pb-2 border-b-2 border-white/50">
         <h2 className="text-3xl font-bold">Services</h2>
         <h2 className="text-3xl font-bold text-center min-w-[12rem]">Queue No.</h2>
