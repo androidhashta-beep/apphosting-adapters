@@ -95,11 +95,11 @@ export function CarouselSettings() {
         element.onload = handleSuccess;
         element.onerror = handleError;
     } else { // video or music
-        element = document.createElement(type === 'video' ? 'audio' : 'audio');
+        element = document.createElement(type === 'video' ? 'video' : 'audio');
         element.onloadedmetadata = handleSuccess;
         element.onerror = handleError;
     }
-    element.src = url;
+    element.src = encodeURI(url);
   }, []);
 
   useEffect(() => {
@@ -111,7 +111,7 @@ export function CarouselSettings() {
     }
 
     const handler = setTimeout(() => {
-        verifyMediaUrl(imageUrl, dialogState.type === 'music' ? 'music' : 'video');
+        verifyMediaUrl(imageUrl, dialogState.type === 'music' ? 'music' : (dialogState.type === 'video' ? 'video' : 'image'));
     }, 500);
 
     return () => {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -54,7 +55,7 @@ export function AdminClient() {
     const img = new window.Image();
     img.onload = () => setLogoUrlStatus('valid');
     img.onerror = () => setLogoUrlStatus('invalid');
-    img.src = url;
+    img.src = encodeURI(url);
   }, []);
 
   useEffect(() => {
