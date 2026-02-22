@@ -1,3 +1,4 @@
+
 'use client';
 
 import { cn } from "@/lib/utils";
@@ -28,14 +29,14 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
             
             <p
                 className="font-extrabold tracking-tighter leading-none z-10"
-                style={{ fontSize: 'clamp(7rem, 22vh, 14rem)' }}
+                style={{ fontSize: 'clamp(8rem, 25vh, 16rem)' }}
             >
                 {ticket.ticketNumber}
             </p>
             
             <div className="text-center z-10">
-                 <p className="text-2xl font-semibold opacity-70 -mb-1">Please proceed to</p>
-                 <p className="text-5xl font-bold truncate">{ticket.stationName}</p>
+                 <p className="text-3xl font-semibold opacity-70 -mb-1">Please proceed to</p>
+                 <p className="text-6xl font-bold truncate">{ticket.stationName}</p>
             </div>
         </div>
     );
@@ -89,8 +90,8 @@ export function NowServing({
           <QueueList title="Also Serving" headers={['Ticket #', 'Window']}>
             {otherServingTickets.map(item => (
                 <div key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-2 items-center py-2 border-b border-white/10 last:border-none">
-                    <p className="text-left truncate text-4xl font-bold">{item.ticketNumber}</p>
-                    <p className="text-left truncate text-4xl font-bold self-center">{item.stationName}</p>
+                    <p className="text-left truncate text-2xl font-semibold">{item.ticketNumber}</p>
+                    <p className="text-left truncate text-2xl font-semibold self-center">{item.stationName}</p>
                 </div>
             ))}
           </QueueList>
@@ -98,8 +99,8 @@ export function NowServing({
           <QueueList title="Waiting" headers={['Ticket #', 'Service']}>
             {waitingTickets.slice(0, 50).map(item => (
                  <div key={item.id} className="grid grid-cols-2 items-center py-2 border-b border-white/10 last:border-none">
-                    <p className="text-left truncate text-4xl font-bold">{item.ticketNumber}</p>
-                    <p className="text-left truncate text-4xl font-bold self-center">{serviceMap.get(item.type) || item.type}</p>
+                    <p className="text-left truncate text-2xl font-semibold">{item.ticketNumber}</p>
+                    <p className="text-left truncate text-2xl font-semibold self-center">{serviceMap.get(item.type) || item.type}</p>
                 </div>
             ))}
           </QueueList>
