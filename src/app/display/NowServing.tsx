@@ -43,7 +43,7 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
 
 // Middle section: list of all currently served customers
 const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
-    <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden flex-grow animate-pulse-slow border-2 border-yellow-400 shadow-lg">
+    <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden animate-pulse-slow border-2 border-yellow-400 shadow-lg">
         <h2 className="text-xl font-bold text-center p-2 border-b-2 border-white/30 text-yellow-300">
             Currently Serving
         </h2>
@@ -53,7 +53,7 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
             <span className="w-1/3 text-left">Window</span>
         </div>
         {tickets.length > 0 ? (
-             <ScrollArea className="flex-grow">
+             <ScrollArea>
                 <ul className="divide-y divide-white/20">
                     {tickets.map((item) => (
                         <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-3 text-lg font-bold">
@@ -65,7 +65,7 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
                 </ul>
             </ScrollArea>
         ) : (
-            <div className="flex h-full items-center justify-center text-center text-slate-300 p-4">
+            <div className="flex h-24 items-center justify-center text-center text-slate-300 p-4">
                 <p className="text-base">No tickets are being served right now.</p>
             </div>
         )}
@@ -74,7 +74,7 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
 
 // Bottom section: list of all waiting customers
 const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[], serviceMap: Map<string, string> }) => (
-    <div className="flex flex-col bg-black/20 rounded-lg overflow-hidden h-full">
+    <div className="flex flex-col bg-black/20 rounded-lg overflow-hidden flex-grow min-h-0">
         <h2 className="text-xl font-bold text-center p-2 border-b-2 border-white/30">Waiting Queue</h2>
         <div className="flex px-3 py-1 font-bold text-base border-b border-white/20">
             <span className="w-1/2 text-left">Ticket #</span>
@@ -117,8 +117,8 @@ export function NowServing({
         <MostRecentCard ticket={mostRecentTicket} />
       </div>
 
-      {/* Middle and Bottom Sections in a grid to split remaining space */}
-      <div className="flex-grow grid grid-rows-2 gap-4 min-h-0">
+      {/* Middle and Bottom Sections */}
+      <div className="flex-grow flex flex-col gap-4 min-h-0">
           {/* Middle Section: All Serving */}
           <AllServingList tickets={servingTickets} />
 
