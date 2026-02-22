@@ -13,6 +13,7 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
+  query,
 } from 'firebase/firestore';
 import type { Settings, Station, Service, ImagePlaceholder, AudioTrack } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -84,7 +85,8 @@ export function StationManagement() {
         const stationsCollection = collection(firestore, 'stations');
         
         await runTransaction(firestore, async (transaction) => {
-            const stationSnapshot = await transaction.get(stationsCollection);
+            const stationsQuery = query(stationsCollection);
+            const stationSnapshot = await transaction.get(stationsQuery);
             
             const existingNames = stationSnapshot.docs.map(doc => doc.data().name);
             let nextStationNumber = 1;
