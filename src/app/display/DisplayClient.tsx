@@ -167,7 +167,7 @@ export function DisplayClient() {
   const masterVolume = settings?.backgroundMusicVolume ?? 0.5;
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-sky-400 to-sky-600 text-white font-sans flex flex-col">
+    <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-neutral-900 via-neutral-800 to-black text-white font-sans flex flex-col">
       <header className="flex-shrink-0 px-6 py-2 bg-black/30 flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-4">
               {isLogoValid && (
