@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -11,7 +10,7 @@ import {
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, doc, query, where, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, doc, query, where, Timestamp } from 'firebase/firestore';
 import { NowServing } from './NowServing';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -68,10 +67,19 @@ export function DisplayClient() {
   const waitingTicketsQuery = useMemoFirebase(
       () => {
           if (!firestore) return null;
-          return query(collection(firestore, 'tickets'), where('status', '==', 'waiting'), orderBy('createdAt', 'asc'));
+          return query(collection(firestore, 'tickets'), where('status', '==', 'waiting'));
       }, [firestore]
     );
-  const { data: waitingTickets, isLoading: isLoadingWaitingTickets } = useCollection<Ticket>(waitingTicketsQuery);
+  const { data: rawWaitingTickets, isLoading: isLoadingWaitingTickets } = useCollection<Ticket>(waitingTicketsQuery);
+
+  const waitingTickets = useMemo(() => {
+    if (!rawWaitingTickets) return [];
+    return [...rawWaitingTickets].sort((a, b) => {
+      const timeA = a.createdAt;
+      const timeB = b.createdAt;
+      return timeA.toMillis() - timeB.toMillis();
+    });
+  }, [rawWaitingTickets]);
 
   const serviceMap = useMemo(() => {
     if (!settings?.services) return new Map<string, string>();
@@ -194,7 +202,7 @@ export function DisplayClient() {
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {/* Left Column: Ticket Info */}
         <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
-          <NowServing servingTickets={servingData} waitingTickets={waitingTickets || []} serviceMap={serviceMap} />
+          <NowServing servingTickets={servingData} waitingTickets={waitingTickets} serviceMap={serviceMap} />
         </div>
         
         {/* Right Column */}
