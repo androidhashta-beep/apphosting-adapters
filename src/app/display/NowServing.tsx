@@ -22,22 +22,22 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
     }
     return (
        <div className="bg-gold text-black p-6 rounded-lg text-center h-full flex flex-col justify-center shadow-[0_0_30px_5px_hsl(var(--gold))]">
-            <p className="text-2xl uppercase tracking-widest font-semibold mb-4 flex-shrink-0">Now Serving</p>
+            <p className="text-2xl uppercase tracking-widest font-semibold mb-2 flex-shrink-0">Now Serving</p>
             <div className="grid grid-cols-3 items-center text-center flex-grow min-w-0 gap-4">
                 {/* Ticket Number Column */}
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="font-extrabold tracking-tight leading-none truncate text-[10rem]">{ticket.ticketNumber}</p>
-                    <p className="text-2xl font-semibold mt-2">Ticket #</p>
+                    <p className="font-extrabold tracking-tight leading-none truncate text-8xl w-full">{ticket.ticketNumber}</p>
+                    <p className="text-xl font-semibold mt-2">Ticket #</p>
                 </div>
                 {/* Service Column */}
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-5xl font-bold truncate" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
-                    <p className="text-2xl font-semibold mt-2">Service</p>
+                    <p className="text-4xl font-bold truncate w-full" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
+                    <p className="text-xl font-semibold mt-2">Service</p>
                 </div>
                 {/* Window Column */}
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-5xl font-bold truncate">{ticket.stationName}</p>
-                    <p className="text-2xl font-semibold mt-2">Window</p>
+                    <p className="text-4xl font-bold truncate w-full">{ticket.stationName}</p>
+                    <p className="text-xl font-semibold mt-2">Window</p>
                 </div>
             </div>
         </div>
@@ -47,10 +47,10 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
 // Middle section: list of all currently served customers
 const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
     <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden h-full">
-        <h2 className="text-3xl font-bold text-center p-3 border-b-2 border-white/20 text-gold flex-shrink-0">
+        <h2 className="text-2xl font-bold text-center p-3 border-b-2 border-white/20 text-gold flex-shrink-0">
             Currently Serving
         </h2>
-        <div className="grid grid-cols-3 px-6 py-2 font-semibold text-xl text-white/70 border-b border-white/20 flex-shrink-0">
+        <div className="grid grid-cols-3 px-6 py-2 font-semibold text-lg text-white/70 border-b border-white/20 flex-shrink-0">
             <span className="text-left">Ticket #</span>
             <span className="text-left">Service</span>
             <span className="text-left">Window</span>
@@ -60,16 +60,16 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
                 <ul className="divide-y divide-white/10">
                     {tickets.map((item) => (
                         <li key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-3 items-center px-6 py-3 font-medium">
-                            <span className="text-left truncate text-5xl font-bold">{item.ticketNumber}</span>
-                            <span className="text-left truncate text-3xl">{item.serviceLabel}</span>
-                            <span className="text-left truncate text-3xl">{item.stationName}</span>
+                            <span className="text-left truncate text-4xl font-bold">{item.ticketNumber}</span>
+                            <span className="text-left truncate text-2xl">{item.serviceLabel}</span>
+                            <span className="text-left truncate text-2xl">{item.stationName}</span>
                         </li>
                     ))}
                 </ul>
             </ScrollArea>
         ) : (
             <div className="flex h-full items-center justify-center text-center text-slate-400 p-4">
-                <p className="text-2xl">No other tickets are being served.</p>
+                <p className="text-xl">No other tickets are being served.</p>
             </div>
         )}
     </div>
@@ -78,8 +78,8 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
 // Bottom section: list of all waiting customers
 const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[], serviceMap: Map<string, string> }) => (
     <div className="flex flex-col bg-black/20 rounded-lg overflow-hidden h-full">
-        <h2 className="text-3xl font-bold text-center p-3 border-b-2 border-white/20 flex-shrink-0">Waiting Queue</h2>
-        <div className="grid grid-cols-2 px-6 py-2 font-semibold text-xl text-white/70 border-b border-white/20 flex-shrink-0">
+        <h2 className="text-2xl font-bold text-center p-3 border-b-2 border-white/20 flex-shrink-0">Waiting Queue</h2>
+        <div className="grid grid-cols-2 px-6 py-2 font-semibold text-lg text-white/70 border-b border-white/20 flex-shrink-0">
             <span className="text-left">Ticket #</span>
             <span className="text-left">Service</span>
         </div>
@@ -91,14 +91,14 @@ const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[]
                             "grid grid-cols-2 items-center px-6 py-3 font-medium", 
                             index === 0 && "bg-white/10"
                         )}>
-                            <span className="text-left truncate text-5xl font-bold">{item.ticketNumber}</span>
-                            <span className="text-left truncate text-3xl">{serviceMap.get(item.type) || item.type}</span>
+                            <span className="text-left truncate text-4xl font-bold">{item.ticketNumber}</span>
+                            <span className="text-left truncate text-2xl">{serviceMap.get(item.type) || item.type}</span>
                         </li>
                     ))}
                 </ul>
             ) : (
                 <div className="flex h-full items-center justify-center text-center text-slate-400">
-                    <p className="text-2xl">The queue is currently empty.</p>
+                    <p className="text-xl">The queue is currently empty.</p>
                 </div>
             )}
         </ScrollArea>
