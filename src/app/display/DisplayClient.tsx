@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect, useRef } from 'react';
@@ -51,24 +52,18 @@ export function DisplayClient() {
   );
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsRef);
 
-  const servingTicketIds = useMemo(() => {
-    if (!stations) return [];
-    return stations.filter(s => s.currentTicketId).map(s => s.currentTicketId as string);
-  }, [stations]);
-
-  const servingTicketsQuery = useMemoFirebase(
-    () => {
-        if (!firestore || servingTicketIds.length === 0) return null;
-        return query(collection(firestore, 'tickets'), where('__name__', 'in', servingTicketIds));
-    }, [firestore, servingTicketIds]
-  );
-  const { data: servingTickets, isLoading: isLoadingServingTickets } = useCollection<Ticket>(servingTicketsQuery);
-
+  // Fetch all tickets. Filtering and sorting will happen client-side.
   const allTicketsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'tickets') : null),
     [firestore]
   );
   const { data: allTickets, isLoading: isLoadingAllTickets } = useCollection<Ticket>(allTicketsQuery);
+
+  const servingTickets = useMemo(() => {
+    if (!allTickets || !stations) return [];
+    const servingTicketIds = stations.filter(s => s.currentTicketId).map(s => s.currentTicketId);
+    return allTickets.filter(t => servingTicketIds.includes(t.id));
+  }, [allTickets, stations]);
 
   const waitingTickets = useMemo(() => {
     if (!allTickets) return [];
@@ -81,14 +76,13 @@ export function DisplayClient() {
       });
   }, [allTickets]);
 
-
   const serviceMap = useMemo(() => {
     if (!settings?.services) return new Map<string, string>();
     return new Map(settings.services.map(s => [s.id, s.label]));
   }, [settings?.services]);
 
   const servingData = useMemo(() => {
-    if (!stations || !servingTickets || !settings) return [];
+    if (!stations || !servingTickets || !settings?.services) return [];
     
     const servingStations = stations.filter(s => s.currentTicketId);
     
@@ -109,7 +103,7 @@ export function DisplayClient() {
 
     return data;
 
-  }, [stations, servingTickets, settings]);
+  }, [stations, servingTickets, settings?.services]);
 
   const mostRecentTicket = useMemo(() => (servingData.length > 0 ? servingData[0] : null), [servingData]);
   
@@ -160,7 +154,7 @@ export function DisplayClient() {
     return shuffleArray(settings.placeholderImages);
   }, [isClient, settings?.placeholderImages]);
 
-  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingAllTickets;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingAllTickets;
   
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
