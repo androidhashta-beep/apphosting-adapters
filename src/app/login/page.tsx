@@ -25,7 +25,7 @@ export default function LoginPage() {
   const auth = useAuth();
   const { toast } = useToast();
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +35,8 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
-    const email = `${username.trim()}@example.com`;
-
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       toast({
         title: 'Login Successful',
         description: 'You have been successfully signed in.',
@@ -60,13 +58,13 @@ export default function LoginPage() {
   const getFriendlyAuthErrorMessage = (code: string) => {
     switch (code) {
         case 'auth/invalid-email':
-            return "The username is not valid.";
+            return "The email address is not valid.";
         case 'auth/user-disabled':
             return "This user account has been disabled.";
         case 'auth/user-not-found':
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-            return "Invalid username or password.";
+            return "Invalid email or password.";
         default:
             return "An unexpected error occurred. Please try again.";
     }
@@ -90,15 +88,16 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="e.g. blumarlin"
+                id="email"
+                type="email"
+                placeholder="admin@example.com"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
             <div className="grid gap-2">
@@ -110,6 +109,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
+                autoComplete="current-password"
               />
             </div>
              {error && <p className="text-sm text-destructive text-center">{error}</p>}
