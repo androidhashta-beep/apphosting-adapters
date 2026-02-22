@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { StationControlCard } from './StationControlCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import type { Ticket, Settings, Station } from '@/lib/types';
 import {
   useCollection,
@@ -17,10 +18,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDistanceToNow } from 'date-fns';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function StaffClient() {
   const { firestore } = useFirebase();
@@ -54,30 +51,18 @@ export function StaffClient() {
     );
   }, [stations]);
 
-  const waitingTickets = useMemo(() => {
-    if (!tickets) return [];
-    return tickets
-      .filter((t) => t.status === 'waiting')
-      .sort((a, b) => (a.createdAt as Timestamp).toMillis() - (b.createdAt as Timestamp).toMillis());
-  }, [tickets]);
-
   const waitingCounts = useMemo(() => {
-    if (!waitingTickets || !settings?.services) return {};
+    if (!tickets || !settings?.services) return {};
     return settings.services.reduce(
       (acc, service) => {
-        acc[service.id] = waitingTickets.filter(t => t.type === service.id).length;
+        acc[service.id] = tickets.filter(
+          (t) => t.status === 'waiting' && t.type === service.id
+        ).length;
         return acc;
       },
       {} as { [key: string]: number }
     );
-  }, [waitingTickets, settings?.services]);
-
-  const serviceMap = useMemo(() => {
-    if (!settings?.services) return new Map();
-    return new Map(settings.services.map(s => [s.id, s.label]));
-  }, [settings?.services]);
-  
-  const servicesForTabs = useMemo(() => settings?.services?.slice(0, 3) || [], [settings?.services]);
+  }, [tickets, settings?.services]);
 
   const isLoading =
     isLoadingSettings || isLoadingStations || isLoadingTickets;
@@ -90,8 +75,9 @@ export function StaffClient() {
             <Skeleton className="h-6 w-1/4" />
           </CardHeader>
           <CardContent>
-            <Skeleton className="h-10 w-full mb-4" />
-            <Skeleton className="h-40 w-full" />
+            <div className="flex flex-wrap gap-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-32" />)}
+            </div>
           </CardContent>
         </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6">
@@ -134,99 +120,29 @@ export function StaffClient() {
     );
   }
 
-  const hasServices = settings?.services && settings.services.length > 0;
-
   return (
     <div className="space-y-8">
       <Card>
         <CardHeader>
-          <CardTitle>Waiting Queue</CardTitle>
+          <CardTitle>Queue Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          {hasServices ? (
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${servicesForTabs.length + 1}, 1fr)`}}>
-                <TabsTrigger value="all">All ({waitingTickets.length})</TabsTrigger>
-                {servicesForTabs.map((service) => (
-                  <TabsTrigger key={service.id} value={service.id}>
-                    {service.label} ({waitingCounts[service.id] || 0})
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              
-              <TabsContent value="all">
-                <ScrollArea className="h-72">
-                  <Table>
-                    <TableHeader className="sticky top-0 bg-card">
-                      <TableRow>
-                        <TableHead className="w-[120px]">Ticket #</TableHead>
-                        <TableHead>Service</TableHead>
-                        <TableHead className="text-right">Waiting Time</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {waitingTickets.length > 0 ? (
-                        waitingTickets.map((ticket) => (
-                          <TableRow key={ticket.id}>
-                            <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-                            <TableCell>{serviceMap.get(ticket.type) || ticket.type}</TableCell>
-                            <TableCell className="text-right">
-                              {formatDistanceToNow(ticket.createdAt.toDate(), { addSuffix: true })}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="h-24 text-center">
-                            The queue is empty.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-              </TabsContent>
-
-              {servicesForTabs.map((service) => (
-                <TabsContent key={service.id} value={service.id}>
-                   <ScrollArea className="h-72">
-                    <Table>
-                      <TableHeader className="sticky top-0 bg-card">
-                        <TableRow>
-                          <TableHead className="w-[120px]">Ticket #</TableHead>
-                          <TableHead className="text-right">Waiting Time</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {waitingTickets.filter(t => t.type === service.id).length > 0 ? (
-                          waitingTickets
-                            .filter(t => t.type === service.id)
-                            .map((ticket) => (
-                              <TableRow key={ticket.id}>
-                                <TableCell className="font-medium">{ticket.ticketNumber}</TableCell>
-                                <TableCell className="text-right">
-                                  {formatDistanceToNow(ticket.createdAt.toDate(), { addSuffix: true })}
-                                </TableCell>
-                              </TableRow>
-                            ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={2} className="h-24 text-center">
-                              No one is waiting for {service.label}.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                </TabsContent>
-              ))}
-            </Tabs>
-          ) : (
-            <p className="text-center text-muted-foreground p-4">
-              No services configured. Please go to the admin panel to add services.
-            </p>
-          )}
+          <div className="flex flex-wrap gap-4">
+            {isLoadingSettings ? (
+              [...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-32" />)
+            ) : settings?.services?.length ? (
+              settings.services.map((service) => (
+                <div key={service.id} className="flex items-center gap-2 rounded-lg border bg-card p-3 shadow-sm">
+                  <span className="font-semibold">{service.label}</span>
+                  <Badge variant="secondary">{waitingCounts[service.id] || 0}</Badge>
+                </div>
+              ))
+            ) : (
+               <p className="text-center text-muted-foreground p-4">
+                No services configured. Please go to the admin panel to add services.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
       
