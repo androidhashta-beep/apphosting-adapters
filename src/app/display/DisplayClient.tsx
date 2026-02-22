@@ -194,39 +194,7 @@ export function DisplayClient() {
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {/* Left Column: Ticket Info */}
         <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
-            {isLoading ? (
-                <Skeleton className="bg-slate-700/50 h-full w-full" />
-            ) : (
-                <>
-                    <div className="grid grid-cols-2 flex-grow gap-2 p-2 border-b-2 border-white/30">
-                        {servingData.slice(0, 4).map((ticket, index) => (
-                            <div key={ticket.stationName || index} className="bg-white/10 rounded-lg flex flex-col items-center justify-center text-center p-2 transition-all duration-300">
-                                {ticket ? (
-                                    <>
-                                        <p className="text-4xl lg:text-5xl font-extrabold text-white">{ticket.ticketNumber}</p>
-                                        <p className="text-lg lg:text-xl font-bold text-yellow-300">{ticket.stationName}</p>
-                                    </>
-                                ) : (
-                                    <div className="flex items-center justify-center h-full">
-                                        <p className="text-slate-400 text-lg">-</p>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                        {/* Fill remaining grid cells if less than 4 tickets */}
-                        {Array.from({ length: Math.max(0, 4 - servingData.length) }).map((_, index) => (
-                            <div key={`placeholder-${index}`} className="bg-white/10 rounded-lg flex flex-col items-center justify-center text-center p-2">
-                                <div className="flex items-center justify-center h-full">
-                                    <p className="text-slate-400 text-lg">-</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex-shrink-0 h-2/5 overflow-hidden">
-                        <NowServing waitingTickets={waitingTickets || []} serviceMap={serviceMap} />
-                    </div>
-                </>
-            )}
+          <NowServing servingTickets={servingData} waitingTickets={waitingTickets || []} serviceMap={serviceMap} />
         </div>
         
         {/* Right Column */}
