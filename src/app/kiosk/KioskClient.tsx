@@ -206,7 +206,7 @@ export function KioskClient() {
       </div>
 
       <div className="flex-grow flex w-full items-center justify-center">
-        <div className="grid w-full max-w-4xl grid-cols-2 gap-8 p-4">
+        <div className="grid w-full max-w-2xl grid-cols-2 gap-8 p-4">
           {isLoadingSettings ? (
             <>
               <ButtonSkeleton />
