@@ -3,7 +3,7 @@
 import React, { useMemo, type ReactNode, useEffect, useState } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 interface FirebaseClientProviderProps {
@@ -22,10 +22,18 @@ export function FirebaseClientProvider({
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       firebaseServices.auth,
-      () => {
-        // onAuthStateChanged fires once on initial load with either a
-        // user or null. After that, we are no longer loading auth state.
-        setIsAuthLoading(false);
+      (user) => {
+        if (user && user.isAnonymous) {
+          // If an anonymous user is detected, sign them out immediately.
+          // This prevents any part of the app from using a lingering anonymous session,
+          // which is the root cause of the recent errors.
+          signOut(firebaseServices.auth).finally(() => {
+            setIsAuthLoading(false);
+          });
+        } else {
+          // For any other user (or no user), the auth state is resolved.
+          setIsAuthLoading(false);
+        }
       }
     );
 
