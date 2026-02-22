@@ -37,8 +37,8 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
         </h2>
         <div className="grid grid-cols-3 px-4 py-2 font-bold text-lg border-b border-white/20">
             <span>Ticket #</span>
-            <span>Service</span>
             <span>Window</span>
+            <span>Service</span>
         </div>
         {tickets.length > 0 ? (
              <ScrollArea className="flex-grow">
@@ -46,8 +46,8 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
                     {tickets.map((item) => (
                         <li key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-3 items-center p-4 text-2xl font-bold">
                             <span>{item.ticketNumber}</span>
-                            <span className="text-lg font-medium text-slate-200">{item.serviceLabel}</span>
                             <span className="text-lg font-medium text-slate-200">{item.stationName}</span>
+                            <span className="text-lg font-medium text-slate-200">{item.serviceLabel}</span>
                         </li>
                     ))}
                 </ul>
