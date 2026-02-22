@@ -1,3 +1,4 @@
+
 'use client';
 
 import { cn } from "@/lib/utils";
@@ -15,13 +16,13 @@ type ServingInfo = {
 const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
     if (!ticket) {
         return (
-            <div className="bg-yellow-400 text-black p-6 rounded-lg text-center flex items-center justify-center">
+            <div className="bg-yellow-400 text-black p-6 rounded-lg text-center flex items-center justify-center h-full">
                 <p className="text-2xl font-bold">Waiting for next customer...</p>
             </div>
         );
     }
     return (
-       <div className="bg-yellow-400 text-black p-4 rounded-lg text-center">
+       <div className="bg-yellow-400 text-black p-4 rounded-lg text-center h-full flex flex-col justify-center">
             <p className="text-xs uppercase tracking-widest font-semibold mb-2">Now Serving</p>
             <div className="flex justify-around items-center text-center">
                 <div className="w-1/3">
@@ -43,17 +44,17 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
 
 // Middle section: list of all currently served customers
 const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
-    <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden animate-pulse-slow border-2 border-yellow-400 shadow-lg">
-        <h2 className="text-xl font-bold text-center p-2 border-b-2 border-white/30 text-yellow-300">
+    <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden animate-pulse-slow border-2 border-yellow-400 shadow-lg h-full">
+        <h2 className="text-xl font-bold text-center p-2 border-b-2 border-white/30 text-yellow-300 flex-shrink-0">
             Currently Serving
         </h2>
-        <div className="flex px-3 py-1 font-bold text-base border-b border-white/20">
+        <div className="flex px-3 py-1 font-bold text-base border-b border-white/20 flex-shrink-0">
             <span className="w-1/3 text-left">Ticket #</span>
             <span className="w-1/3 text-left">Service</span>
             <span className="w-1/3 text-left">Window</span>
         </div>
         {tickets.length > 0 ? (
-             <ScrollArea>
+             <ScrollArea className="flex-grow">
                 <ul className="divide-y divide-white/20">
                     {tickets.map((item) => (
                         <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-3 text-lg font-bold">
@@ -65,7 +66,7 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
                 </ul>
             </ScrollArea>
         ) : (
-            <div className="flex h-24 items-center justify-center text-center text-slate-300 p-4">
+            <div className="flex h-full items-center justify-center text-center text-slate-300 p-4">
                 <p className="text-base">No tickets are being served right now.</p>
             </div>
         )}
@@ -74,9 +75,9 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
 
 // Bottom section: list of all waiting customers
 const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[], serviceMap: Map<string, string> }) => (
-    <div className="flex flex-col bg-black/20 rounded-lg overflow-hidden flex-grow min-h-0">
-        <h2 className="text-xl font-bold text-center p-2 border-b-2 border-white/30">Waiting Queue</h2>
-        <div className="flex px-3 py-1 font-bold text-base border-b border-white/20">
+    <div className="flex flex-col bg-black/20 rounded-lg overflow-hidden h-full">
+        <h2 className="text-xl font-bold text-center p-2 border-b-2 border-white/30 flex-shrink-0">Waiting Queue</h2>
+        <div className="flex px-3 py-1 font-bold text-base border-b border-white/20 flex-shrink-0">
             <span className="w-1/2 text-left">Ticket #</span>
             <span className="w-1/2 text-left">Service</span>
         </div>
@@ -113,16 +114,17 @@ export function NowServing({
   return (
     <div className="h-full flex flex-col gap-4">
       {/* Top Section: Most Recent */}
-      <div className="flex-shrink-0">
+      <div className="flex-1 min-h-0">
         <MostRecentCard ticket={mostRecentTicket} />
       </div>
 
-      {/* Middle and Bottom Sections */}
-      <div className="flex-grow flex flex-col gap-4 min-h-0">
-          {/* Middle Section: All Serving */}
+      {/* Middle Section: All Serving */}
+      <div className="flex-1 min-h-0">
           <AllServingList tickets={servingTickets} />
+      </div>
 
-          {/* Bottom Section: Waiting */}
+      {/* Bottom Section: Waiting */}
+      <div className="flex-1 min-h-0">
           <WaitingQueue waitingTickets={waitingTickets} serviceMap={serviceMap} />
       </div>
     </div>
