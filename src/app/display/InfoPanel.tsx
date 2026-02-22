@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, ImageOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -151,10 +151,11 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
   if (mediaItems.length === 0) {
      return (
         <div className="h-full w-full bg-black/20 rounded-lg flex items-center justify-center text-center text-slate-300 flex-col p-4">
+             <ImageOff className="h-12 w-12 text-slate-400 mb-4" />
              <h3 className="font-bold text-lg">
                 No Media Content
              </h3>
-             <p className="text-sm mt-1">There is no content to display in this panel.</p>
+             <p className="text-sm mt-1 text-slate-400">Add images or videos in the admin panel.</p>
         </div>
      );
   }
