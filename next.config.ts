@@ -1,7 +1,7 @@
 
 import type {NextConfig} from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
-import type { RuntimeCache } from '@ducanh2912/next-pwa';
+import type { runtimeCaching as RuntimeCache } from '@ducanh2912/next-pwa';
 
 const runtimeCaching: RuntimeCache[] = [
     {
