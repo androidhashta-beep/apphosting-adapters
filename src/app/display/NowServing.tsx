@@ -37,17 +37,17 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
         </h2>
         <div className="grid grid-cols-3 px-4 py-2 font-bold text-lg border-b border-white/20">
             <span>Ticket #</span>
-            <span>Window</span>
             <span>Service</span>
+            <span>Window</span>
         </div>
         {tickets.length > 0 ? (
              <ScrollArea className="flex-grow">
                 <ul className="divide-y divide-white/20">
                     {tickets.map((item) => (
-                        <li key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-3 items-center p-4 text-2xl font-bold">
-                            <span>{item.ticketNumber}</span>
-                            <span className="text-lg font-medium text-slate-200">{item.stationName}</span>
-                            <span className="text-lg font-medium text-slate-200">{item.serviceLabel}</span>
+                        <li key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-3 items-center p-4 text-xl font-bold">
+                            <span className="truncate">{item.ticketNumber}</span>
+                            <span className="truncate">{item.serviceLabel}</span>
+                            <span className="truncate">{item.stationName}</span>
                         </li>
                     ))}
                 </ul>
@@ -72,9 +72,9 @@ const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[]
             {waitingTickets.length > 0 ? (
                 <ul className="divide-y divide-white/20">
                     {waitingTickets.map((item, index) => (
-                        <li key={item.id} className={cn("grid grid-cols-2 items-center p-4 text-2xl font-bold", index === 0 && "bg-white/10")}>
-                            <span>{item.ticketNumber}</span>
-                            <span className="text-lg font-medium text-slate-300">{serviceMap.get(item.type) || item.type}</span>
+                        <li key={item.id} className={cn("grid grid-cols-2 items-center p-4 text-xl font-bold", index === 0 && "bg-white/10")}>
+                            <span className="truncate">{item.ticketNumber}</span>
+                            <span className="truncate">{serviceMap.get(item.type) || item.type}</span>
                         </li>
                     ))}
                 </ul>
