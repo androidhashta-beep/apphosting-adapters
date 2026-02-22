@@ -15,26 +15,26 @@ type ServingInfo = {
 const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
     if (!ticket) {
         return (
-            <div className="bg-yellow-400 text-black p-4 rounded-lg text-center flex items-center justify-center h-[140px]">
-                <p className="text-xl font-bold">Waiting for next customer...</p>
+            <div className="bg-yellow-400 text-black p-6 rounded-lg text-center flex items-center justify-center">
+                <p className="text-2xl font-bold">Waiting for next customer...</p>
             </div>
         );
     }
     return (
        <div className="bg-yellow-400 text-black p-4 rounded-lg text-center">
-            <p className="text-xs uppercase tracking-widest font-semibold mb-1">Now Serving</p>
-            <div className="grid grid-cols-3 items-center justify-items-center gap-4">
-                <div className="flex flex-col">
-                    <span className="text-6xl font-extrabold tracking-tight">{ticket.ticketNumber}</span>
-                    <span className="text-sm font-semibold">Ticket #</span>
+            <p className="text-xs uppercase tracking-widest font-semibold mb-2">Now Serving</p>
+            <div className="flex justify-around items-center text-center">
+                <div className="w-1/3">
+                    <p className="text-6xl font-extrabold tracking-tight">{ticket.ticketNumber}</p>
+                    <p className="text-sm font-semibold">Ticket #</p>
                 </div>
-                <div className="flex flex-col items-center justify-center">
-                    <span className="text-xl font-bold truncate max-w-full px-2" title={ticket.serviceLabel}>{ticket.serviceLabel}</span>
-                    <span className="text-sm font-semibold">Service</span>
+                <div className="w-1/3">
+                    <p className="text-3xl font-bold truncate max-w-full px-2" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
+                    <p className="text-sm font-semibold">Service</p>
                 </div>
-                <div className="flex flex-col">
-                    <span className="text-xl font-bold">{ticket.stationName}</span>
-                    <span className="text-sm font-semibold">Window</span>
+                <div className="w-1/3">
+                    <p className="text-3xl font-bold">{ticket.stationName}</p>
+                    <p className="text-sm font-semibold">Window</p>
                 </div>
             </div>
         </div>
