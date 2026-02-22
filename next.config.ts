@@ -1,12 +1,11 @@
 
 import type {NextConfig} from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
-import type { runtimeCaching as RuntimeCache } from '@ducanh2912/next-pwa';
 
-const runtimeCaching: RuntimeCache[] = [
+const runtimeCaching = [
     {
         urlPattern: /\.(?:jpg|jpeg|png|gif|svg|ico|webp)$/i,
-        handler: 'CacheFirst',
+        handler: 'CacheFirst' as const,
         options: {
             cacheName: 'static-images',
             expiration: {
@@ -17,7 +16,7 @@ const runtimeCaching: RuntimeCache[] = [
     },
     {
         urlPattern: /\.(?:mp4|webm|mp3|wav|ogg)$/i,
-        handler: 'CacheFirst',
+        handler: 'CacheFirst' as const,
         options: {
             cacheName: 'static-media',
             expiration: {
@@ -29,7 +28,7 @@ const runtimeCaching: RuntimeCache[] = [
     },
     {
         urlPattern: /^https:\/\/drive\.google\.com\/.*/i,
-        handler: 'CacheFirst',
+        handler: 'CacheFirst' as const,
         options: {
             cacheName: 'google-drive-media',
             expiration: {
@@ -44,7 +43,7 @@ const runtimeCaching: RuntimeCache[] = [
     },
      {
         urlPattern: /^https:\/\/(images\.unsplash|picsum\.photos|placehold\.co)\.com\/.*/i,
-        handler: 'CacheFirst',
+        handler: 'CacheFirst' as const,
         options: {
             cacheName: 'remote-images',
             expiration: {
