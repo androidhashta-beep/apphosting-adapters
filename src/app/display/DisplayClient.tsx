@@ -85,7 +85,7 @@ export function DisplayClient() {
     
     const data = servingStations.map(station => {
       const ticket = servingTickets.find(t => t.id === station.currentTicketId);
-      const service = settings.services.find(s => s.id === ticket?.type);
+      const service = settings?.services?.find(s => s.id === ticket?.type);
       return {
         stationName: station.name,
         ticketNumber: ticket?.ticketNumber || '...',
@@ -200,7 +200,7 @@ export function DisplayClient() {
                 <>
                     <div className="grid grid-cols-2 flex-grow gap-2 p-2 border-b-2 border-white/30">
                         {servingData.slice(0, 4).map((ticket, index) => (
-                            <div key={ticket?.ticketNumber ? `${ticket.ticketNumber}-${index}` : index} className="bg-white/10 rounded-lg flex flex-col items-center justify-center text-center p-2 transition-all duration-300">
+                            <div key={ticket.stationName || index} className="bg-white/10 rounded-lg flex flex-col items-center justify-center text-center p-2 transition-all duration-300">
                                 {ticket ? (
                                     <>
                                         <p className="text-4xl lg:text-5xl font-extrabold text-white">{ticket.ticketNumber}</p>
