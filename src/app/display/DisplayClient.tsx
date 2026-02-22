@@ -81,6 +81,7 @@ export function DisplayClient() {
     });
   }, [rawWaitingTickets]);
 
+
   const serviceMap = useMemo(() => {
     if (!settings?.services) return new Map<string, string>();
     return new Map(settings.services.map(s => [s.id, s.label]));
@@ -93,7 +94,7 @@ export function DisplayClient() {
     
     const data = servingStations.map(station => {
       const ticket = servingTickets.find(t => t.id === station.currentTicketId);
-      const service = settings?.services?.find(s => s.id === ticket?.type);
+      const service = settings.services?.find(s => s.id === ticket?.type);
       return {
         stationName: station.name,
         ticketNumber: ticket?.ticketNumber || '...',
@@ -152,17 +153,11 @@ export function DisplayClient() {
   }, [announcementAudio]);
 
 
-  const { topPanelMedia, bottomPanelMedia } = useMemo(() => {
+  const shuffledMedia = useMemo(() => {
     if (!isClient || !settings?.placeholderImages || settings.placeholderImages.length === 0) {
-      return { topPanelMedia: [], bottomPanelMedia: [] };
+      return [];
     }
-
-    const shuffled = shuffleArray(settings.placeholderImages);
-    const midpoint = Math.ceil(shuffled.length / 2);
-    const top = shuffled.slice(0, midpoint);
-    const bottom = shuffled.slice(midpoint);
-
-    return { topPanelMedia: top, bottomPanelMedia: bottom };
+    return shuffleArray(settings.placeholderImages);
   }, [isClient, settings?.placeholderImages]);
 
   const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingWaitingTickets;
@@ -201,33 +196,19 @@ export function DisplayClient() {
       
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {/* Left Column: Ticket Info */}
-        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col">
+        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col p-4">
           <NowServing servingTickets={servingData} waitingTickets={waitingTickets} serviceMap={serviceMap} />
         </div>
         
         {/* Right Column */}
-        <div className="grid grid-rows-2 gap-4">
-            {/* Top Right Panel */}
-            <div className="w-full h-full">
-                <InfoPanel 
-                  mediaItems={topPanelMedia} 
-                  backgroundMusic={settings?.backgroundMusic || null}
-                  autoplayDelay={10000}
-                  isAnnouncing={isAnnouncing}
-                  masterVolume={masterVolume}
-                />
-            </div>
-
-            {/* Bottom Right Panel */}
-            <div className="w-full h-full">
-                <InfoPanel 
-                  mediaItems={bottomPanelMedia} 
-                  backgroundMusic={null}
-                  autoplayDelay={5000}
-                  isAnnouncing={isAnnouncing}
-                  masterVolume={masterVolume}
-                />
-            </div>
+        <div className="w-full h-full">
+            <InfoPanel 
+              mediaItems={shuffledMedia} 
+              backgroundMusic={settings?.backgroundMusic || null}
+              autoplayDelay={8000}
+              isAnnouncing={isAnnouncing}
+              masterVolume={masterVolume}
+            />
         </div>
       </main>
 
