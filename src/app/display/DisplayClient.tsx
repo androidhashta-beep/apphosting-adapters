@@ -190,7 +190,7 @@ export function DisplayClient() {
       
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {/* Left Column: Ticket Info */}
-        <div className="w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col p-4">
+        <div className="min-w-0 w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col p-4">
           <NowServing servingTickets={servingData} waitingTickets={waitingTickets} serviceMap={serviceMap} />
         </div>
         
