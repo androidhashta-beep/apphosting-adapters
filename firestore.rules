@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     function isStaff() {
-      return isRole('staff') || isRole('admin');
+      return isRole('staff') || isAdmin();
     }
 
     // Collection Rules
@@ -41,8 +41,8 @@ service cloud.firestore {
 
     // Rules for individual ticket documents
     match /tickets/{ticketId} {
-      allow create: if request.auth != null;
       allow get: if true;
+      allow create: if request.auth != null;
       allow update, delete: if isStaff();
     }
 
@@ -58,7 +58,7 @@ service cloud.firestore {
       // Allow admins to read anyone's profile.
       allow read: if isOwner(userId) || isAdmin();
       
-      // Allow admins to update any profile.
+      // Allow admins to update any profile (e.g. change roles).
       allow update: if isAdmin();
 
       // Do not allow deletion of users for now.

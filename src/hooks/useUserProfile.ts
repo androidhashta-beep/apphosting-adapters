@@ -27,12 +27,12 @@ export function useUserProfile() {
           return; // Profile already exists, do nothing.
         }
 
-        // Default all new users to 'admin'.
+        // Default new users to 'staff'. Admins must be manually promoted.
         const newProfile: UserProfile = {
           uid: currentUser.uid,
           email: currentUser.email || 'anonymous-user',
           displayName: currentUser.displayName || `User ${currentUser.uid.substring(0, 5)}`,
-          role: 'admin',
+          role: 'staff',
         };
 
         // Use the project's non-blocking update function for consistency and better error handling.
