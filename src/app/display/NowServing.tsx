@@ -1,4 +1,3 @@
-
 'use client';
 
 import { cn } from "@/lib/utils";
@@ -25,16 +24,16 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
        <div className="bg-yellow-400 text-black p-4 rounded-lg text-center h-full flex flex-col justify-center">
             <p className="text-xs uppercase tracking-widest font-semibold mb-2">Now Serving</p>
             <div className="flex justify-around items-center text-center">
-                <div className="w-1/3">
-                    <p className="text-6xl font-extrabold tracking-tight">{ticket.ticketNumber}</p>
+                <div className="w-1/3 flex flex-col justify-center">
+                    <p className="text-5xl lg:text-6xl font-extrabold tracking-tight">{ticket.ticketNumber}</p>
                     <p className="text-sm font-semibold">Ticket #</p>
                 </div>
-                <div className="w-1/3">
-                    <p className="text-3xl font-bold truncate max-w-full px-2" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
+                <div className="w-1/3 flex flex-col justify-center">
+                    <p className="text-2xl lg:text-3xl font-bold px-2 break-words" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
                     <p className="text-sm font-semibold">Service</p>
                 </div>
-                <div className="w-1/3">
-                    <p className="text-3xl font-bold">{ticket.stationName}</p>
+                <div className="w-1/3 flex flex-col justify-center">
+                    <p className="text-2xl lg:text-3xl font-bold break-words">{ticket.stationName}</p>
                     <p className="text-sm font-semibold">Window</p>
                 </div>
             </div>
@@ -58,9 +57,9 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
                 <ul className="divide-y divide-white/20">
                     {tickets.map((item) => (
                         <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-3 text-lg font-bold">
-                            <span className="truncate w-1/3 text-left">{item.ticketNumber}</span>
-                            <span className="truncate w-1/3 text-left">{item.serviceLabel}</span>
-                            <span className="truncate w-1/3 text-left">{item.stationName}</span>
+                            <span className="w-1/3 text-left break-words">{item.ticketNumber}</span>
+                            <span className="w-1/3 text-left break-words">{item.serviceLabel}</span>
+                            <span className="w-1/3 text-left break-words">{item.stationName}</span>
                         </li>
                     ))}
                 </ul>
@@ -86,8 +85,8 @@ const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[]
                 <ul className="divide-y divide-white/20">
                     {waitingTickets.map((item, index) => (
                         <li key={item.id} className={cn("flex items-center p-3 text-lg font-bold", index === 0 && "bg-white/10")}>
-                            <span className="truncate w-1/2 text-left">{item.ticketNumber}</span>
-                            <span className="truncate w-1/2 text-left">{serviceMap.get(item.type) || item.type}</span>
+                            <span className="w-1/2 text-left break-words">{item.ticketNumber}</span>
+                            <span className="w-1/2 text-left break-words">{serviceMap.get(item.type) || item.type}</span>
                         </li>
                     ))}
                 </ul>
