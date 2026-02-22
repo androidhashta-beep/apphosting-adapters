@@ -36,12 +36,12 @@ service cloud.firestore {
 
     // Rule for the entire 'tickets' collection (for queries/lists)
     match /tickets {
-      allow list: if true;
+      allow list: if request.auth != null;
     }
 
     // Rules for individual ticket documents
     match /tickets/{ticketId} {
-      allow get: if true;
+      allow get: if request.auth != null;
       allow create: if request.auth != null;
       allow update, delete: if isStaff();
     }
