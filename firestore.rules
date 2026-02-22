@@ -25,9 +25,12 @@ service cloud.firestore {
     function incomingTicketIsValid() {
         let data = request.resource.data;
         // Rules for creating a ticket without being authenticated.
-        // Ensures data is valid and timestamp is from the server.
+        // Ensures data is valid and timestamp is reasonably close to the server time.
         return data.status == 'waiting'
-            && data.createdAt == request.time
+            && data.createdAt is timestamp
+            // Allow a small time difference (e.g., 5 seconds) to account for client/server clock skew.
+            && (request.time.toMillis() - data.createdAt.toMillis() < 5000)
+            && (request.time.toMillis() - data.createdAt.toMillis() > -5000)
             && data.type is string
             && data.ticketNumber is string
             && data.keys().hasOnly(['status', 'createdAt', 'type', 'ticketNumber']);
