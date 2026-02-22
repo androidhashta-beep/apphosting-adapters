@@ -20,10 +20,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
+import { firebaseConfig } from '@/firebase/config';
 
 export function UserManagement() {
   const { profile, isLoading } = useUserProfile();
-  const projectId = "studio-2232077555-525b9";
+  const projectId = firebaseConfig.projectId;
   const firestoreUsersUrl = `https://console.firebase.google.com/project/${projectId}/firestore/data/~2Fusers`;
 
   const getUsernameFromEmail = (email: string) => {

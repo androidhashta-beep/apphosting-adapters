@@ -1,6 +1,6 @@
 
 import type {NextConfig} from 'next';
-import withPWAInit from '@ducanh2912/next-pwa';
+import withPWA from '@ducanh2912/next-pwa';
 
 const runtimeCaching = [
     {
@@ -57,7 +57,7 @@ const runtimeCaching = [
     },
 ];
 
-const withPWA = withPWAInit({
+const pwaWrapper = withPWA({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
   runtimeCaching,
@@ -94,4 +94,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+export default pwaWrapper(nextConfig);
