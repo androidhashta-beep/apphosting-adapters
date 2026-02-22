@@ -1,4 +1,3 @@
-
 'use client';
 
 import { cn } from "@/lib/utils";
@@ -27,15 +26,15 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
             <div className="grid grid-cols-3 items-center text-center flex-grow min-w-0">
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
                     <p className="text-8xl font-extrabold tracking-tight break-words">{ticket.ticketNumber}</p>
-                    <p className="text-xl font-semibold mt-1">Ticket #</p>
+                    <p className="text-2xl font-semibold mt-1">Ticket #</p>
                 </div>
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-6xl font-bold break-words" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
-                    <p className="text-xl font-semibold mt-1">Service</p>
+                    <p className="text-5xl font-bold break-words" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
+                    <p className="text-2xl font-semibold mt-1">Service</p>
                 </div>
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-6xl font-bold break-words">{ticket.stationName}</p>
-                    <p className="text-xl font-semibold mt-1">Window</p>
+                    <p className="text-5xl font-bold break-words">{ticket.stationName}</p>
+                    <p className="text-2xl font-semibold mt-1">Window</p>
                 </div>
             </div>
         </div>
@@ -57,10 +56,10 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
              <ScrollArea className="flex-grow">
                 <ul className="divide-y divide-white/20">
                     {tickets.map((item) => (
-                        <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-4 text-7xl font-bold">
-                            <span className="w-1/3 text-left break-words">{item.ticketNumber}</span>
-                            <span className="w-1/3 text-left break-words">{item.serviceLabel}</span>
-                            <span className="w-1/3 text-left break-words">{item.stationName}</span>
+                        <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-4 font-bold">
+                            <span className="w-1/3 text-left break-words text-7xl">{item.ticketNumber}</span>
+                            <span className="w-1/3 text-left break-words text-4xl">{item.serviceLabel}</span>
+                            <span className="w-1/3 text-left break-words text-4xl">{item.stationName}</span>
                         </li>
                     ))}
                 </ul>
@@ -85,9 +84,9 @@ const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[]
             {waitingTickets.length > 0 ? (
                 <ul className="divide-y divide-white/20">
                     {waitingTickets.map((item, index) => (
-                        <li key={item.id} className={cn("flex items-center p-4 text-7xl font-bold", index === 0 && "bg-white/10")}>
-                            <span className="w-1/2 text-left break-words">{item.ticketNumber}</span>
-                            <span className="w-1/2 text-left break-words">{serviceMap.get(item.type) || item.type}</span>
+                        <li key={item.id} className={cn("flex items-center p-4 font-bold", index === 0 && "bg-white/10")}>
+                            <span className="w-1/2 text-left break-words text-7xl">{item.ticketNumber}</span>
+                            <span className="w-1/2 text-left break-words text-4xl">{serviceMap.get(item.type) || item.type}</span>
                         </li>
                     ))}
                 </ul>
@@ -112,19 +111,19 @@ export function NowServing({
   const mostRecentTicket = servingTickets.length > 0 ? servingTickets[0] : null;
 
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="h-full grid grid-rows-3 gap-4">
       {/* Top Section: Most Recent */}
-      <div className="flex-[1_1_33%] min-h-0">
+      <div className="min-h-0">
         <MostRecentCard ticket={mostRecentTicket} />
       </div>
 
       {/* Middle Section: All Serving */}
-      <div className="flex-[1_1_33%] min-h-0">
+      <div className="min-h-0">
           <AllServingList tickets={servingTickets} />
       </div>
 
       {/* Bottom Section: Waiting */}
-      <div className="flex-[1_1_33%] min-h-0">
+      <div className="min-h-0">
           <WaitingQueue waitingTickets={waitingTickets} serviceMap={serviceMap} />
       </div>
     </div>
