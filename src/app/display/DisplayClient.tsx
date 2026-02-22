@@ -64,22 +64,22 @@ export function DisplayClient() {
   );
   const { data: servingTickets, isLoading: isLoadingServingTickets } = useCollection<Ticket>(servingTicketsQuery);
 
-  const waitingTicketsQuery = useMemoFirebase(
-      () => {
-          if (!firestore) return null;
-          return query(collection(firestore, 'tickets'), where('status', '==', 'waiting'));
-      }, [firestore]
-    );
-  const { data: rawWaitingTickets, isLoading: isLoadingWaitingTickets } = useCollection<Ticket>(waitingTicketsQuery);
+  const allTicketsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'tickets') : null),
+    [firestore]
+  );
+  const { data: allTickets, isLoading: isLoadingAllTickets } = useCollection<Ticket>(allTicketsQuery);
 
   const waitingTickets = useMemo(() => {
-    if (!rawWaitingTickets) return [];
-    return [...rawWaitingTickets].sort((a, b) => {
-      const timeA = a.createdAt;
-      const timeB = b.createdAt;
-      return timeA.toMillis() - timeB.toMillis();
-    });
-  }, [rawWaitingTickets]);
+    if (!allTickets) return [];
+    return allTickets
+      .filter((t) => t.status === 'waiting')
+      .sort((a, b) => {
+        const timeA = a.createdAt;
+        const timeB = b.createdAt;
+        return timeA.toMillis() - timeB.toMillis();
+      });
+  }, [allTickets]);
 
 
   const serviceMap = useMemo(() => {
@@ -160,7 +160,7 @@ export function DisplayClient() {
     return shuffleArray(settings.placeholderImages);
   }, [isClient, settings?.placeholderImages]);
 
-  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingWaitingTickets;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingAllTickets;
   
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
