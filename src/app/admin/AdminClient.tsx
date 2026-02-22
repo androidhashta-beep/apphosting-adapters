@@ -33,6 +33,7 @@ import { UserManagement } from './UserManagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
 import { signOut } from 'firebase/auth';
+import { OperationalSuggestions } from './OperationalSuggestions';
 
 export function AdminClient() {
   const router = useRouter();
@@ -188,6 +189,7 @@ export function AdminClient() {
             </div>
         ) : (
           <div className="space-y-8 p-6">
+              <OperationalSuggestions />
               <UserManagement />
               <StationManagement />
               <CarouselSettings />
