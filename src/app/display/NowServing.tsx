@@ -16,13 +16,13 @@ type ServingInfo = {
 const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
     if (!ticket) {
         return (
-            <div className="bg-yellow-400 text-black p-6 rounded-lg text-center flex items-center justify-center h-full">
+            <div className="bg-gold text-black p-6 rounded-lg text-center flex items-center justify-center h-full">
                 <p className="text-3xl font-bold">Waiting for next customer...</p>
             </div>
         );
     }
     return (
-       <div className="bg-yellow-400 text-black p-4 rounded-lg text-center h-full flex flex-col justify-center">
+       <div className="bg-gold text-black p-4 rounded-lg text-center h-full flex flex-col justify-center">
             <p className="text-sm uppercase tracking-widest font-semibold mb-2">Now Serving</p>
             <div className="flex justify-around items-center text-center">
                 <div className="w-1/3 flex flex-col justify-center items-center h-full">
@@ -44,8 +44,8 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
 
 // Middle section: list of all currently served customers
 const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
-    <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden animate-pulse-slow border-2 border-yellow-400 shadow-lg h-full">
-        <h2 className="text-2xl font-bold text-center p-2 border-b-2 border-white/30 text-yellow-300 flex-shrink-0">
+    <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden animate-pulse-slow border-2 border-gold shadow-lg h-full">
+        <h2 className="text-2xl font-bold text-center p-2 border-b-2 border-white/30 text-gold flex-shrink-0">
             Currently Serving
         </h2>
         <div className="flex px-4 py-2 font-bold text-lg border-b border-white/20 flex-shrink-0">
