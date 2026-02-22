@@ -23,19 +23,19 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
     }
     return (
        <div className="bg-gold text-black p-6 rounded-lg text-center h-full flex flex-col justify-center">
-            <p className="text-2xl uppercase tracking-widest font-semibold mb-4 flex-shrink-0">Now Serving</p>
+            <p className="text-3xl uppercase tracking-widest font-semibold mb-4 flex-shrink-0">Now Serving</p>
             <div className="grid grid-cols-3 items-center text-center flex-grow min-w-0 gap-4">
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-9xl font-extrabold tracking-tight break-words">{ticket.ticketNumber}</p>
-                    <p className="text-2xl font-semibold mt-1">Ticket #</p>
+                    <p className="text-8xl font-extrabold tracking-tight truncate">{ticket.ticketNumber}</p>
+                    <p className="text-3xl font-semibold mt-1">Ticket #</p>
                 </div>
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-5xl font-bold break-words" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
-                    <p className="text-2xl font-semibold mt-1">Service</p>
+                    <p className="text-6xl font-bold truncate" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
+                    <p className="text-3xl font-semibold mt-1">Service</p>
                 </div>
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-5xl font-bold break-words">{ticket.stationName}</p>
-                    <p className="text-2xl font-semibold mt-1">Window</p>
+                    <p className="text-6xl font-bold truncate">{ticket.stationName}</p>
+                    <p className="text-3xl font-semibold mt-1">Window</p>
                 </div>
             </div>
         </div>
@@ -45,10 +45,10 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
 // Middle section: list of all currently served customers
 const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
     <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden animate-pulse-slow border-2 border-gold shadow-lg h-full">
-        <h2 className="text-2xl font-bold text-center p-3 border-b-2 border-white/30 text-gold flex-shrink-0">
+        <h2 className="text-3xl font-bold text-center p-3 border-b-2 border-white/30 text-gold flex-shrink-0">
             Currently Serving
         </h2>
-        <div className="grid grid-cols-3 px-4 py-2 font-bold text-lg border-b border-white/20 flex-shrink-0">
+        <div className="grid grid-cols-3 px-4 py-2 font-bold text-2xl border-b border-white/20 flex-shrink-0">
             <span className="text-left">Ticket #</span>
             <span className="text-left">Service</span>
             <span className="text-left">Window</span>
@@ -58,9 +58,9 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
                 <ul className="divide-y divide-white/20">
                     {tickets.map((item) => (
                         <li key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-3 items-center p-4 font-bold">
-                            <span className="text-left break-words text-5xl">{item.ticketNumber}</span>
-                            <span className="text-left break-words text-3xl">{item.serviceLabel}</span>
-                            <span className="text-left break-words text-3xl">{item.stationName}</span>
+                            <span className="text-left truncate text-6xl">{item.ticketNumber}</span>
+                            <span className="text-left truncate text-4xl">{item.serviceLabel}</span>
+                            <span className="text-left truncate text-4xl">{item.stationName}</span>
                         </li>
                     ))}
                 </ul>
@@ -76,8 +76,8 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
 // Bottom section: list of all waiting customers
 const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[], serviceMap: Map<string, string> }) => (
     <div className="flex flex-col bg-black/20 rounded-lg overflow-hidden h-full">
-        <h2 className="text-2xl font-bold text-center p-3 border-b-2 border-white/30 flex-shrink-0">Waiting Queue</h2>
-        <div className="grid grid-cols-2 px-4 py-2 font-bold text-lg border-b border-white/20 flex-shrink-0">
+        <h2 className="text-3xl font-bold text-center p-3 border-b-2 border-white/30 flex-shrink-0">Waiting Queue</h2>
+        <div className="grid grid-cols-2 px-4 py-2 font-bold text-2xl border-b border-white/20 flex-shrink-0">
             <span className="text-left">Ticket #</span>
             <span className="text-left">Service</span>
         </div>
@@ -86,8 +86,8 @@ const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[]
                 <ul className="divide-y divide-white/20">
                     {waitingTickets.map((item, index) => (
                         <li key={item.id} className={cn("grid grid-cols-2 items-center p-4 font-bold", index === 0 && "bg-white/10")}>
-                            <span className="text-left break-words text-5xl">{item.ticketNumber}</span>
-                            <span className="text-left break-words text-3xl">{serviceMap.get(item.type) || item.type}</span>
+                            <span className="text-left truncate text-6xl">{item.ticketNumber}</span>
+                            <span className="text-left truncate text-4xl">{serviceMap.get(item.type) || item.type}</span>
                         </li>
                     ))}
                 </ul>
@@ -112,19 +112,19 @@ export function NowServing({
   const mostRecentTicket = servingTickets.length > 0 ? servingTickets[0] : null;
 
   return (
-    <div className="h-full grid grid-rows-3 gap-4">
+    <div className="h-full flex flex-col gap-4">
       {/* Top Section: Most Recent */}
-      <div className="min-h-0">
+      <div className="flex-1 min-h-0">
         <MostRecentCard ticket={mostRecentTicket} />
       </div>
 
       {/* Middle Section: All Serving */}
-      <div className="min-h-0">
+      <div className="flex-1 min-h-0">
           <AllServingList tickets={servingTickets} />
       </div>
 
       {/* Bottom Section: Waiting */}
-      <div className="min-h-0">
+      <div className="flex-1 min-h-0">
           <WaitingQueue waitingTickets={waitingTickets} serviceMap={serviceMap} />
       </div>
     </div>
