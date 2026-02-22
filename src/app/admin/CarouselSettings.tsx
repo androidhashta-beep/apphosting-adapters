@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { Settings, ImagePlaceholder, AudioTrack } from '@/lib/types';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, runTransaction } from 'firebase/firestore';
@@ -34,6 +34,7 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  Camera,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -146,6 +147,9 @@ export function CarouselSettings() {
   const [newMediaHint, setNewMediaHint] = useState('');
   const [mediaUrlStatus, setMediaUrlStatus] = useState<'idle' | 'verifying' | 'valid' | 'invalid'>('idle');
   const [mediaUrlError, setMediaUrlError] = useState<string | null>(null);
+  const [isUrlVideo, setIsUrlVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
 
   const [newAudioDescription, setNewAudioDescription] = useState('');
   const [newAudioUrl, setNewAudioUrl] = useState('');
@@ -156,7 +160,7 @@ export function CarouselSettings() {
 
   const verifyUrl = useCallback((
     url: string, 
-    mediaType: 'media' | 'audio',
+    mediaType: 'image' | 'video' | 'audio',
     setStatus: (s: 'idle' | 'verifying' | 'valid' | 'invalid') => void, 
     setError: (e: string | null) => void
   ) => {
@@ -165,6 +169,12 @@ export function CarouselSettings() {
       setStatus('idle');
       setError(null);
       return;
+    }
+    
+    if (trimmedUrl.startsWith('data:image')) {
+        setStatus('valid');
+        setError(null);
+        return;
     }
 
     const isHttp = trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://');
@@ -197,7 +207,15 @@ export function CarouselSettings() {
             setError("Could not load audio. Check if the URL is correct and publicly accessible.");
         }
         audioElement.src = encodeURI(trimmedUrl);
-    } else { // 'media' for image/video
+    } else if (mediaType === 'video') {
+        const videoElement = document.createElement('video');
+        videoElement.oncanplay = () => setStatus('valid');
+        videoElement.onerror = () => {
+            setStatus('invalid');
+            setError("Could not load video. Check if the URL is correct and publicly accessible.");
+        }
+        videoElement.src = encodeURI(trimmedUrl);
+    } else { // image
         const mediaElement = new window.Image();
         mediaElement.onload = () => setStatus('valid');
         mediaElement.onerror = () => {
@@ -210,7 +228,19 @@ export function CarouselSettings() {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-        if (newMediaUrl) verifyUrl(newMediaUrl, 'media', setMediaUrlStatus, setMediaUrlError);
+        if (newMediaUrl) {
+             if (newMediaUrl.startsWith('data:image')) {
+                setIsUrlVideo(false);
+                verifyUrl(newMediaUrl, 'image', setMediaUrlStatus, setMediaUrlError);
+            } else {
+                const isVideo = newMediaUrl.trim().toLowerCase().endsWith('.mp4') || newMediaUrl.trim().toLowerCase().endsWith('.webm');
+                setIsUrlVideo(isVideo);
+                verifyUrl(newMediaUrl, isVideo ? 'video' : 'image', setMediaUrlStatus, setMediaUrlError);
+            }
+        } else {
+            setIsUrlVideo(false);
+            setMediaUrlStatus('idle');
+        }
     }, 500);
     return () => clearTimeout(handler);
   }, [newMediaUrl, verifyUrl]);
@@ -274,7 +304,7 @@ export function CarouselSettings() {
        return;
     }
 
-    const isVideo = newMediaUrl.trim().toLowerCase().endsWith('.mp4') || newMediaUrl.trim().toLowerCase().endsWith('.webm');
+    const isVideo = !newMediaUrl.startsWith('data:image') && (newMediaUrl.trim().toLowerCase().endsWith('.mp4') || newMediaUrl.trim().toLowerCase().endsWith('.webm'));
     
     const newMedia: ImagePlaceholder = {
       id: `media-${Date.now()}`,
@@ -293,6 +323,24 @@ export function CarouselSettings() {
     setNewMediaHint('');
     setMediaUrlStatus('idle');
     setIsMediaDialogOpen(false);
+  };
+  
+  const handleCaptureFrame = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const frameDataUrl = canvas.toDataURL('image/png');
+    
+    setNewMediaUrl(frameDataUrl);
+    if (!newMediaDescription) {
+        setNewMediaDescription('Captured from video');
+    }
   };
 
   const handleDeleteMedia = (id: string) => {
@@ -456,6 +504,7 @@ export function CarouselSettings() {
             setMediaUrlError(null);
             setNewMediaDescription('');
             setNewMediaHint('');
+            setIsUrlVideo(false);
           }
           setIsMediaDialogOpen(open);
         }}
@@ -464,7 +513,7 @@ export function CarouselSettings() {
           <DialogHeader>
             <DialogTitle>Add New Media</DialogTitle>
             <DialogDescription>
-             Add a new image or video to the public display carousel. 
+             Add a new image or video to the carousel. You can capture a frame from a video to use as an image.
             </DialogDescription>
              <div className="text-xs text-muted-foreground pt-2">
                 <p className="font-bold">Instructions for Local Files:</p>
@@ -513,7 +562,37 @@ export function CarouselSettings() {
                 </div>
               </div>
             </div>
-             {mediaUrlError && <p className="col-span-4 text-xs text-destructive -mt-2 text-center">{mediaUrlError}</p>}
+            {mediaUrlError && <p className="col-span-4 text-xs text-destructive -mt-2 text-center">{mediaUrlError}</p>}
+             
+             {mediaUrlStatus === 'valid' && isUrlVideo && (
+                <div className="col-span-4 space-y-2 pt-2">
+                    <Label>Video Preview</Label>
+                    <video
+                        ref={videoRef}
+                        src={encodeURI(newMediaUrl)}
+                        controls
+                        className="w-full rounded-md bg-black"
+                        crossOrigin="anonymous"
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCaptureFrame}
+                        className="w-full"
+                    >
+                        <Camera className="mr-2 h-4 w-4" />
+                        Use Current Frame as Image
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center">Play and pause the video to find the perfect frame to capture.</p>
+                </div>
+            )}
+             {mediaUrlStatus === 'valid' && !isUrlVideo && newMediaUrl.startsWith('data:image') && (
+                <div className="col-span-4 space-y-2 pt-2">
+                    <Label>Image Preview (Captured Frame)</Label>
+                    <img src={newMediaUrl} alt="Captured frame" className="w-full rounded-md border" />
+                     <p className="text-xs text-muted-foreground text-center">This captured image will be added to the carousel.</p>
+                </div>
+            )}
           </div>
           <DialogFooter>
             <DialogClose asChild>
