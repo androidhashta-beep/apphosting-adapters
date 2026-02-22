@@ -1,4 +1,3 @@
-
 'use client';
 
 import { cn } from "@/lib/utils";
@@ -91,7 +90,7 @@ export function NowServing({
             {otherServingTickets.map(item => (
                 <div key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-2 items-center py-2 border-b border-white/10 last:border-none">
                     <p className="text-left truncate text-4xl font-bold">{item.ticketNumber}</p>
-                    <p className="text-left truncate text-2xl self-center">{item.stationName}</p>
+                    <p className="text-left truncate text-4xl font-bold self-center">{item.stationName}</p>
                 </div>
             ))}
           </QueueList>
@@ -100,7 +99,7 @@ export function NowServing({
             {waitingTickets.slice(0, 50).map(item => (
                  <div key={item.id} className="grid grid-cols-2 items-center py-2 border-b border-white/10 last:border-none">
                     <p className="text-left truncate text-4xl font-bold">{item.ticketNumber}</p>
-                    <p className="text-left truncate text-2xl self-center">{serviceMap.get(item.type) || item.type}</p>
+                    <p className="text-left truncate text-4xl font-bold self-center">{serviceMap.get(item.type) || item.type}</p>
                 </div>
             ))}
           </QueueList>
