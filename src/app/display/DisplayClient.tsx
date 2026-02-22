@@ -4,14 +4,14 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import type { Ticket, Settings, Station } from '@/lib/types';
+import type { Ticket, Settings, Station, Service } from '@/lib/types';
 import {
   useCollection,
   useFirebase,
   useMemoFirebase,
   useDoc,
 } from '@/firebase';
-import { collection, doc, query, where, Timestamp } from 'firebase/firestore';
+import { collection, doc, query, where, Timestamp, orderBy } from 'firebase/firestore';
 import { NowServing } from './NowServing';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,19 @@ export function DisplayClient() {
   );
   const { data: servingTickets, isLoading: isLoadingServingTickets } = useCollection<Ticket>(servingTicketsQuery);
 
+  const waitingTicketsQuery = useMemoFirebase(
+      () => {
+          if (!firestore) return null;
+          return query(collection(firestore, 'tickets'), where('status', '==', 'waiting'), orderBy('createdAt', 'asc'));
+      }, [firestore]
+    );
+  const { data: waitingTickets, isLoading: isLoadingWaitingTickets } = useCollection<Ticket>(waitingTicketsQuery);
+
+  const serviceMap = useMemo(() => {
+    if (!settings?.services) return new Map<string, string>();
+    return new Map(settings.services.map(s => [s.id, s.label]));
+  }, [settings?.services]);
+
   const servingData = useMemo(() => {
     if (!stations || !servingTickets || !settings) return [];
     
@@ -90,7 +103,6 @@ export function DisplayClient() {
   }, [stations, servingTickets, settings]);
 
   const mostRecentTicket = useMemo(() => (servingData.length > 0 ? servingData[0] : null), [servingData]);
-  const otherServingTickets = useMemo(() => (servingData.length > 0 ? servingData.slice(1) : []), [servingData]);
   
   const [announcementAudio, setAnnouncementAudio] = useState<string | null>(null);
   const [isAnnouncing, setIsAnnouncing] = useState(false);
@@ -145,7 +157,7 @@ export function DisplayClient() {
     return { topPanelMedia: top, bottomPanelMedia: bottom };
   }, [isClient, settings?.placeholderImages]);
 
-  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingServingTickets || isLoadingWaitingTickets;
   
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -186,22 +198,32 @@ export function DisplayClient() {
                 <Skeleton className="bg-slate-700/50 h-full w-full" />
             ) : (
                 <>
-                    <div className="flex-grow flex flex-col items-center justify-center p-4 text-center border-b-2 border-white/30">
-                    {mostRecentTicket ? (
-                        <div className="animate-pulse-slow">
-                            <h2 className="text-3xl lg:text-4xl font-bold text-yellow-300">NOW SERVING</h2>
-                            <p className="text-7xl lg:text-8xl font-extrabold my-2 text-white">{mostRecentTicket.ticketNumber}</p>
-                            <p className="text-3xl lg:text-4xl font-bold text-white">Please proceed to</p>
-                            <p className="text-5xl lg:text-6xl font-extrabold mt-1 text-yellow-300">{mostRecentTicket.stationName}</p>
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center h-full">
-                           <p className="text-3xl text-slate-300">No tickets being served.</p>
-                        </div>
-                    )}
+                    <div className="grid grid-cols-2 flex-grow gap-2 p-2 border-b-2 border-white/30">
+                        {servingData.slice(0, 4).map((ticket, index) => (
+                            <div key={ticket?.ticketNumber ? `${ticket.ticketNumber}-${index}` : index} className="bg-white/10 rounded-lg flex flex-col items-center justify-center text-center p-2 transition-all duration-300">
+                                {ticket ? (
+                                    <>
+                                        <p className="text-4xl lg:text-5xl font-extrabold text-white">{ticket.ticketNumber}</p>
+                                        <p className="text-lg lg:text-xl font-bold text-yellow-300">{ticket.stationName}</p>
+                                    </>
+                                ) : (
+                                    <div className="flex items-center justify-center h-full">
+                                        <p className="text-slate-400 text-lg">-</p>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                        {/* Fill remaining grid cells if less than 4 tickets */}
+                        {Array.from({ length: Math.max(0, 4 - servingData.length) }).map((_, index) => (
+                            <div key={`placeholder-${index}`} className="bg-white/10 rounded-lg flex flex-col items-center justify-center text-center p-2">
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-slate-400 text-lg">-</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                     <div className="flex-shrink-0 h-2/5 overflow-hidden">
-                        <NowServing servingData={otherServingTickets} />
+                        <NowServing waitingTickets={waitingTickets || []} serviceMap={serviceMap} />
                     </div>
                 </>
             )}
