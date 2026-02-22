@@ -1,9 +1,9 @@
 
 import type {NextConfig} from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
-import type {runtimeCaching as PwaRuntimeCaching} from '@ducanh2912/next-pwa';
+import type { RuntimeCache } from '@ducanh2912/next-pwa';
 
-const runtimeCaching: PwaRuntimeCaching[] = [
+const runtimeCaching: RuntimeCache[] = [
     {
         urlPattern: /\.(?:jpg|jpeg|png|gif|svg|ico|webp)$/i,
         handler: 'CacheFirst',
