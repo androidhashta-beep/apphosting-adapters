@@ -22,19 +22,19 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
     }
     return (
        <div className="bg-gold text-black p-4 rounded-lg text-center h-full flex flex-col justify-center">
-            <p className="text-2xl uppercase tracking-widest font-semibold mb-2 flex-shrink-0">Now Serving</p>
+            <p className="text-3xl uppercase tracking-widest font-semibold mb-2 flex-shrink-0">Now Serving</p>
             <div className="grid grid-cols-3 items-center text-center flex-grow min-w-0">
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-8xl font-extrabold tracking-tight break-words">{ticket.ticketNumber}</p>
-                    <p className="text-2xl font-semibold mt-1">Ticket #</p>
+                    <p className="text-9xl font-extrabold tracking-tight break-words">{ticket.ticketNumber}</p>
+                    <p className="text-3xl font-semibold mt-1">Ticket #</p>
                 </div>
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-5xl font-bold break-words" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
-                    <p className="text-2xl font-semibold mt-1">Service</p>
+                    <p className="text-6xl font-bold break-words" title={ticket.serviceLabel}>{ticket.serviceLabel}</p>
+                    <p className="text-3xl font-semibold mt-1">Service</p>
                 </div>
                 <div className="flex flex-col justify-center items-center h-full px-2 min-w-0">
-                    <p className="text-5xl font-bold break-words">{ticket.stationName}</p>
-                    <p className="text-2xl font-semibold mt-1">Window</p>
+                    <p className="text-6xl font-bold break-words">{ticket.stationName}</p>
+                    <p className="text-3xl font-semibold mt-1">Window</p>
                 </div>
             </div>
         </div>
@@ -58,8 +58,8 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
                     {tickets.map((item) => (
                         <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-4 font-bold">
                             <span className="w-1/3 text-left break-words text-7xl">{item.ticketNumber}</span>
-                            <span className="w-1/3 text-left break-words text-4xl">{item.serviceLabel}</span>
-                            <span className="w-1/3 text-left break-words text-4xl">{item.stationName}</span>
+                            <span className="w-1/3 text-left break-words text-5xl">{item.serviceLabel}</span>
+                            <span className="w-1/3 text-left break-words text-5xl">{item.stationName}</span>
                         </li>
                     ))}
                 </ul>
@@ -86,7 +86,7 @@ const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[]
                     {waitingTickets.map((item, index) => (
                         <li key={item.id} className={cn("flex items-center p-4 font-bold", index === 0 && "bg-white/10")}>
                             <span className="w-1/2 text-left break-words text-7xl">{item.ticketNumber}</span>
-                            <span className="w-1/2 text-left break-words text-4xl">{serviceMap.get(item.type) || item.type}</span>
+                            <span className="w-1/2 text-left break-words text-5xl">{serviceMap.get(item.type) || item.type}</span>
                         </li>
                     ))}
                 </ul>
