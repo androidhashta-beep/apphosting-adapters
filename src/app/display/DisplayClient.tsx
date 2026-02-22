@@ -194,14 +194,23 @@ export function DisplayClient() {
           <NowServing servingTickets={servingData} waitingTickets={waitingTickets} serviceMap={serviceMap} />
         </div>
         
-        {/* Right Column */}
-        <div className="w-full h-full">
+        {/* Right Column: Split into two carousels */}
+        <div className="w-full h-full grid grid-rows-2 gap-4">
             <InfoPanel 
-              mediaItems={shuffledMedia} 
+              mediaItems={shuffledMedia.slice(0, Math.ceil(shuffledMedia.length / 2))} 
               backgroundMusic={settings?.backgroundMusic || null}
-              autoplayDelay={8000}
+              autoplayDelay={10000}
               isAnnouncing={isAnnouncing}
               masterVolume={masterVolume}
+              loop={true}
+            />
+            <InfoPanel 
+              mediaItems={shuffledMedia.slice(Math.ceil(shuffledMedia.length / 2))}
+              backgroundMusic={null} 
+              autoplayDelay={6000}
+              isAnnouncing={isAnnouncing}
+              masterVolume={masterVolume}
+              loop={true}
             />
         </div>
       </main>

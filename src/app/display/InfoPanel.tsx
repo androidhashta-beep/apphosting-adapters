@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -20,6 +21,7 @@ type InfoPanelProps = {
   autoplayDelay: number;
   isAnnouncing: boolean;
   masterVolume: number;
+  loop?: boolean;
 }
 
 function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean, onEnded: () => void }) {
@@ -57,7 +59,7 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
 }
 
 
-export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnouncing, masterVolume }: InfoPanelProps) {
+export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnouncing, masterVolume, loop = false }: InfoPanelProps) {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
@@ -161,6 +163,9 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
     <div className="relative h-full w-full bg-black/20 rounded-lg overflow-hidden">
         <Carousel
             className="w-full h-full"
+            opts={{
+              loop: loop,
+            }}
             plugins={[
             Autoplay({
                 delay: autoplayDelay,
