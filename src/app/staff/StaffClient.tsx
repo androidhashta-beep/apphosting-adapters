@@ -154,6 +154,7 @@ export function StaffClient() {
               key={station.id}
               station={station}
               ticket={ticket as Ticket | undefined}
+              allTickets={tickets || []}
               waitingCounts={waitingCounts}
             />
           );

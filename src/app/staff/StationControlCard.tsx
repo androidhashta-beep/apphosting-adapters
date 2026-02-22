@@ -12,16 +12,18 @@ import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
-import { collection, doc, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { doc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 export function StationControlCard({ 
   station,
   ticket,
+  allTickets,
   waitingCounts,
 }: { 
   station: Station;
   ticket: Ticket | undefined;
+  allTickets: Ticket[];
   waitingCounts: { [key: string]: number };
 }) {
   const { firestore } = useFirebase();
@@ -84,35 +86,29 @@ export function StationControlCard({
     }
 
     try {
-        const ticketsCollection = collection(firestore, "tickets");
-        const q = query(
-            ticketsCollection,
-            where("status", "==", "waiting"),
-            where("type", "in", station.serviceIds)
-        );
+      const waitingTicketsForStation = allTickets
+        .filter(t => t.status === 'waiting' && station.serviceIds?.includes(t.type))
+        .sort((a, b) => {
+            const timeA = a.createdAt as Timestamp;
+            const timeB = b.createdAt as Timestamp;
+            return timeA.toMillis() - timeB.toMillis();
+        });
 
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-            const sortedDocs = querySnapshot.docs.sort((a, b) => {
-                const timeA = a.data().createdAt as Timestamp;
-                const timeB = b.data().createdAt as Timestamp;
-                return timeA.toMillis() - timeB.toMillis();
-            });
-
-            const nextTicketDoc = sortedDocs[0];
-            const stationRef = doc(firestore, 'stations', station.id);
-            const ticketRef = doc(firestore, 'tickets', nextTicketDoc.id);
-            
-            updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicketDoc.id });
-            updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
-        } else {
-            toast({
-                variant: "default",
-                title: "Queue is empty",
-                description: `There are no waiting customers for the services offered at this station.`,
-            });
-        }
+      if (waitingTicketsForStation.length > 0) {
+        const nextTicket = waitingTicketsForStation[0];
+        
+        const stationRef = doc(firestore, 'stations', station.id);
+        const ticketRef = doc(firestore, 'tickets', nextTicket.id);
+        
+        updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicket.id });
+        updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
+      } else {
+        toast({
+            variant: "default",
+            title: "Queue is empty",
+            description: `There are no waiting customers for the services offered at this station.`,
+        });
+      }
     } catch (error: any) {
         if (error.code === 'unavailable' || error.code === 'network-request-failed') {
              toast({
