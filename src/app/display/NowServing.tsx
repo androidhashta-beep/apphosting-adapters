@@ -57,7 +57,7 @@ const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
              <ScrollArea className="flex-grow">
                 <ul className="divide-y divide-white/20">
                     {tickets.map((item) => (
-                        <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-4 text-5xl font-bold">
+                        <li key={`${item.ticketNumber}-${item.stationName}`} className="flex items-center p-4 text-7xl font-bold">
                             <span className="w-1/3 text-left break-words">{item.ticketNumber}</span>
                             <span className="w-1/3 text-left break-words">{item.serviceLabel}</span>
                             <span className="w-1/3 text-left break-words">{item.stationName}</span>
@@ -85,7 +85,7 @@ const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[]
             {waitingTickets.length > 0 ? (
                 <ul className="divide-y divide-white/20">
                     {waitingTickets.map((item, index) => (
-                        <li key={item.id} className={cn("flex items-center p-4 text-5xl font-bold", index === 0 && "bg-white/10")}>
+                        <li key={item.id} className={cn("flex items-center p-4 text-7xl font-bold", index === 0 && "bg-white/10")}>
                             <span className="w-1/2 text-left break-words">{item.ticketNumber}</span>
                             <span className="w-1/2 text-left break-words">{serviceMap.get(item.type) || item.type}</span>
                         </li>
