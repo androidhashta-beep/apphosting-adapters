@@ -36,13 +36,17 @@ service cloud.firestore {
 
     // Rule for the entire 'tickets' collection (for queries/lists)
     match /tickets {
-      allow list: if request.auth != null;
+      // Allow any client to list the tickets. This is needed for the display and staff dashboards.
+      allow list: if true;
     }
 
     // Rules for individual ticket documents
     match /tickets/{ticketId} {
-      allow get: if request.auth != null;
+      // Allow any client to get an individual ticket.
+      allow get: if true;
+      // Only authenticated users (including anonymous) can create tickets.
       allow create: if request.auth != null;
+      // Only staff members can update or delete tickets.
       allow update, delete: if isStaff();
     }
 
