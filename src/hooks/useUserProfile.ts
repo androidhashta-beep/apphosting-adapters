@@ -19,23 +19,26 @@ export function useUserProfile() {
   const { data: profile, isLoading: isProfileLoading, error } = useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
-    // This async function is defined inside the effect to capture the correct scope.
     const createProfileIfNeeded = async (currentUser: User, profileRef: DocumentReference) => {
+      // Never create a profile for anonymous users
+      if (currentUser.isAnonymous) {
+        return;
+      }
+      
       try {
         const profileDoc = await getDoc(profileRef);
         if (profileDoc.exists()) {
           return; // Profile already exists, do nothing.
         }
 
-        // Default new users to 'staff'. Admins must be manually promoted.
+        // Default new users to 'staff'. Admins must be manually promoted in Firestore.
         const newProfile: UserProfile = {
           uid: currentUser.uid,
-          email: currentUser.email || 'anonymous-user',
+          email: currentUser.email || `user-${currentUser.uid.substring(0,5)}@example.com`,
           displayName: currentUser.displayName || `User ${currentUser.uid.substring(0, 5)}`,
           role: 'staff',
         };
 
-        // Use the project's non-blocking update function for consistency and better error handling.
         setDocumentNonBlocking(profileRef, newProfile, { merge: false });
 
       } catch (e) {
@@ -43,8 +46,6 @@ export function useUserProfile() {
       }
     };
 
-    // This condition ensures we only try to create a profile when all dependencies are ready
-    // and a profile is actually needed.
     if (user && !isProfileLoading && !profile && userProfileRef) {
       createProfileIfNeeded(user, userProfileRef);
     }

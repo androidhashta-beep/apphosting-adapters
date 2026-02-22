@@ -18,8 +18,9 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, KeyRound } from 'lucide-react';
 import { doc } from 'firebase/firestore';
+import { AuthGuard } from '@/components/AuthGuard';
 
-export default function ChangePasswordPage() {
+function ChangePasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const auth = useAuth();
@@ -81,9 +82,8 @@ export default function ChangePasswordPage() {
       setIsLoading(false);
     }
   };
-
+  
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <form onSubmit={handleChangePassword}>
           <CardHeader className="text-center">
@@ -130,6 +130,15 @@ export default function ChangePasswordPage() {
           </CardFooter>
         </form>
       </Card>
-    </div>
-  );
+  )
+}
+
+export default function ChangePasswordPage() {
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+            <AuthGuard>
+                <ChangePasswordForm />
+            </AuthGuard>
+        </div>
+    )
 }

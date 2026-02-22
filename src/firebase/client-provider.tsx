@@ -3,7 +3,7 @@
 import React, { useMemo, type ReactNode, useEffect, useState } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
-import { signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 
 interface FirebaseClientProviderProps {
@@ -20,28 +20,12 @@ export function FirebaseClientProvider({
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
-    // This effect runs once to ensure we have an authenticated user.
-    // It's separate from the listener inside FirebaseProvider because
-    // this one *initiates* sign-in, while the other just *reports* state.
     const unsubscribe = onAuthStateChanged(
       firebaseServices.auth,
-      async (currentUser) => {
-        if (currentUser) {
-          setIsAuthLoading(false);
-        } else {
-          try {
-            await signInAnonymously(firebaseServices.auth);
-          } catch (error) {
-            console.error('Anonymous sign-in failed', error);
-            // In case of error, we stop loading to not block the app,
-            // though some parts might not work.
-          } finally {
-            // onAuthStateChanged will fire again with the new user,
-            // which will set isLoading to false. If it fails,
-            // this ensures we don't load forever.
-             setIsAuthLoading(false);
-          }
-        }
+      () => {
+        // onAuthStateChanged fires once on initial load with either a
+        // user or null. After that, we are no longer loading auth state.
+        setIsAuthLoading(false);
       }
     );
 

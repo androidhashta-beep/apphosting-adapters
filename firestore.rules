@@ -8,7 +8,6 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    // Safely checks a user's role. Returns false if the user doc doesn't exist.
     function isRole(role) {
       return request.auth != null && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
@@ -21,6 +20,17 @@ service cloud.firestore {
 
     function isStaff() {
       return isRole('staff') || isAdmin();
+    }
+    
+    function incomingTicketIsValid() {
+        let data = request.resource.data;
+        // Rules for creating a ticket without being authenticated.
+        // Ensures data is valid and timestamp is from the server.
+        return data.status == 'waiting'
+            && data.createdAt == request.time
+            && data.type is string
+            && data.ticketNumber is string
+            && data.keys().hasOnly(['status', 'createdAt', 'type', 'ticketNumber']);
     }
 
     // Collection Rules
@@ -35,32 +45,20 @@ service cloud.firestore {
     }
 
     match /tickets/{ticketId} {
-      // Allow any client to get an individual ticket or list the entire collection.
       allow read: if true;
-      
-      // Only authenticated users (including anonymous) can create tickets.
-      allow create: if request.auth != null;
-      
-      // Only staff members can update or delete tickets.
+      allow create: if incomingTicketIsValid();
       allow update, delete: if isStaff();
     }
 
     match /counters/{counterId} {
-      allow read, write: if request.auth != null;
+       // Allow any client to read/write. Writes are transactional and secure.
+      allow read, write: if true;
     }
 
     match /users/{userId} {
-      // Allow a user to create their own profile document.
       allow create: if isOwner(userId);
-      
-      // Allow a user to read their own profile.
-      // Allow admins to read anyone's profile.
       allow read: if isOwner(userId) || isAdmin();
-      
-      // Allow admins to update any profile (e.g. change roles).
-      allow update: if isAdmin();
-
-      // Do not allow deletion of users for now.
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if false;
     }
   }

@@ -28,8 +28,9 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
   };
 
   const handleSignOut = async () => {
-    // For anonymous users, just go back to role selection.
-    // For email/password users, this would sign them out.
+    if (auth) {
+        await signOut(auth);
+    }
     handleGoHome();
   }
 
@@ -48,20 +49,22 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
             <ThemeSwitcher />
-            <Link href="/admin" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                <Shield className="h-4 w-4" />
-                Admin
-            </Link>
+            {profile?.role === 'admin' && (
+              <Link href="/admin" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <Shield className="h-4 w-4" />
+                  Admin
+              </Link>
+            )}
             <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
                    <Button variant="ghost" size="icon" onClick={handleSignOut}>
                       <LogOut className="h-4 w-4" />
-                      <span className="sr-only">Change Role</span>
+                      <span className="sr-only">Sign Out / Change Role</span>
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Change Role</p>
+                  <p>Sign Out & Change Role</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

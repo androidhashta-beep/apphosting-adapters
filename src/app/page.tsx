@@ -61,7 +61,9 @@ export default function RoleSelectorPage() {
         const savedRole = localStorage.getItem(APP_ROLE_KEY) as Role | null;
 
         if (savedRole && roles.some(r => r.id === savedRole)) {
-            router.replace(`/${savedRole}`);
+            // For staff role, we always want to verify login status.
+            // The AuthGuard on the staff page will handle redirects.
+             router.replace(`/${savedRole}`);
         } else {
              hasDecidedToShowSelector.current = true;
              setIsLoading(false);
@@ -71,7 +73,12 @@ export default function RoleSelectorPage() {
 
     const handleRoleSelect = (role: Role) => {
         localStorage.setItem(APP_ROLE_KEY, role);
-        router.push(`/${role}`);
+        if (role === 'staff') {
+            // The AuthGuard on the staff page will handle redirecting to login if needed.
+            router.push('/staff');
+        } else {
+            router.push(`/${role}`);
+        }
     };
     
     if (isLoading || isUserLoading) {
