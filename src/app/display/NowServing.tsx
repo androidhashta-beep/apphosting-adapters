@@ -3,102 +3,65 @@
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Ticket } from '@/lib/types';
+import React from 'react';
 
-// The data for a single row in the "now serving" list
 type ServingInfo = {
     stationName: string;
     ticketNumber: string;
     serviceLabel: string;
+    calledAt: any;
 };
 
-// Redesigned for maximum impact and clarity
 const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
     if (!ticket) {
         return (
-            <div className="bg-slate-800 text-slate-400 rounded-lg text-center flex items-center justify-center h-full">
-                <p className="text-3xl font-bold">Waiting for next customer...</p>
+            <div className="bg-slate-800/50 border border-slate-700 text-slate-300 rounded-xl text-center flex items-center justify-center h-full p-4">
+                <p className="text-4xl font-bold">Waiting for next customer...</p>
             </div>
         );
     }
     return (
-       <div className="bg-gradient-to-br from-gold/80 to-gold text-black p-4 rounded-lg h-full flex flex-col justify-center items-center text-center shadow-[0_0_30px_-5px_hsl(var(--gold))]">
-            <p className="text-2xl uppercase tracking-widest font-semibold opacity-80">Now Serving</p>
-            <p className="font-extrabold tracking-tighter leading-none my-2" style={{ fontSize: 'clamp(5rem, 20vh, 12rem)' }}>
+       <div className="bg-primary text-primary-foreground p-6 rounded-xl h-full flex flex-col justify-around items-center text-center shadow-2xl">
+            <h2 className="text-3xl uppercase tracking-widest font-semibold opacity-90">Now Serving</h2>
+            
+            <p
+                className="font-extrabold tracking-tighter leading-none"
+                style={{ fontSize: 'clamp(8rem, 22vh, 16rem)' }}
+            >
                 {ticket.ticketNumber}
             </p>
-            <div className="flex items-end justify-center gap-8 w-full">
-                 <div className="flex-1 min-w-0">
-                    <p className="text-3xl font-bold truncate">{ticket.serviceLabel}</p>
-                    <p className="text-lg font-semibold opacity-80">Service</p>
-                </div>
-                <div className="flex-1 min-w-0">
-                    <p className="text-3xl font-bold truncate">{ticket.stationName}</p>
-                    <p className="text-lg font-semibold opacity-80">Window</p>
-                </div>
+            
+            <div className="text-center">
+                 <p className="text-2xl font-semibold opacity-80 -mb-1">Please proceed to</p>
+                 <p className="text-5xl font-bold truncate">{ticket.stationName}</p>
             </div>
         </div>
     );
 };
 
-// List for all others being served
-const AllServingList = ({ tickets }: { tickets: ServingInfo[] }) => (
-    <div className="flex flex-col bg-black/30 rounded-lg overflow-hidden h-full">
-        <h2 className="text-xl font-bold text-center p-3 text-gold flex-shrink-0">
-            Also Serving
+const QueueList = ({ title, children, headers }: { title: string; children: React.ReactNode; headers: string[] }) => (
+    <div className="flex flex-col bg-black/30 rounded-xl overflow-hidden h-full">
+        <h2 className="text-2xl font-bold text-center p-3 text-white/90 flex-shrink-0">
+            {title}
         </h2>
-        <div className="grid grid-cols-3 px-4 py-2 font-semibold text-white/70 border-y border-white/10 flex-shrink-0">
-            <span className="text-left">Ticket #</span>
-            <span className="text-left">Service</span>
-            <span className="text-right">Window</span>
-        </div>
-        {tickets.length > 0 ? (
-             <ScrollArea className="flex-grow">
-                <ul className="divide-y divide-white/10">
-                    {tickets.map((item) => (
-                        <li key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-3 items-center px-4 py-3 font-medium">
-                            <span className="text-left truncate text-3xl font-bold">{item.ticketNumber}</span>
-                            <span className="text-left truncate text-xl">{item.serviceLabel}</span>
-                            <span className="text-right truncate text-xl">{item.stationName}</span>
-                        </li>
-                    ))}
-                </ul>
-            </ScrollArea>
-        ) : (
-            <div className="flex h-full items-center justify-center text-center text-slate-400 p-4">
-                <p className="text-lg">No other customers are being served.</p>
-            </div>
-        )}
-    </div>
-);
-
-// List for the waiting queue
-const WaitingQueue = ({ waitingTickets, serviceMap }: { waitingTickets: Ticket[], serviceMap: Map<string, string> }) => (
-    <div className="flex flex-col bg-black/20 rounded-lg overflow-hidden h-full">
-        <h2 className="text-xl font-bold text-center p-3 flex-shrink-0">Waiting Queue</h2>
         <div className="grid grid-cols-2 px-4 py-2 font-semibold text-white/70 border-y border-white/10 flex-shrink-0">
-            <span className="text-left">Ticket #</span>
-            <span className="text-left">Service</span>
+            <span className="text-left">{headers[0]}</span>
+            <span className="text-left">{headers[1]}</span>
         </div>
         <ScrollArea className="flex-grow">
-            {waitingTickets.length > 0 ? (
-                <ul className="divide-y divide-white/10">
-                    {waitingTickets.slice(0, 50).map((item, index) => ( // Limit to 50 to prevent performance issues
-                        <li key={item.id} className={cn(
-                            "grid grid-cols-2 items-center px-4 py-3 font-medium",
-                        )}>
-                            <span className="text-left truncate text-3xl font-bold">{item.ticketNumber}</span>
-                            <span className="text-left truncate text-xl">{serviceMap.get(item.type) || item.type}</span>
-                        </li>
-                    ))}
-                </ul>
+            {React.Children.count(children) > 0 ? (
+                <div className="grid grid-cols-2 items-center px-4 gap-x-4">
+                    {children}
+                </div>
             ) : (
-                <div className="flex h-full items-center justify-center text-center text-slate-400">
-                    <p className="text-lg">The queue is currently empty.</p>
+                <div className="flex h-full items-center justify-center text-center text-slate-400 p-4">
+                    <p className="text-lg">The queue is empty.</p>
                 </div>
             )}
         </ScrollArea>
     </div>
 );
+
 
 export function NowServing({
   servingTickets,
@@ -110,26 +73,34 @@ export function NowServing({
   serviceMap: Map<string, string>;
 }) {
   const mostRecentTicket = servingTickets.length > 0 ? servingTickets[0] : null;
-
-  // The "AllServingList" should show all tickets *except* the most recent one.
   const otherServingTickets = servingTickets.slice(1);
 
   return (
-    // Use a grid layout to enforce three equal rows
-    <div className="h-full grid grid-rows-3 gap-4">
+    <div className="h-full grid grid-rows-2 gap-4">
       {/* Top Row: Most Recent */}
       <div className="min-h-0">
         <MostRecentCard ticket={mostRecentTicket} />
       </div>
 
-      {/* Middle Row: All Other Serving */}
-      <div className="min-h-0">
-          <AllServingList tickets={otherServingTickets} />
-      </div>
+      {/* Bottom Row: Split into Also Serving and Waiting */}
+      <div className="min-h-0 grid grid-cols-2 gap-4">
+          <QueueList title="Also Serving" headers={['Ticket #', 'Window']}>
+            {otherServingTickets.map(item => (
+                <React.Fragment key={`${item.ticketNumber}-${item.stationName}`}>
+                    <p className="text-left truncate text-4xl font-bold py-2 border-b border-white/10">{item.ticketNumber}</p>
+                    <p className="text-left truncate text-2xl self-center py-2 border-b border-white/10">{item.stationName}</p>
+                </React.Fragment>
+            ))}
+          </QueueList>
 
-      {/* Bottom Row: Waiting */}
-      <div className="min-h-0">
-          <WaitingQueue waitingTickets={waitingTickets} serviceMap={serviceMap} />
+          <QueueList title="Waiting" headers={['Ticket #', 'Service']}>
+            {waitingTickets.slice(0, 50).map(item => (
+                 <React.Fragment key={item.id}>
+                    <p className="text-left truncate text-4xl font-bold py-2 border-b border-white/10">{item.ticketNumber}</p>
+                    <p className="text-left truncate text-2xl self-center py-2 border-b border-white/10">{serviceMap.get(item.type) || item.type}</p>
+                </React.Fragment>
+            ))}
+          </QueueList>
       </div>
     </div>
   );
