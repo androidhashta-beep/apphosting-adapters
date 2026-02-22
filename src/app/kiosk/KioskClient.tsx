@@ -17,20 +17,20 @@ import { Clock } from "@/app/display/Clock";
 
 const KioskButton = ({ service, isPrinting, onClick }: { service: Service, isPrinting: string | null, onClick: (id: string) => void }) => (
     <div className="flex justify-center items-center">
-        <div className="w-full aspect-square">
+        <div className="w-full h-80">
             <Button
                 variant="outline"
-                className="w-full h-full flex flex-col items-center justify-center gap-8 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-10 cursor-large-pointer whitespace-normal"
+                className="w-full h-full flex flex-col items-center justify-center gap-6 rounded-2xl shadow-lg transform transition-transform hover:scale-105 border-primary text-primary hover:bg-primary/5 p-8 cursor-large-pointer whitespace-normal"
                 onClick={() => onClick(service.id)}
                 disabled={!!isPrinting}
             >
                 {isPrinting === service.id ? (
-                    <Loader2 className="h-24 w-24 animate-spin" />
+                    <Loader2 className="h-20 w-20 animate-spin" />
                 ) : (
-                    <Icon name={service.icon} className="h-24 w-24" />
+                    <Icon name={service.icon} className="h-20 w-20" />
                 )}
                 <div className="flex flex-col text-center">
-                    <span className="text-5xl font-semibold">
+                    <span className="text-4xl font-semibold">
                     {isPrinting === service.id
                         ? 'Preparing Ticket...'
                         : !!isPrinting
@@ -49,7 +49,7 @@ const KioskButton = ({ service, isPrinting, onClick }: { service: Service, isPri
 
 const ButtonSkeleton = () => (
     <div className="w-full flex justify-center items-center">
-        <div className="w-full aspect-square bg-muted rounded-2xl animate-pulse" />
+        <div className="w-full h-80 bg-muted rounded-2xl animate-pulse" />
     </div>
 );
 
