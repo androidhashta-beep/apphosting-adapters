@@ -46,7 +46,7 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
     <video
       ref={videoRef}
       key={src} // Important to re-mount the video element on src change
-      className="absolute top-0 left-0 w-full h-full object-cover"
+      className="absolute top-0 left-0 w-full h-full object-contain"
       onEnded={onEnded}
       playsInline
       autoPlay
@@ -188,7 +188,7 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
                             src={encodeURI(item.imageUrl)}
                             alt={item.description}
                             fill
-                            className="object-cover"
+                            className="object-contain"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                    )}
