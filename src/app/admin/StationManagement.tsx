@@ -7,13 +7,14 @@ import {
   doc,
   collection,
   writeBatch,
-  runTransaction,
   arrayUnion,
   arrayRemove,
   updateDoc,
   deleteDoc,
   getDocs,
   query,
+  setDoc,
+  runTransaction,
 } from 'firebase/firestore';
 import type { Settings, Station, Service, ImagePlaceholder, AudioTrack } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -82,32 +83,32 @@ export function StationManagement() {
     if (!firestore) return;
 
     try {
-        const stationsCollection = collection(firestore, 'stations');
-        
-        await runTransaction(firestore, async (transaction) => {
-            const stationsQuery = query(stationsCollection);
-            const stationSnapshot = await transaction.get(stationsQuery);
-            
-            const existingNames = stationSnapshot.docs.map(doc => doc.data().name);
-            let nextStationNumber = 1;
-            while (existingNames.includes(`Window ${nextStationNumber}`)) {
-              nextStationNumber++;
-            }
+      const stationsCollection = collection(firestore, 'stations');
+      const stationSnapshot = await getDocs(stationsCollection);
 
-            const newStationName = `Window ${nextStationNumber}`;
-            const newStationId = `window-${nextStationNumber}`;
-            
-            const stationRef = doc(firestore, 'stations', newStationId);
-            transaction.set(stationRef, {
-                id: newStationId,
-                name: newStationName,
-                status: 'closed',
-                serviceIds: [],
-            });
-        });
-        toast({ title: "Station Added", description: "A new station has been created." });
+      const existingNames = stationSnapshot.docs.map((doc) => doc.data().name);
+      let nextStationNumber = 1;
+      while (existingNames.includes(`Window ${nextStationNumber}`)) {
+        nextStationNumber++;
+      }
+
+      const newStationName = `Window ${nextStationNumber}`;
+      const newStationId = `window-${nextStationNumber}`;
+
+      const stationRef = doc(firestore, 'stations', newStationId);
+      await setDoc(stationRef, {
+        id: newStationId,
+        name: newStationName,
+        status: 'closed',
+        serviceIds: [],
+      });
+
+      toast({
+        title: 'Station Added',
+        description: 'A new station has been created.',
+      });
     } catch (error: any) {
-        handleFirestoreError(error, toast, 'Add Station');
+      handleFirestoreError(error, toast, 'Add Station');
     }
   };
   
