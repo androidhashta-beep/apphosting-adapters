@@ -129,7 +129,7 @@ export function KioskClient() {
                 ticketNumber,
                 type,
                 status: 'waiting' as const,
-                createdAt: new Date(),
+                createdAt: Timestamp.now(),
             };
             newTicketPayload = finalTicketPayload;
 
