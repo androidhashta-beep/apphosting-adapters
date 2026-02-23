@@ -50,7 +50,6 @@ function VideoPlayer({ src, isMuted, onEnded, isStarted }: { src: string; isMute
       className="absolute top-0 left-0 w-full h-full object-contain"
       onEnded={onEnded}
       playsInline
-      autoPlay={isStarted} // Only autoplay if started
       muted={isMuted}
     >
       <source src={encodeURI(src)} type="video/mp4" />
