@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Ticket, Settings, Station } from "@/lib/types";
@@ -11,9 +10,29 @@ import { Megaphone, Check, SkipForward, Ban, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, Timestamp } from "firebase/firestore";
+import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { doc, Timestamp, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+
+
+// Generic error handler for this component
+const handleFirestoreError = (error: any, toast: any, operation: string) => {
+    if (error.code === 'unavailable' || error.code === 'network-request-failed') {
+        toast({
+            variant: "destructive",
+            title: "CRITICAL: Connection Blocked by Firewall",
+            description: `The '${operation}' operation failed because your PC's firewall is blocking the connection. Please allow the app through your firewall.`,
+            duration: 20000,
+        });
+    } else {
+        toast({
+            variant: "destructive",
+            title: `Could not ${operation}`,
+            description: error.message || "An unexpected error occurred. Please try again.",
+        });
+    }
+};
+
 
 export function StationControlCard({ 
   station,
@@ -66,6 +85,7 @@ export function StationControlCard({
     if (ticket && firestore) {
       const stationRef = doc(firestore, 'stations', station.id);
       const ticketRef = doc(firestore, 'tickets', ticket.id);
+      
       updateDocumentNonBlocking(stationRef, { currentTicketId: null });
       updateDocumentNonBlocking(ticketRef, { status: 'served', servedAt: Timestamp.now() });
     }
@@ -75,6 +95,7 @@ export function StationControlCard({
     if (ticket && firestore) {
       const stationRef = doc(firestore, 'stations', station.id);
       const ticketRef = doc(firestore, 'tickets', ticket.id);
+      
       updateDocumentNonBlocking(stationRef, { currentTicketId: null });
       updateDocumentNonBlocking(ticketRef, { status: 'skipped' });
     }
@@ -96,12 +117,13 @@ export function StationControlCard({
 
       if (waitingTicketsForStation.length > 0) {
         const nextTicket = waitingTicketsForStation[0];
-        
         const stationRef = doc(firestore, 'stations', station.id);
         const ticketRef = doc(firestore, 'tickets', nextTicket.id);
-        
-        updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicket.id });
-        updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
+
+        // Not atomic, but less likely to cause a server crash.
+        await updateDoc(stationRef, { currentTicketId: nextTicket.id });
+        await updateDoc(ticketRef, { status: 'serving', servedBy: station.id, calledAt: Timestamp.now() });
+
       } else {
         toast({
             variant: "default",
@@ -110,35 +132,28 @@ export function StationControlCard({
         });
       }
     } catch (error: any) {
-        if (error.code === 'unavailable' || error.code === 'network-request-failed') {
-             toast({
-                variant: "destructive",
-                title: "CRITICAL: Connection Blocked by Firewall",
-                description: "The application cannot connect to the local database because your PC's firewall is blocking it. Please allow the app through your firewall to continue.",
-                duration: 20000,
-            });
-        } else {
-            toast({
-                variant: "destructive",
-                title: "Could not call ticket",
-                description: error.message || "An unexpected error occurred. Please try again.",
-            });
-        }
+        handleFirestoreError(error, toast, 'call next ticket');
     }
   };
 
-  const handleStatusChange = (checked: boolean) => {
-    if (firestore) {
-      const stationRef = doc(firestore, 'stations', station.id);
-      const newStatus = checked ? 'open' : 'closed';
-      
+  const handleStatusChange = async (checked: boolean) => {
+    if (!firestore) return;
+
+    const stationRef = doc(firestore, 'stations', station.id);
+    const newStatus = checked ? 'open' : 'closed';
+    
+    try {
       if (newStatus === 'closed' && station.currentTicketId && ticket) {
+        // Return ticket to queue, then close station. Not atomic.
         const ticketRef = doc(firestore, 'tickets', ticket.id);
-        updateDocumentNonBlocking(ticketRef, { status: 'waiting', servedBy: null, calledAt: null });
-        updateDocumentNonBlocking(stationRef, { status: newStatus, currentTicketId: null });
+        await updateDoc(ticketRef, { status: 'waiting', servedBy: null, calledAt: null });
+        await updateDoc(stationRef, { status: newStatus, currentTicketId: null });
       } else {
-        updateDocumentNonBlocking(stationRef, { status: newStatus });
+        // Just open/close the station if it's empty
+        await updateDoc(stationRef, { status: newStatus });
       }
+    } catch (error: any) {
+      handleFirestoreError(error, toast, 'change station status');
     }
   };
 
