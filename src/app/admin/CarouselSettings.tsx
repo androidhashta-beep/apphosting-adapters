@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { Settings, ImagePlaceholder, AudioTrack } from '@/lib/types';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase/provider';
 import { doc, runTransaction } from 'firebase/firestore';
 import {
   Card,

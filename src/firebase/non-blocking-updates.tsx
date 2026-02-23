@@ -10,7 +10,7 @@ import {
   SetOptions,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import {FirestorePermissionError} from '@/firebase/errors';
+import { FirestorePermissionError } from '@/firebase/errors';
 import { toast } from '@/hooks/use-toast';
 
 const handleFirestoreError = (error: any, operation: string, path: string, data?: any) => {

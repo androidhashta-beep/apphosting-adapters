@@ -7,12 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import type { Ticket, Settings, Station } from '@/lib/types';
-import {
-  useCollection,
-  useFirebase,
-  useMemoFirebase,
-  useDoc,
-} from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useFirebase, useMemoFirebase } from '@/firebase/provider';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';

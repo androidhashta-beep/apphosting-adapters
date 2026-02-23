@@ -7,11 +7,12 @@ import type { Ticket, Service, Settings } from "@/lib/types";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { PrintableTicket } from "./PrintableTicket";
 import { Icon } from "@/lib/icons";
-import { useDoc, useFirebase, useMemoFirebase } from "@/firebase";
-import { collection, doc, runTransaction, Timestamp } from "firebase/firestore";
-import { Loader2 } from "lucide-react";
+import { useDoc } from "@/firebase/firestore/use-doc";
+import { useFirebase, useMemoFirebase } from "@/firebase/provider";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
+import { collection, doc, runTransaction, Timestamp } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Clock } from "@/app/display/Clock";
 

@@ -3,7 +3,9 @@
 
 import { useEffect } from 'react';
 import { doc, getDoc, type DocumentReference } from 'firebase/firestore';
-import { useUser, useDoc, useFirebase, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirebase, useMemoFirebase } from '@/firebase/provider';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { UserProfile } from '@/lib/types';
 import type { User } from 'firebase/auth';
 

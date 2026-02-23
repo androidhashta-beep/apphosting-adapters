@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { updatePassword } from 'firebase/auth';
-import { useAuth, useFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useAuth, useFirebase } from '@/firebase/provider';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import {
   Card,

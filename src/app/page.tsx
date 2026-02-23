@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Ticket, UsersRound, Loader2, Monitor } from 'lucide-react';
 import { PageWrapper } from '@/components/PageWrapper';
-import { useUser } from '@/firebase';
+import { useUser } from '@/firebase/provider';
 
 const APP_ROLE_KEY = 'app-instance-role';
 

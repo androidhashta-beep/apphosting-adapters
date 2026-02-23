@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { suggestStationAssignments, SuggestStationAssignmentsInput, SuggestStationAssignmentsOutput } from '@/ai/flows/suggest-station-assignments';
-import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useFirebase, useMemoFirebase } from '@/firebase/provider';
 import { collection } from 'firebase/firestore';
 import type { Ticket, Station } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';

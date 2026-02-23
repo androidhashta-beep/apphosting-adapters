@@ -2,11 +2,24 @@
 
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
-import { initializeFirebase } from '@/firebase';
-import type { FirebaseApp } from 'firebase/app';
-import type { Auth } from 'firebase/auth';
-import type { Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { firebaseConfig } from './config';
 import { Loader2 } from 'lucide-react';
+
+function initializeFirebase() {
+  const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  
+  const auth = getAuth(app);
+  const firestore = getFirestore(app);
+
+  return {
+    firebaseApp: app,
+    auth,
+    firestore,
+  };
+}
 
 interface FirebaseServices {
   firebaseApp: FirebaseApp;

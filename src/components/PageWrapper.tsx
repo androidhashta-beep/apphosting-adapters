@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, LogOut, Shield, LogIn } from "lucide-react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
-import { useAuth } from "@/firebase";
+import { useAuth } from "@/firebase/provider";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { signOut } from "firebase/auth";
 import { Button } from "./ui/button";

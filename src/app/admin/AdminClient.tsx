@@ -17,12 +17,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  useDoc,
-  useFirebase,
-  setDocumentNonBlocking,
-  useMemoFirebase,
-} from '@/firebase';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useFirebase, useMemoFirebase } from '@/firebase/provider';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { doc } from 'firebase/firestore';
 import { StationManagement } from './StationManagement';
 import { CarouselSettings } from './CarouselSettings';

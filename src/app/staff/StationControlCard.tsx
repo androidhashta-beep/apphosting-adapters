@@ -11,7 +11,9 @@ import { Megaphone, Check, SkipForward, Ban, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
+import { useFirebase, useMemoFirebase } from "@/firebase/provider";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useDoc } from "@/firebase/firestore/use-doc";
 import { doc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 

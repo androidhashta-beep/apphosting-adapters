@@ -5,12 +5,9 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { Ticket, Settings, Station, Service } from '@/lib/types';
-import {
-  useCollection,
-  useFirebase,
-  useMemoFirebase,
-  useDoc,
-} from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { useDoc } from '@/firebase/firestore/use-doc';
+import { useFirebase, useMemoFirebase } from '@/firebase/provider';
 import { collection, doc, query, where, Timestamp } from 'firebase/firestore';
 import { NowServing } from './NowServing';
 import { Skeleton } from '@/components/ui/skeleton';
