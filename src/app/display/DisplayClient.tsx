@@ -68,9 +68,16 @@ export function DisplayClient() {
     return allTickets
       .filter((t) => t.status === 'waiting')
       .sort((a, b) => {
-        const timeA = a.createdAt;
-        const timeB = b.createdAt;
-        return timeA.toMillis() - timeB.toMillis();
+        // Robustly get date object from Firestore timestamp
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : null);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : null);
+  
+        if (dateA && dateB) {
+            return dateA.getTime() - dateB.getTime();
+        }
+        if (dateA) return -1; // Put items with valid dates first
+        if (dateB) return 1;
+        return 0; // Keep order if both are invalid
       });
   }, [allTickets]);
 
@@ -94,9 +101,11 @@ export function DisplayClient() {
         calledAt: ticket?.calledAt,
       };
     }).sort((a, b) => {
-        if (!a.calledAt) return 1;
-        if (!b.calledAt) return -1;
-        return (b.calledAt as Timestamp).toMillis() - (a.calledAt as Timestamp).toMillis();
+        const calledAtA = a.calledAt as Timestamp | undefined;
+        const calledAtB = b.calledAt as Timestamp | undefined;
+        if (!calledAtA) return 1;
+        if (!calledAtB) return -1;
+        return calledAtB.toMillis() - calledAtA.toMillis();
     });
 
     return data;

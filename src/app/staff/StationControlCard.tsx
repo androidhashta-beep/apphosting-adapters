@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useFirebase, useMemoFirebase } from "@/firebase/provider";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useDoc } from "@/firebase/firestore/use-doc";
-import { doc, Timestamp } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -93,9 +93,16 @@ export function StationControlCard({
     const waitingTicketsForStation = allTickets
       .filter(t => t.status === 'waiting' && station.serviceIds?.includes(t.type))
       .sort((a, b) => {
-          const timeA = a.createdAt as Timestamp;
-          const timeB = b.createdAt as Timestamp;
-          return timeA.toMillis() - timeB.toMillis();
+        // Robustly get date object from Firestore timestamp
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : null);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : null);
+  
+        if (dateA && dateB) {
+            return dateA.getTime() - dateB.getTime();
+        }
+        if (dateA) return -1; // Put items with valid dates first
+        if (dateB) return 1;
+        return 0; // Keep order if both are invalid
       });
 
     if (waitingTicketsForStation.length > 0) {
