@@ -120,7 +120,7 @@ export function KioskClient() {
                 }
             }
             
-            transaction.set(counterRef, { count: newNumber, lastReset: Timestamp.now() }, { merge: true });
+            transaction.set(counterRef, { count: newNumber, lastReset: new Date() }, { merge: true });
 
             const ticketNumber = newNumber.toString();
 
@@ -128,7 +128,7 @@ export function KioskClient() {
                 ticketNumber,
                 type,
                 status: 'waiting' as const,
-                createdAt: Timestamp.now(),
+                createdAt: new Date(),
             };
             newTicketPayload = finalTicketPayload;
 

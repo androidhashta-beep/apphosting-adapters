@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFirebase, updateDocumentNonBlocking, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { doc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -55,7 +55,7 @@ export function StationControlCard({
   const callAgain = () => {
     if (ticket && firestore) {
       const ticketRef = doc(firestore, 'tickets', ticket.id);
-      updateDocumentNonBlocking(ticketRef, { calledAt: serverTimestamp() });
+      updateDocumentNonBlocking(ticketRef, { calledAt: new Date() });
       toast({
         title: 'Re-announcing Ticket',
         description: `Ticket ${ticket.ticketNumber} is being announced again on the public display.`,
@@ -69,7 +69,7 @@ export function StationControlCard({
       const ticketRef = doc(firestore, 'tickets', ticket.id);
       
       updateDocumentNonBlocking(stationRef, { currentTicketId: null });
-      updateDocumentNonBlocking(ticketRef, { status: 'served', servedAt: serverTimestamp() });
+      updateDocumentNonBlocking(ticketRef, { status: 'served', servedAt: new Date() });
     }
   };
 
@@ -103,7 +103,7 @@ export function StationControlCard({
 
       // Not atomic, but this will prevent server crashes.
       updateDocumentNonBlocking(stationRef, { currentTicketId: nextTicket.id });
-      updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: serverTimestamp() });
+      updateDocumentNonBlocking(ticketRef, { status: 'serving', servedBy: station.id, calledAt: new Date() });
 
     } else {
       toast({
