@@ -34,12 +34,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
 import { signOut } from 'firebase/auth';
 import { OperationalSuggestions } from './OperationalSuggestions';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 export function AdminClient() {
   const router = useRouter();
   const { firestore } = useFirebase();
   const auth = useAuth();
   const { toast } = useToast();
+  const { profile, isLoading: isProfileLoading } = useUserProfile();
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -115,8 +117,7 @@ export function AdminClient() {
   
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
-    sessionStorage.setItem('force-role-selection', 'true');
-    router.push('/');
+    window.location.assign('/');
   };
 
   const handleSignOut = async () => {
@@ -177,6 +178,14 @@ export function AdminClient() {
             Admin Panel
           </h1>
           <div className="flex items-center gap-4">
+            {isProfileLoading ? (
+                <Skeleton className="h-8 w-28 hidden sm:block" />
+            ) : profile ? (
+                <div className="text-sm text-right hidden sm:block">
+                    <p className="font-semibold text-foreground truncate">{profile.displayName}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
+                </div>
+            ) : null}
             <ThemeSwitcher />
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" />

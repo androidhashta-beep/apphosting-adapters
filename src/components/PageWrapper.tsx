@@ -16,17 +16,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "./ui/skeleton";
 
 export function PageWrapper({ children, title, showBackButton = true }: { children: React.ReactNode, title: string, showBackButton?: boolean }) {
   const router = useRouter();
   const auth = useAuth();
-  const { profile } = useUserProfile();
+  const { profile, isLoading: isProfileLoading } = useUserProfile();
   const { toast } = useToast();
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
-    sessionStorage.setItem('force-role-selection', 'true');
-    router.push('/');
+    window.location.assign('/');
   };
 
   const handleSignOut = async () => {
@@ -61,6 +61,14 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           </div>
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
+            {isProfileLoading ? (
+                <Skeleton className="h-8 w-28 hidden sm:block" />
+            ) : profile ? (
+                <div className="text-sm text-right hidden sm:block">
+                    <p className="font-semibold text-foreground truncate">{profile.displayName}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
+                </div>
+            ) : null}
             <ThemeSwitcher />
             {profile?.role === 'admin' && (
               <Link href="/admin" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
