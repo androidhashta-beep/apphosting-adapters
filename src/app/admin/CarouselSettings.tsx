@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import type { Settings, ImagePlaceholder, AudioTrack } from '@/lib/types';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase/provider';
+import { useFirebase, useMemoFirebase } from '@/firebase/provider';
+import { useDoc } from '@/firebase/firestore/use-doc';
 import { doc, runTransaction } from 'firebase/firestore';
 import {
   Card,
