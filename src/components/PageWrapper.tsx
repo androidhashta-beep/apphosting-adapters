@@ -15,11 +15,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useToast } from "@/hooks/use-toast";
 
 export function PageWrapper({ children, title, showBackButton = true }: { children: React.ReactNode, title: string, showBackButton?: boolean }) {
   const router = useRouter();
   const auth = useAuth();
   const { profile } = useUserProfile();
+  const { toast } = useToast();
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
@@ -28,10 +30,21 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
   };
 
   const handleSignOut = async () => {
-    if (auth) {
+    try {
         await signOut(auth);
+        toast({
+            title: "Signed Out",
+            description: "You have been successfully signed out."
+        });
+        handleGoHome();
+    } catch (error) {
+        console.error("Sign out failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Sign Out Failed",
+            description: "Could not sign out. Please try again.",
+        });
     }
-    handleGoHome();
   }
 
   return (

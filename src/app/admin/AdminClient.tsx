@@ -120,8 +120,21 @@ export function AdminClient() {
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
-    handleGoHome();
+    try {
+      await signOut(auth);
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out."
+      });
+      handleGoHome();
+    } catch (error) {
+       console.error("Sign out failed:", error);
+       toast({
+         variant: "destructive",
+         title: "Sign Out Failed",
+         description: "Could not sign out. Please try again.",
+       });
+    }
   };
 
   const handleCompanySettingsSave = () => {
