@@ -14,7 +14,7 @@ import {
   getDocs,
   query,
   setDoc,
-  runTransaction,
+  getDoc,
 } from 'firebase/firestore';
 import type { Settings, Station, Service, ImagePlaceholder, AudioTrack } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -132,7 +132,7 @@ export function StationManagement() {
   };
 
   const handleRestoreDefaults = async () => {
-    if (!firestore) return;
+    if (!firestore || !settingsRef) return;
 
     toast({ title: "Restoring Defaults", description: "Applying default configuration..." });
       
@@ -143,24 +143,27 @@ export function StationManagement() {
         stationsQuerySnapshot.forEach(doc => {
             batch.delete(doc.ref);
         });
+        
+        const currentSettingsDoc = await getDoc(settingsRef);
+        const currentSettings = currentSettingsDoc.exists() ? currentSettingsDoc.data() as Settings : null;
 
-        if (settings?.defaultConfiguration?.stations?.length) {
-            const { services: defaultServices, stations: defaultStations } = settings.defaultConfiguration;
+        let toastTitle: string;
+        let toastDescription: string;
+        let toastDuration: number | undefined;
 
-            const settingsDocRef = doc(firestore, 'settings', 'app');
-            batch.set(settingsDocRef, { services: defaultServices || [], defaultConfiguration: settings.defaultConfiguration }, { merge: true });
+        if (currentSettings?.defaultConfiguration?.stations?.length) {
+            const { services: defaultServices, stations: defaultStations } = currentSettings.defaultConfiguration;
+            
+            batch.set(settingsRef, { services: defaultServices || [] }, { merge: true });
 
             (defaultStations || []).forEach((station: Station) => {
                 const stationRef = doc(firestore, 'stations', station.id);
                 batch.set(stationRef, station);
             });
 
-            await batch.commit();
-
-            toast({
-                title: "Custom Defaults Restored",
-                description: `Configuration restored to your saved default.`
-            });
+            toastTitle = "Custom Defaults Restored";
+            toastDescription = `Configuration restored to your saved default.`;
+            
         } else {
             const defaultServices: Service[] = [
                 { id: 'registrar', label: 'Registrar', description: 'Student registration process', icon: 'UserPlus' },
@@ -169,13 +172,8 @@ export function StationManagement() {
                 { id: 'information', label: 'Information', description: 'General inquiries', icon: 'HelpCircle' },
             ];
             
-            const settingsDocRef = doc(firestore, 'settings', 'app');
-            batch.set(settingsDocRef, { 
+            batch.set(settingsRef, { 
                 services: defaultServices,
-                companyName: "NaviQueue Pro",
-                companyLogoUrl: "/logo.png",
-                placeholderImages: [],
-                backgroundMusic: [],
             }, { merge: true });
 
             for (let i = 1; i <= 5; i++) {
@@ -189,14 +187,18 @@ export function StationManagement() {
                 });
             }
             
-            await batch.commit();
-
-            toast({
-                title: "Defaults Restored with Examples",
-                description: `Created default services and stations.`,
-                duration: 8000,
-            });
+            toastTitle = "Defaults Restored with Examples";
+            toastDescription = `Created default services and stations. All other settings were preserved.`;
+            toastDuration = 8000;
         }
+
+        await batch.commit();
+        toast({
+            title: toastTitle,
+            description: toastDescription,
+            duration: toastDuration,
+        });
+
     } catch (error: any) {
         handleFirestoreError(error, toast, 'Restore Defaults');
     }
