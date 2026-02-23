@@ -1,8 +1,18 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
+import type { FirebaseApp } from 'firebase/app';
+import type { Auth } from 'firebase/auth';
+import type { Firestore } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
+
+interface FirebaseServices {
+  firebaseApp: FirebaseApp;
+  auth: Auth;
+  firestore: Firestore;
+}
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -11,9 +21,28 @@ interface FirebaseClientProviderProps {
 export function FirebaseClientProvider({
   children,
 }: FirebaseClientProviderProps) {
-  const firebaseServices = useMemo(() => {
-    return initializeFirebase();
+  const [firebaseServices, setFirebaseServices] =
+    useState<FirebaseServices | null>(null);
+
+  useEffect(() => {
+    // This ensures Firebase is only initialized on the client side,
+    // after the component has mounted.
+    setFirebaseServices(initializeFirebase());
   }, []);
+
+  if (!firebaseServices) {
+    // Render a loading state while Firebase is initializing.
+    // This prevents children from trying to access Firebase context too early
+    // and provides feedback to the user.
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Initializing Application...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <FirebaseProvider

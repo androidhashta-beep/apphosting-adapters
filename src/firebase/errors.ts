@@ -1,5 +1,6 @@
 'use client';
 import { getAuth, type User } from 'firebase/auth';
+import { getApp, getApps } from 'firebase/app';
 
 type SecurityRuleContext = {
   path: string;
@@ -77,15 +78,20 @@ function buildAuthObject(currentUser: User | null): FirebaseAuthObject | null {
 function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
   let authObject: FirebaseAuthObject | null = null;
   try {
-    // Safely attempt to get the current user.
-    const firebaseAuth = getAuth();
-    const currentUser = firebaseAuth.currentUser;
-    if (currentUser) {
-      authObject = buildAuthObject(currentUser);
+    // Only attempt to get auth information if a Firebase app is already initialized.
+    // This prevents crashes during server-side rendering, which was the root cause
+    // of the "Internal Server Error".
+    if (getApps().length > 0) {
+      const firebaseAuth = getAuth(getApp());
+      const currentUser = firebaseAuth.currentUser;
+      if (currentUser) {
+        authObject = buildAuthObject(currentUser);
+      }
     }
   } catch {
-    // This will catch errors if the Firebase app is not yet initialized.
-    // In this case, we'll proceed without auth information.
+    // Silently fail if there's any issue getting auth details.
+    // The main goal is to prevent a server crash.
+    authObject = null;
   }
 
   return {
