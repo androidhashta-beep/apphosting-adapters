@@ -3,7 +3,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, LogOut, Shield } from "lucide-react";
+import { ArrowLeft, LogOut, Shield, LogIn } from "lucide-react";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useAuth } from "@/firebase";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -36,7 +36,8 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
             title: "Signed Out",
             description: "You have been successfully signed out."
         });
-        handleGoHome();
+        // Full page reload to login screen to ensure all state is cleared
+        window.location.assign('/login');
     } catch (error) {
         console.error("Sign out failed:", error);
         toast({
@@ -61,34 +62,54 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
           </div>
           <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">{title}</h1>
           <div className="flex items-center gap-4">
+            <ThemeSwitcher />
             {isProfileLoading ? (
-                <Skeleton className="h-8 w-28 hidden sm:block" />
+                <Skeleton className="h-8 w-24" />
             ) : profile ? (
+              <>
                 <div className="text-sm text-right hidden sm:block">
                     <p className="font-semibold text-foreground truncate">{profile.displayName}</p>
                     <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
                 </div>
-            ) : null}
-            <ThemeSwitcher />
-            {profile?.role === 'admin' && (
-              <Link href="/admin" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  <Shield className="h-4 w-4" />
-                  Admin
-              </Link>
+                {profile.role === 'admin' && (
+                  <TooltipProvider>
+                      <Tooltip>
+                          <TooltipTrigger asChild>
+                              <Button asChild variant="ghost" size="icon">
+                                  <Link href="/admin">
+                                      <Shield className="h-4 w-4" />
+                                      <span className="sr-only">Admin Panel</span>
+                                  </Link>
+                              </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                              <p>Admin Panel</p>
+                          </TooltipContent>
+                      </Tooltip>
+                  </TooltipProvider>
+                )}
+                <TooltipProvider>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                            <LogOut className="h-4 w-4" />
+                            <span className="sr-only">Sign Out</span>
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Sign Out & Change Role</p>
+                      </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+              </>
+            ) : (
+               <Button asChild>
+                  <Link href="/login">
+                    <LogIn className="mr-2" />
+                    Login
+                  </Link>
+                </Button>
             )}
-            <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                   <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                      <LogOut className="h-4 w-4" />
-                      <span className="sr-only">Sign Out / Change Role</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Sign Out & Change Role</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
       </header>

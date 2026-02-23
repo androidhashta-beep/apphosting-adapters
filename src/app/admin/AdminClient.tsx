@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import type { Settings } from '@/lib/types';
 import {
   Card,
@@ -13,18 +12,16 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   useDoc,
   useFirebase,
   setDocumentNonBlocking,
   useMemoFirebase,
-  useAuth,
 } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { StationManagement } from './StationManagement';
@@ -32,16 +29,12 @@ import { CarouselSettings } from './CarouselSettings';
 import { UserManagement } from './UserManagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
-import { signOut } from 'firebase/auth';
 import { OperationalSuggestions } from './OperationalSuggestions';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 export function AdminClient() {
-  const router = useRouter();
   const { firestore } = useFirebase();
-  const auth = useAuth();
   const { toast } = useToast();
-  const { profile, isLoading: isProfileLoading } = useUserProfile();
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -114,29 +107,6 @@ export function AdminClient() {
         clearTimeout(handler);
     };
   }, [companyLogoUrl, verifyUrl, settings?.companyLogoUrl]);
-  
-  const handleGoHome = () => {
-    localStorage.removeItem('app-instance-role');
-    window.location.assign('/');
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out."
-      });
-      handleGoHome();
-    } catch (error) {
-       console.error("Sign out failed:", error);
-       toast({
-         variant: "destructive",
-         title: "Sign Out Failed",
-         description: "Could not sign out. Please try again.",
-       });
-    }
-  };
 
   const handleCompanySettingsSave = () => {
     if (logoUrlStatus !== 'valid' && companyLogoUrl.trim() !== '') {
@@ -162,40 +132,7 @@ export function AdminClient() {
   };
   
   return (
-    <div className="flex flex-col h-screen">
-      <header className="border-b">
-        <div className="container relative mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleGoHome}
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Home
-            </button>
-          </div>
-          <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold md:text-xl whitespace-nowrap">
-            Admin Panel
-          </h1>
-          <div className="flex items-center gap-4">
-            {isProfileLoading ? (
-                <Skeleton className="h-8 w-28 hidden sm:block" />
-            ) : profile ? (
-                <div className="text-sm text-right hidden sm:block">
-                    <p className="font-semibold text-foreground truncate">{profile.displayName}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{profile.role}</p>
-                </div>
-            ) : null}
-            <ThemeSwitcher />
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
-                <span className="sr-only">Sign Out / Change Role</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <ScrollArea className="flex-grow">
+      <ScrollArea className="h-[calc(100vh-10rem)]">
         {isLoadingSettings ? (
             <div className="space-y-8 p-6">
               <Skeleton className="w-full h-96" />
@@ -284,6 +221,5 @@ export function AdminClient() {
           </div>
         )}
       </ScrollArea>
-    </div>
   );
 }
