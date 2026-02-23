@@ -22,9 +22,10 @@ type InfoPanelProps = {
   isAnnouncing: boolean;
   masterVolume: number;
   loop?: boolean;
+  isStarted: boolean; // New prop
 }
 
-function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean, onEnded: () => void }) {
+function VideoPlayer({ src, isMuted, onEnded, isStarted }: { src: string; isMuted: boolean, onEnded: () => void, isStarted: boolean }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -34,13 +35,13 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
   }, [isMuted]);
 
   useEffect(() => {
-    if (videoRef.current) {
+    if (videoRef.current && isStarted) { // Only play if started
       videoRef.current.play().catch(error => {
         // Autoplay was prevented.
         console.warn("Video autoplay was prevented.", error);
       });
     }
-  }, [src]);
+  }, [src, isStarted]);
 
   return (
     <video
@@ -49,7 +50,7 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
       className="absolute top-0 left-0 w-full h-full object-contain"
       onEnded={onEnded}
       playsInline
-      autoPlay
+      autoPlay={isStarted} // Only autoplay if started
       muted={isMuted}
     >
       <source src={encodeURI(src)} type="video/mp4" />
@@ -59,10 +60,10 @@ function VideoPlayer({ src, isMuted, onEnded }: { src: string; isMuted: boolean,
 }
 
 
-export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnouncing, masterVolume, loop = false }: InfoPanelProps) {
+export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnouncing, masterVolume, loop = false, isStarted }: InfoPanelProps) {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const [isAudioMuted, setIsAudioMuted] = useState(true); // Mute by default
   const audioRef = useRef<HTMLAudioElement>(null);
   const musicPlaylist = useRef<AudioTrack[]>([]);
   const currentTrackIndex = useRef(0);
@@ -74,7 +75,7 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
   // Handle background music shuffling and playback
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !backgroundMusic || backgroundMusic.length === 0) {
+    if (!audio || !backgroundMusic || backgroundMusic.length === 0 || !isStarted) {
       return;
     }
 
@@ -122,13 +123,13 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
       audio.removeEventListener('error', handleError);
     };
 
-  }, [backgroundMusic, toast, isAudioMuted]);
+  }, [backgroundMusic, toast, isAudioMuted, isStarted]);
 
 
   // Handle volume changes (ducking and master volume)
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !isStarted) return;
     
     if (isAudioMuted) {
         if (!audio.paused) {
@@ -141,7 +142,7 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
              audio.play().catch(e => console.warn("Could not play audio:", e));
         }
     }
-  }, [isAudioMuted, isAnnouncing, masterVolume, backgroundMusic]);
+  }, [isAudioMuted, isAnnouncing, masterVolume, backgroundMusic, isStarted]);
 
 
   if (!isClient || !mediaItems) {
@@ -166,14 +167,15 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
             className="w-full h-full"
             opts={{
               loop: loop,
+              active: isStarted, // Activate carousel only when started
             }}
-            plugins={[
+            plugins={isStarted ? [
             Autoplay({
                 delay: autoplayDelay,
                 stopOnInteraction: false,
                 stopOnMouseEnter: true,
             }),
-            ]}
+            ] : []}
         >
             <CarouselContent className="h-full">
             {mediaItems.map((item) => (
@@ -182,7 +184,9 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
                        <VideoPlayer 
                           src={item.imageUrl} 
                           isMuted={!item.useOwnAudio || isAnnouncing} 
-                          onEnded={() => { /* Need carousel API to advance */ }} />
+                          onEnded={() => { /* Need carousel API to advance */ }}
+                          isStarted={isStarted}
+                        />
                    ) : (
                        <Image
                             src={encodeURI(item.imageUrl)}

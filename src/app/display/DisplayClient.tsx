@@ -15,7 +15,7 @@ import { collection, doc, query, where, Timestamp } from 'firebase/firestore';
 import { NowServing } from './NowServing';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Home } from 'lucide-react';
+import { Home, PlayCircle } from 'lucide-react';
 import { Clock } from './Clock';
 import { InfoPanel } from './InfoPanel';
 import { textToSpeech } from '@/ai/flows/text-to-speech';
@@ -35,6 +35,7 @@ export function DisplayClient() {
   const router = useRouter();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [isStarted, setIsStarted] = useState(false); // New state for handling autoplay policy
 
   useEffect(() => {
     setIsClient(true);
@@ -113,7 +114,7 @@ export function DisplayClient() {
   const lastAnnouncedTicketRef = useRef<{ id: string, time: number } | null>(null);
 
   useEffect(() => {
-    if (!mostRecentTicket || !settings?.services || !mostRecentTicket.calledAt) {
+    if (!mostRecentTicket || !settings?.services || !mostRecentTicket.calledAt || !isStarted) {
       return;
     }
 
@@ -137,14 +138,14 @@ export function DisplayClient() {
         toast({ variant: 'destructive', title: 'TTS Flow Error', description: 'Could not generate announcement audio.' });
       });
     }
-  }, [mostRecentTicket, settings?.services, toast]);
+  }, [mostRecentTicket, settings?.services, toast, isStarted]);
 
   useEffect(() => {
     const audio = announcementAudioRef.current;
-    if (audio && announcementAudio) {
-      audio.play().catch(e => console.warn("Announcement audio playback failed", e));
+    if (audio && announcementAudio && isStarted) {
+      audio.play().catch(e => console.warn("Announcement audio playback failed. This can happen if interaction is lost.", e));
     }
-  }, [announcementAudio]);
+  }, [announcementAudio, isStarted]);
 
 
   const shuffledMedia = useMemo(() => {
@@ -161,10 +162,36 @@ export function DisplayClient() {
     sessionStorage.setItem('force-role-selection', 'true');
     router.push('/');
   };
+
+  const handleStartDisplay = () => {
+    setIsStarted(true);
+  };
   
   const logoUrl = settings?.companyLogoUrl?.trim();
   const isLogoValid = logoUrl && (logoUrl.startsWith('/') || logoUrl.startsWith('http'));
   const masterVolume = settings?.backgroundMusicVolume ?? 0.5;
+
+  if (!isStarted && isClient) {
+    return (
+      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-white p-8">
+        <div className="text-center">
+            <h1 className="text-5xl font-bold mb-4">NaviQueue Pro Display</h1>
+            <p className="text-xl text-slate-300 mb-8">Click the button below to start the public queue display.</p>
+            <Button 
+                onClick={handleStartDisplay} 
+                className="h-24 w-72 text-2xl"
+                variant="outline"
+            >
+                <PlayCircle className="mr-4 h-10 w-10" />
+                Start Display
+            </Button>
+            <p className="text-sm text-slate-400 mt-8">
+                This one-time interaction is required by modern browsers to enable automatic audio playback for announcements.
+            </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-gradient-to-b from-neutral-900 via-neutral-800 to-black text-white font-sans flex flex-col">
@@ -203,6 +230,7 @@ export function DisplayClient() {
               isAnnouncing={isAnnouncing}
               masterVolume={masterVolume}
               loop={true}
+              isStarted={isStarted}
             />
             <InfoPanel 
               mediaItems={shuffledMedia.slice(Math.ceil(shuffledMedia.length / 2))}
@@ -211,6 +239,7 @@ export function DisplayClient() {
               isAnnouncing={isAnnouncing}
               masterVolume={masterVolume}
               loop={true}
+              isStarted={isStarted}
             />
         </div>
       </main>
