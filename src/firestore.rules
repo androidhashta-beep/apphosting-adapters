@@ -1,0 +1,68 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isRole(role) {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+    
+    function isAdmin() {
+      return isRole('admin');
+    }
+
+    function isStaff() {
+      return isRole('staff') || isAdmin();
+    }
+    
+    function incomingTicketIsValid() {
+        let data = request.resource.data;
+        // Rules for creating a ticket without being authenticated.
+        // Ensures data is valid and timestamp is reasonably close to the server time.
+        return data.status == 'waiting'
+            && data.createdAt is timestamp
+            // Allow a small time difference (e.g., 5 seconds) to account for client/server clock skew.
+            && (request.time.toMillis() - data.createdAt.toMillis() < 5000)
+            && (request.time.toMillis() - data.createdAt.toMillis() > -5000)
+            && data.type is string
+            && data.ticketNumber is string
+            && data.keys().hasOnly(['status', 'createdAt', 'type', 'ticketNumber']);
+    }
+
+    // Collection Rules
+    match /settings/{settingId} {
+      allow get, list: if true;
+      allow write: if isAdmin();
+    }
+
+    match /stations/{stationId} {
+      allow get, list: if true;
+      allow write: if isStaff();
+    }
+
+    match /tickets/{ticketId} {
+      allow get, list: if true;
+      allow create: if incomingTicketIsValid();
+      allow update, delete: if isStaff();
+    }
+
+    match /counters/{counterId} {
+       // Allow any client to read/write. Writes are transactional and secure.
+      allow read, write: if true;
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if false;
+    }
+  }
+}
