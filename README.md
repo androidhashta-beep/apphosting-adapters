@@ -63,3 +63,19 @@ You can also deploy this application to other services like Vercel, Netlify, or 
 ```bash
 npm run start
 ```
+
+## Accessing the App on a Local Network
+
+When you run the app using `npm run dev` or `npm run start`, it is configured to be accessible from other devices on your local network. However, for this to work, you may need to adjust the firewall settings on the computer running the application (the server).
+
+By default, firewalls on Windows and macOS often block incoming connections for security. You must create a new **inbound firewall rule** to allow traffic on **port 3000**.
+
+**Example for Windows Defender Firewall:**
+1.  Open "Windows Defender Firewall with Advanced Security".
+2.  Go to "Inbound Rules" -> "New Rule...".
+3.  Choose "Port", then "TCP", and specify port `3000`.
+4.  Select "Allow the connection".
+5.  Apply the rule to all network profiles (Domain, Private, Public).
+6.  Name the rule something descriptive, like "NaviQueue Pro".
+
+Once this rule is in place, other devices on the same network can access the app by navigating to `http://<server-ip-address>:3000` in their browser (e.g., `http://10.30.0.250:3000`).
