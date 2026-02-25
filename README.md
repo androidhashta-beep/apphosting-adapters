@@ -12,32 +12,46 @@ npm run dev
 
 This will start the Next.js development server. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-## Manual Installation for Windows 10 & 11
+## Building, Installing, and Updating the App
 
-This application is a **Progressive Web App (PWA)**. This is a modern way to create installable applications that doesn't require a traditional `.exe` or `.msi` installer file. Instead, users can install it directly from their web browser (like Chrome or Edge) onto their computer.
+### Building for Production
+
+To create an optimized version of the app that's ready for deployment, you need to "build" it. This process bundles all the code into a few static files. You can do this by running:
+
+```bash
+npm run build
+```
+
+This will create a production-ready version of your app in the `.next` folder.
+
+### Installing the App (PWA)
+
+This application is a **Progressive Web App (PWA)**, which means it can be "installed" directly from the browser onto your computer.
 
 **Key Features of PWA Installation:**
 - **Runs in its own window:** It feels like a native desktop application, not just a browser tab.
 - **Desktop Icon:** It gets its own icon on the desktop, Start Menu, and taskbar for easy access.
 - **Offline Capability:** The app can be launched and used even if the computer is not connected to the internet.
 
-### How to Install
-
-To install the app, you first need to have it running. You can either run it locally for testing or deploy it to a hosting service to get a public URL.
+**How to Install:**
 
 1.  **Open the application's URL** in Google Chrome or Microsoft Edge.
-    *   **For local testing on your network:** Other users on the same Wi-Fi can often use `http://<your-computer's-IP-address>:3000`.
-    *   **After deployment:** Use the public URL provided by your hosting service (e.g., Firebase App Hosting).
-
 2.  In the browser's address bar, look for an **"Install" icon**. It usually looks like a computer screen with a downward arrow.
-
 3.  Click the icon and then click **"Install"** in the prompt that appears.
 
-4.  That's it! The app is now "installed." You can find it in your Start Menu and pin it to your taskbar just like any other program.
+The app will now be installed on your system.
+
+### Updating the Installed App
+
+Because this is a PWA, **you do not need to manually update or reinstall it.** Updates are handled automatically by the browser.
+
+Here's how it works:
+1.  After you build and deploy a new version of the app, the next time a user opens their installed app while connected to the internet, the browser will detect the new version and download it in the background.
+2.  The next time the user closes and re-opens the app, it will automatically launch the newly updated version.
 
 ## Deployment
 
-When you're ready to share the app with users outside your local network, you need to deploy it. This is a standard Next.js application and can be deployed to any platform that supports Next.js.
+When you're ready to share the app with users, you need to deploy it. This is a standard Next.js application and can be deployed to any platform that supports Next.js.
 
 ### Firebase App Hosting
 
@@ -45,13 +59,7 @@ This project is pre-configured for deployment with Firebase App Hosting. To depl
 
 ### Other Platforms
 
-You can also deploy this application to other services like Vercel, Netlify, or your own server.
-
-1.  Build the application for production:
-    ```bash
-    npm run build
-    ```
-2.  Start the production server:
-    ```bash
-    npm run start
-    ```
+You can also deploy this application to other services like Vercel, Netlify, or your own server. After building the app (`npm run build`), you can start the production server with:
+```bash
+npm run start
+```
