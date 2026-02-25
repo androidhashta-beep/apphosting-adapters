@@ -38,17 +38,17 @@ service cloud.firestore {
 
     // Collection Rules
     match /settings/{settingId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isAdmin();
     }
 
     match /stations/{stationId} {
-      allow read: if true;
+      allow get, list: if true;
       allow write: if isStaff();
     }
 
     match /tickets/{ticketId} {
-      allow read: if true;
+      allow get, list: if true;
       allow create: if incomingTicketIsValid();
       allow update, delete: if isStaff();
     }
