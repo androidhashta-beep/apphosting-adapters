@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -10,27 +9,31 @@ import { PageWrapper } from '@/components/PageWrapper';
 import { useUser } from '@/firebase/provider';
 
 const APP_ROLE_KEY = 'app-instance-role';
+const APP_STATION_KEY = 'app-instance-station-id';
 
 type Role = 'kiosk' | 'staff' | 'display';
 
-const roles = [
+const roles: { id: Role; title: string; description: string; icon: React.FC<any>, path: string }[] = [
     {
         id: 'display' as Role,
         title: 'Public Display',
         description: 'Shows tickets being served on a public screen.',
         icon: Monitor,
+        path: '/display',
     },
     {
         id: 'kiosk' as Role,
         title: 'Ticket Kiosk',
         description: 'For students to get a queue number.',
         icon: Ticket,
+        path: '/kiosk',
     },
     {
         id: 'staff' as Role,
-        title: 'Staff Dashboard',
-        description: 'For staff to manage queues and call tickets.',
+        title: 'Staff Station',
+        description: 'Set this device up to control a specific service station.',
         icon: UsersRound,
+        path: '/station-selector',
     },
 ];
 
@@ -54,16 +57,21 @@ export default function RoleSelectorPage() {
         if (shouldShowSelector) {
             sessionStorage.removeItem('force-role-selection');
             hasDecidedToShowSelector.current = true;
-            setIsLoading(false); // Show the selector
+            setIsLoading(false);
             return;
+        }
+        
+        const savedStationId = localStorage.getItem(APP_STATION_KEY);
+        if (savedStationId) {
+             router.replace(`/station/${savedStationId}`);
+             return;
         }
 
         const savedRole = localStorage.getItem(APP_ROLE_KEY) as Role | null;
+        const roleConfig = roles.find(r => r.id === savedRole);
 
-        if (savedRole && roles.some(r => r.id === savedRole)) {
-            // For staff role, we always want to verify login status.
-            // The AuthGuard on the staff page will handle redirects.
-             router.replace(`/${savedRole}`);
+        if (roleConfig) {
+             router.replace(roleConfig.path);
         } else {
              hasDecidedToShowSelector.current = true;
              setIsLoading(false);
@@ -71,14 +79,12 @@ export default function RoleSelectorPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isUserLoading]);
 
-    const handleRoleSelect = (role: Role) => {
-        localStorage.setItem(APP_ROLE_KEY, role);
-        if (role === 'staff') {
-            // The AuthGuard on the staff page will handle redirecting to login if needed.
-            router.push('/staff');
-        } else {
-            router.push(`/${role}`);
+    const handleRoleSelect = (role: Role, path: string) => {
+        // For staff, we don't save the role, as the station-selector will handle it.
+        if (role !== 'staff') {
+            localStorage.setItem(APP_ROLE_KEY, role);
         }
+        router.push(path);
     };
     
     if (isLoading || isUserLoading) {
@@ -106,7 +112,7 @@ export default function RoleSelectorPage() {
                                 key={role.id}
                                 variant="outline"
                                 className="h-auto justify-start p-6 text-left"
-                                onClick={() => handleRoleSelect(role.id)}
+                                onClick={() => handleRoleSelect(role.id, role.path)}
                             >
                                 <role.icon className="mr-4 h-8 w-8 flex-shrink-0 text-primary" />
                                 <div className="flex flex-col">

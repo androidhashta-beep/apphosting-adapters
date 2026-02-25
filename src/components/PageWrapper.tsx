@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useRouter } from "next/navigation";
@@ -26,6 +25,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
+    localStorage.removeItem('app-instance-station-id');
     window.location.assign('/');
   };
 
