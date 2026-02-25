@@ -60,7 +60,7 @@ export const FirebaseProvider = ({
   firebaseApp,
   firestore,
   auth,
-}: FirebaseProviderProps) => {
+}: React.PropsWithChildren<FirebaseProviderProps>) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: null,
     isUserLoading: true, // Start true until the final auth state is known
@@ -76,16 +76,9 @@ export const FirebaseProvider = ({
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        if (firebaseUser && firebaseUser.isAnonymous) {
-          // Anonymous user detected. Sign them out. The `onAuthStateChanged` will
-          // be triggered again with `null`, at which point we'll set loading to false.
-          // We keep `isUserLoading` true for now to prevent downstream components
-          // from acting on a temporary (and soon-to-be-invalid) anonymous state.
-          signOut(auth);
-        } else {
-          // This is either a real user or null (after sign-out). This is a final state.
-          setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-        }
+        // This is a real user or null (after sign-out), or an anonymous user.
+        // We simply report the state as is. The AuthGuard will handle authorization.
+        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
