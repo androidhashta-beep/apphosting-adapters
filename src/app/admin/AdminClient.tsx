@@ -139,8 +139,10 @@ export function AdminClient() {
         ) : (
           <div className="space-y-8 p-6">
               <UserManagement />
-              <ServiceManagement />
-              <StationManagement />
+              <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+                <ServiceManagement />
+                <StationManagement />
+              </div>
               <CarouselSettings />
               <div className="grid grid-cols-1 items-start gap-8">
                   <div className="space-y-8">
