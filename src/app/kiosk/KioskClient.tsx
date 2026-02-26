@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from "@/components/ui/button";
@@ -100,7 +101,7 @@ export function KioskClient() {
                 throw new Error(`Service with type '${type}' not found.`);
             }
 
-            const counterRef = doc(firestore, "counters", "main-queue");
+            const counterRef = doc(firestore, "counters", type);
             const newTicketRef = doc(ticketsCollection);
             newTicketId = newTicketRef.id;
 
