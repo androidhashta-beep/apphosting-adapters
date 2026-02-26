@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Ticket, Settings, Station } from "@/lib/types";
