@@ -36,7 +36,7 @@ This project is pre-configured for deployment with **Firebase App Hosting**, whi
 1.  You connect your source code repository (e.g., a GitHub repository) to a Firebase project.
 2.  Whenever you push new code, Firebase automatically builds and deploys the new version of your application for you.
 
-You can find the official guide for setting this up here: [Firebase App Hosting Quickstart](https://firebase.google.com/docs/app-hosting/quickstart).
+You can find the official guide for setting this up here: [Firebase App Hosting Quickstart](https://firebase.google.com/docs/app-hosting/get-started?platform=nextjs).
 
 (You can also deploy this application to other services like Vercel, Netlify, or your own server that supports Node.js. After running `npm run build`, you can start the production server with `npm run start`.)
 
