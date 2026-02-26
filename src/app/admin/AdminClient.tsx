@@ -21,6 +21,7 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirebase, useMemoFirebase } from '@/firebase/provider';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { doc } from 'firebase/firestore';
+import { ServiceManagement } from './ServiceManagement';
 import { StationManagement } from './StationManagement';
 import { CarouselSettings } from './CarouselSettings';
 import { UserManagement } from './UserManagement';
@@ -142,6 +143,7 @@ export function AdminClient() {
           <div className="space-y-8 p-6">
               <OperationalSuggestions />
               <UserManagement />
+              <ServiceManagement />
               <StationManagement />
               <CarouselSettings />
               <div className="grid grid-cols-1 items-start gap-8">
