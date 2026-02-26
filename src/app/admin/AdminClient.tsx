@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -27,8 +26,6 @@ import { CarouselSettings } from './CarouselSettings';
 import { UserManagement } from './UserManagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
-import { OperationalSuggestions } from './OperationalSuggestions';
-import { useUserProfile } from '@/hooks/useUserProfile';
 
 export function AdminClient() {
   const { firestore } = useFirebase();
@@ -141,7 +138,6 @@ export function AdminClient() {
             </div>
         ) : (
           <div className="space-y-8 p-6">
-              <OperationalSuggestions />
               <UserManagement />
               <ServiceManagement />
               <StationManagement />
