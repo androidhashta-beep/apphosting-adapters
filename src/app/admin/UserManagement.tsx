@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUserProfile } from '@/hooks/useUserProfile';
