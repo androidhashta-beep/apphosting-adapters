@@ -65,7 +65,6 @@ const pwaWrapper = withPWA({
 });
 
 const nextConfig = {
-  output: 'export',
   images: {
     remotePatterns: [
       {

@@ -12,11 +12,15 @@ npm run dev
 
 This will start the Next.js development server. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-## Building, Installing, and Updating the App
+## Deployment and Installation Guide
 
-### Building for Production
+This application is designed to be deployed to a web server and then "installed" on your local PCs as a Progressive Web App (PWA). This gives you a desktop-like experience with the benefit of automatic updates.
 
-To create an optimized version of the app that's ready for deployment, you need to "build" it. This process bundles all the code into a few static files. You can do this by running:
+### Step 1: Build the App for Production
+
+To create an optimized version of the app that's ready for deployment, you need to "build" it. This process bundles all the code and prepares it for a server.
+
+Run the following command in your terminal:
 
 ```bash
 npm run build
@@ -24,49 +28,39 @@ npm run build
 
 This will create a production-ready version of your app in the `.next` folder.
 
-### Installing the App (PWA)
+### Step 2: Deploy the App to a Server
 
-This application is a **Progressive Web App (PWA)**, which means it can be "installed" directly from the browser onto your computer.
+This project is pre-configured for deployment with **Firebase App Hosting**, which is the recommended method.
 
-**Key Features of PWA Installation:**
-- **Runs in its own window:** It feels like a native desktop application, not just a browser tab.
-- **Desktop Icon:** It gets its own icon on the desktop, Start Menu, and taskbar for easy access.
-- **Offline Capability:** The app can be launched and used even if the computer is not connected to the internet.
+**How it Works:**
+1.  You connect your source code repository (e.g., a GitHub repository) to a Firebase project.
+2.  Whenever you push new code, Firebase automatically builds and deploys the new version of your application for you.
+
+You can find the official guide for setting this up here: [Firebase App Hosting Quickstart](https://firebase.google.com/docs/app-hosting/quickstart).
+
+(You can also deploy this application to other services like Vercel, Netlify, or your own server that supports Node.js. After running `npm run build`, you can start the production server with `npm run start`.)
+
+### Step 3: Install the App on Your PCs
+
+Once the app is deployed and you have a public URL (e.g., `https://your-app-name.web.app`), you can install it on any number of PCs.
 
 **How to Install:**
 
-1.  **Open the application's URL** in Google Chrome or Microsoft Edge.
+1.  **Open the application's URL** in Google Chrome or Microsoft Edge on the PC where you want to install it.
 2.  In the browser's address bar, look for an **"Install" icon**. It usually looks like a computer screen with a downward arrow.
 3.  Click the icon and then click **"Install"** in the prompt that appears.
 
-The app will now be installed on your system.
+The app will now be installed on that computer. It will have its own desktop icon and run in its own window, just like a regular `.exe` application.
 
-### Updating the Installed App
+### Step 4: Updating the App
 
-Because this is a PWA, **you do not need to manually update or reinstall it.** Updates are handled automatically by the browser.
+This is the best part. **You do not need to manually update or reinstall the app.**
 
-Here's how it works:
-1.  After you build and deploy a new version of the app, the next time a user opens their installed app while connected to the internet, the browser will detect the new version and download it in the background.
-2.  The next time the user closes and re-opens the app, it will automatically launch the newly updated version.
-
-## Deployment
-
-When you're ready to share the app with users, you need to deploy it. This is a standard Next.js application and can be deployed to any platform that supports Next.js.
-
-### Firebase App Hosting
-
-This project is pre-configured for deployment with Firebase App Hosting. To deploy, you can connect your repository to a Firebase project.
-
-### Other Platforms
-
-You can also deploy this application to other services like Vercel, Netlify, or your own server. After building the app (`npm run build`), you can start the production server with:
-```bash
-npm run start
-```
+Whenever you deploy a new version (Step 2), the installed apps on your PCs will automatically download the update in the background. The next time a user closes and re-opens the app, it will be the new version.
 
 ## Accessing the App on a Local Network
 
-When you run the app using `npm run dev` or `npm run start`, it is configured to be accessible from other devices on your local network. However, for this to work, you may need to adjust the firewall settings on the computer running the application (the server).
+When you run the app in development (`npm run dev`), it is configured to be accessible from other devices on your local network. However, for this to work, you may need to adjust the firewall settings on the computer running the application (the server).
 
 By default, firewalls on Windows and macOS often block incoming connections for security. You must create a new **inbound firewall rule** to allow traffic on **port 3000**.
 
