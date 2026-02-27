@@ -59,10 +59,6 @@ export default function RoleSelectorPage() {
         }
 
         router.replace("/login"); return;
-        } else {
-             hasDecidedToShowSelector.current = true;
-             setIsLoading(false);
-        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isUserLoading]);
 
