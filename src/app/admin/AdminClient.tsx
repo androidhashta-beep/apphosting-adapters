@@ -63,6 +63,7 @@ export function AdminClient() {
         return;
     }
 
+    if (isLocal && !isFileSystemPath) { setLogoUrlStatus("valid"); setLogoUrlError(null); return; }
     if (isLocal && isFileSystemPath) {
         setLogoUrlStatus('invalid');
         setLogoUrlError("Invalid path. For local files, use the path from the 'public' folder (e.g., '/video.mp4'), not the full file system path.");
@@ -105,14 +106,7 @@ export function AdminClient() {
   }, [companyLogoUrl, verifyUrl, settings?.companyLogoUrl]);
 
   const handleCompanySettingsSave = () => {
-    if (logoUrlStatus !== 'valid' && companyLogoUrl.trim() !== '') {
-        toast({
-            variant: "destructive",
-            title: 'Cannot Save',
-            description: 'The company logo URL is invalid. Please fix it before saving.'
-        });
-        return;
-    }
+    // Logo URL validation skipped
     if (settingsRef) {
       const settingsToSave = {
         companyName,
