@@ -41,7 +41,7 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'You have been successfully signed in.',
       });
-      const redirectUrl = searchParams.get('redirect') || '/';
+      const redirectUrl = searchParams.get('redirect') || '/staff';
       router.replace(redirectUrl);
     } catch (error: any) {
       setError(getFriendlyAuthErrorMessage(error.code));
