@@ -58,12 +58,7 @@ export default function RoleSelectorPage() {
             return;
         }
 
-        const savedRole = localStorage.getItem(APP_ROLE_KEY) as Role | null;
-
-        if (savedRole && roles.some(r => r.id === savedRole)) {
-            // For staff role, we always want to verify login status.
-            // The AuthGuard on the staff page will handle redirects.
-             router.replace(`/${savedRole}`);
+        router.replace("/login"); return;
         } else {
              hasDecidedToShowSelector.current = true;
              setIsLoading(false);
