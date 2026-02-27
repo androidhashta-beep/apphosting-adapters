@@ -14,7 +14,7 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
 
   // Redirect non-admins away
   useEffect(() => {
-    if (!isLoading && profile?.role !== 'admin') {
+    if (!isLoading && profile && profile.role !== 'admin') {
       // If loading is done and user is not an admin, redirect.
       router.replace('/staff');
     }
@@ -22,7 +22,7 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
   
   // Show a loader while checking the role.
   // AuthGuard has already checked for a logged-in user.
-  if (isLoading || profile?.role !== 'admin') {
+  if (isLoading || profile && profile.role !== 'admin') {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
