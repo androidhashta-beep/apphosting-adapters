@@ -12,6 +12,7 @@ type PrintableTicketProps = {
 
 export const PrintableTicket = React.forwardRef<HTMLDivElement, PrintableTicketProps>(
   ({ ticket, companyName, companyLogoUrl, service }, ref) => {
+    if (!ticket) return null;
     const createdAtDate = ticket.createdAt instanceof Timestamp ? ticket.createdAt.toDate() : new Date(ticket.createdAt);
     return (
       <div ref={ref} className="ticket-content">
