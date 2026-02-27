@@ -36,7 +36,7 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
             
             <div className="text-center z-10">
                  <p className="text-2xl font-semibold opacity-70 -mb-1">Please proceed to</p>
-                 <p className="text-4xl font-bold">{ticket.stationName}</p>
+                 <p className="text-4xl font-bold">{ticket.stationName.replace(/Window/gi, "Counter")}</p>
             </div>
         </div>
     );
