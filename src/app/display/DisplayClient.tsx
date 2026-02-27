@@ -202,7 +202,7 @@ export function DisplayClient() {
       const voice = voiceToggleRef.current ? FEMALE_VOICE : MALE_VOICE;
       voiceToggleRef.current = !voiceToggleRef.current;
 
-      const text = `Customer number ${item.ticketNumber}, please proceed to ${item.stationName.replace(/Window/gi, "Counter")}.`;
+      const text = `Customer number ${parseInt(item.ticketNumber, 10) || item.ticketNumber}, please proceed to ${item.stationName}.`;
 
       // Add to queue
       announcementQueueRef.current.push({

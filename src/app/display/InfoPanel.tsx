@@ -178,7 +178,7 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
         >
             <CarouselContent className="h-full">
             {mediaItems.map((item) => (
-                <CarouselItem key={item.id} className="relative w-full h-full">
+                <CarouselItem key={item.id} className="relative w-full h-full basis-1/2">
                    {item.type === 'video' ? (
                        <VideoPlayer 
                           src={item.imageUrl} 
