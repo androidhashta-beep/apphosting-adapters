@@ -10,7 +10,10 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import wav from 'wav';
 
-const TextToSpeechInputSchema = z.string();
+const TextToSpeechInputSchema = z.object({
+  text: z.string(),
+  voice: z.string().optional(),
+});
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
 
 const TextToSpeechOutputSchema = z.object({
@@ -20,9 +23,10 @@ const TextToSpeechOutputSchema = z.object({
 export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
 
 export async function textToSpeech(
-  input: TextToSpeechInput
+  text: string,
+  voice?: string
 ): Promise<TextToSpeechOutput> {
-  return textToSpeechFlow(input);
+  return textToSpeechFlow({ text, voice: voice || 'Algenib' });
 }
 
 async function toWav(
@@ -37,7 +41,6 @@ async function toWav(
       sampleRate: rate,
       bitDepth: sampleWidth * 8,
     });
-
     const bufs: any[] = [];
     writer.on('error', reject);
     writer.on('data', function (d) {
@@ -46,7 +49,6 @@ async function toWav(
     writer.on('end', function () {
       resolve(Buffer.concat(bufs).toString('base64'));
     });
-
     writer.write(pcmData);
     writer.end();
   });
@@ -58,7 +60,7 @@ const textToSpeechFlow = ai.defineFlow(
     inputSchema: TextToSpeechInputSchema,
     outputSchema: TextToSpeechOutputSchema,
   },
-  async (query) => {
+  async (input) => {
     try {
         const { media } = await ai.generate({
         model: 'googleai/gemini-2.5-flash-preview-tts',
@@ -66,11 +68,11 @@ const textToSpeechFlow = ai.defineFlow(
             responseModalities: ['AUDIO'],
             speechConfig: {
             voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: 'Algenib' },
+                prebuiltVoiceConfig: { voiceName: input.voice || 'Algenib' },
             },
             },
         },
-        prompt: query,
+        prompt: input.text,
         });
         if (!media) {
         throw new Error('no media returned');

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { Ticket, Settings, Station, Service } from '@/lib/types';
@@ -18,6 +17,17 @@ import { InfoPanel } from './InfoPanel';
 import { textToSpeech } from '@/ai/flows/text-to-speech';
 import { useToast } from '@/hooks/use-toast';
 
+// Voice names for alternating male/female
+const MALE_VOICE = 'Algenib';
+const FEMALE_VOICE = 'Aoede';
+
+interface AnnouncementItem {
+  text: string;
+  voice: string;
+  ticketId: string;
+  callTime: number;
+}
+
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -32,7 +42,7 @@ export function DisplayClient() {
   const router = useRouter();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  const [isStarted, setIsStarted] = useState(false); // New state for handling autoplay policy
+  const [isStarted, setIsStarted] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -50,7 +60,6 @@ export function DisplayClient() {
   );
   const { data: stations, isLoading: isLoadingStations } = useCollection<Station>(stationsRef);
 
-  // Fetch all tickets. Filtering and sorting will happen client-side.
   const allTicketsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'tickets') : null),
     [firestore]
@@ -68,16 +77,12 @@ export function DisplayClient() {
     return allTickets
       .filter((t) => t.status === 'waiting')
       .sort((a, b) => {
-        // Robustly get date object from Firestore timestamp
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : (a.createdAt?.seconds ? new Date(a.createdAt.seconds * 1000) : null);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : null);
-  
-        if (dateA && dateB) {
-            return dateA.getTime() - dateB.getTime();
-        }
-        if (dateA) return -1; // Put items with valid dates first
+        if (dateA && dateB) return dateA.getTime() - dateB.getTime();
+        if (dateA) return -1;
         if (dateB) return 1;
-        return 0; // Keep order if both are invalid
+        return 0;
       });
   }, [allTickets]);
 
@@ -109,50 +114,119 @@ export function DisplayClient() {
     });
 
     return data;
-
   }, [stations, servingTickets, settings?.services]);
 
   const mostRecentTicket = useMemo(() => (servingData.length > 0 ? servingData[0] : null), [servingData]);
-  
-  const [announcementAudio, setAnnouncementAudio] = useState<string | null>(null);
+
+  // ===== TTS QUEUE SYSTEM =====
   const [isAnnouncing, setIsAnnouncing] = useState(false);
   const announcementAudioRef = useRef<HTMLAudioElement>(null);
-  const lastAnnouncedTicketRef = useRef<{ id: string, time: number } | null>(null);
+  const announcementQueueRef = useRef<AnnouncementItem[]>([]);
+  const isPlayingRef = useRef(false);
+  const announcedTicketsRef = useRef<Set<string>>(new Set());
+  const voiceToggleRef = useRef<boolean>(false); // false = male, true = female
+  const [currentAudioSrc, setCurrentAudioSrc] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!mostRecentTicket || !settings?.services || !mostRecentTicket.calledAt || !isStarted) {
+  // Process the next item in the queue
+  const processQueue = useCallback(async () => {
+    if (isPlayingRef.current || announcementQueueRef.current.length === 0) {
       return;
     }
 
-    const ticketId = mostRecentTicket.ticketNumber;
-    const callTime = (mostRecentTicket.calledAt as Timestamp).toMillis();
+    isPlayingRef.current = true;
+    const item = announcementQueueRef.current.shift()!;
 
-    if (lastAnnouncedTicketRef.current?.id !== ticketId || lastAnnouncedTicketRef.current?.time !== callTime) {
-      lastAnnouncedTicketRef.current = { id: ticketId, time: callTime };
-
-      const textToAnnounce = `Ticket number ${mostRecentTicket.ticketNumber}, please proceed to ${mostRecentTicket.stationName}.`;
-
-      textToSpeech(textToAnnounce).then(result => {
-        if (result.media) {
-          setAnnouncementAudio(result.media);
-        } else if (result.error) {
-          console.error("TTS Error:", result.error);
-          toast({ variant: 'destructive', title: 'TTS Error', description: result.error });
-        }
-      }).catch(error => {
-        console.error("TTS Flow Error:", error);
-        toast({ variant: 'destructive', title: 'TTS Flow Error', description: 'Could not generate announcement audio.' });
-      });
+    try {
+      const result = await textToSpeech(item.text, item.voice);
+      if (result.media) {
+        setCurrentAudioSrc(result.media);
+      } else {
+        console.error("TTS Error:", result.error);
+        toast({ variant: 'destructive', title: 'TTS Error', description: result.error || 'Unknown error' });
+        isPlayingRef.current = false;
+        // Try next item in queue
+        processQueue();
+      }
+    } catch (error) {
+      console.error("TTS Flow Error:", error);
+      toast({ variant: 'destructive', title: 'TTS Flow Error', description: 'Could not generate announcement audio.' });
+      isPlayingRef.current = false;
+      // Try next item in queue
+      processQueue();
     }
-  }, [mostRecentTicket, settings?.services, toast, isStarted]);
+  }, [toast]);
 
+  // Handle audio ended - play next in queue
+  const handleAudioEnded = useCallback(() => {
+    setIsAnnouncing(false);
+    setCurrentAudioSrc(null);
+    isPlayingRef.current = false;
+    // Process next item after a short delay
+    setTimeout(() => processQueue(), 500);
+  }, [processQueue]);
+
+  const handleAudioError = useCallback(() => {
+    setIsAnnouncing(false);
+    setCurrentAudioSrc(null);
+    isPlayingRef.current = false;
+    setTimeout(() => processQueue(), 500);
+  }, [processQueue]);
+
+  // Play audio when src changes
   useEffect(() => {
     const audio = announcementAudioRef.current;
-    if (audio && announcementAudio && isStarted) {
-      audio.play().catch(e => console.warn("Announcement audio playback failed. This can happen if interaction is lost.", e));
+    if (audio && currentAudioSrc && isStarted) {
+      audio.play().catch(e => {
+        console.warn("Announcement audio playback failed.", e);
+        isPlayingRef.current = false;
+        setTimeout(() => processQueue(), 500);
+      });
     }
-  }, [announcementAudio, isStarted]);
+  }, [currentAudioSrc, isStarted, processQueue]);
 
+  // Watch for new serving tickets and add to queue
+  useEffect(() => {
+    if (!servingData || !isStarted) return;
+
+    servingData.forEach(item => {
+      if (!item.calledAt || item.ticketNumber === '...') return;
+
+      const callTime = (item.calledAt as Timestamp).toMillis();
+      const uniqueKey = `${item.ticketNumber}-${callTime}`;
+
+      // Skip if already announced
+      if (announcedTicketsRef.current.has(uniqueKey)) return;
+      announcedTicketsRef.current.add(uniqueKey);
+
+      // Alternate voice
+      const voice = voiceToggleRef.current ? FEMALE_VOICE : MALE_VOICE;
+      voiceToggleRef.current = !voiceToggleRef.current;
+
+      const text = `Customer number ${item.ticketNumber}, please proceed to ${item.stationName.replace(/Window/gi, "Counter")}.`;
+
+      // Add to queue
+      announcementQueueRef.current.push({
+        text,
+        voice,
+        ticketId: item.ticketNumber,
+        callTime,
+      });
+
+      // Try to process queue
+      processQueue();
+    });
+  }, [servingData, isStarted, processQueue]);
+
+  // Clean up old announced tickets (prevent memory leak)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (announcedTicketsRef.current.size > 100) {
+        announcedTicketsRef.current.clear();
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+  // ===== END TTS QUEUE SYSTEM =====
 
   const shuffledMedia = useMemo(() => {
     if (!isClient || !settings?.placeholderImages || settings.placeholderImages.length === 0) {
@@ -222,12 +296,10 @@ export function DisplayClient() {
       </header>
       
       <main className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 p-4 min-h-0">
-        {/* Left Column: Ticket Info */}
         <div className="min-w-0 w-full h-full bg-black/20 rounded-lg overflow-hidden flex flex-col p-4">
           <NowServing servingTickets={servingData} waitingTickets={waitingTickets} serviceMap={serviceMap} />
         </div>
         
-        {/* Right Column: Split into two carousels */}
         <div className="w-full h-full grid grid-rows-2 gap-4">
             <InfoPanel 
               mediaItems={shuffledMedia.slice(0, Math.ceil(shuffledMedia.length / 2))} 
@@ -261,10 +333,10 @@ export function DisplayClient() {
       </Button>
       <audio 
           ref={announcementAudioRef} 
-          src={announcementAudio || undefined}
+          src={currentAudioSrc || undefined}
           onPlay={() => setIsAnnouncing(true)}
-          onEnded={() => setIsAnnouncing(false)}
-          onError={() => setIsAnnouncing(false)}
+          onEnded={handleAudioEnded}
+          onError={handleAudioError}
           hidden
       />
     </div>
