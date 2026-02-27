@@ -166,7 +166,9 @@ export function InfoPanel({ mediaItems, backgroundMusic, autoplayDelay, isAnnoun
             className="w-full h-full"
             opts={{
               loop: loop,
-              active: isStarted, // Activate carousel only when started
+              active: isStarted,
+              align: "start",
+              containScroll: "trimSnaps", // Activate carousel only when started
             }}
             plugins={isStarted ? [
             Autoplay({
