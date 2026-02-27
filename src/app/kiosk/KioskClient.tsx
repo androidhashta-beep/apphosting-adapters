@@ -101,7 +101,7 @@ export function KioskClient() {
                 throw new Error(`Service with type '${type}' not found.`);
             }
 
-            const counterRef = doc(firestore, "counters", type);
+            const counterRef = doc(firestore, "counters", "main-queue");
             const newTicketRef = doc(ticketsCollection);
             newTicketId = newTicketRef.id;
 

@@ -20,12 +20,13 @@ import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirebase, useMemoFirebase } from '@/firebase/provider';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { doc } from 'firebase/firestore';
-import { ServiceManagement } from './ServiceManagement';
 import { StationManagement } from './StationManagement';
 import { CarouselSettings } from './CarouselSettings';
 import { UserManagement } from './UserManagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
+import { OperationalSuggestions } from './OperationalSuggestions';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 export function AdminClient() {
   const { firestore } = useFirebase();
@@ -138,11 +139,9 @@ export function AdminClient() {
             </div>
         ) : (
           <div className="space-y-8 p-6">
+              <OperationalSuggestions />
               <UserManagement />
-              <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-                <ServiceManagement />
-                <StationManagement />
-              </div>
+              <StationManagement />
               <CarouselSettings />
               <div className="grid grid-cols-1 items-start gap-8">
                   <div className="space-y-8">

@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'NaviQueue Pro',
-  description: 'A smart queueing system for your organization.',
+  title: 'Renaissance Training Center Inc.',
+  description: 'A smart queueing system for Renaissance Training Center Inc.',
   manifest: '/manifest.json',
 };
 
@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={inter.variable}>
       <head>
         <meta name="theme-color" content="#2C5282" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/logo-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="NaviQueue Pro" />

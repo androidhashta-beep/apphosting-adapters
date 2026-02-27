@@ -26,9 +26,7 @@ export function PageWrapper({ children, title, showBackButton = true }: { childr
 
   const handleGoHome = () => {
     localStorage.removeItem('app-instance-role');
-    localStorage.removeItem('app-instance-station-id');
-    sessionStorage.setItem('force-role-selection', 'true');
-    router.push('/');
+    window.location.assign('/');
   };
 
   const handleSignOut = async () => {

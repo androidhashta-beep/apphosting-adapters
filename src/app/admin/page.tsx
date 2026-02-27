@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AdminClient } from './AdminClient';
@@ -16,12 +15,14 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
   // Redirect non-admins away
   useEffect(() => {
     if (!isLoading && profile?.role !== 'admin') {
+      // If loading is done and user is not an admin, redirect.
       router.replace('/staff');
     }
   }, [isLoading, profile, router]);
   
-  // While loading, show a loader.
-  if (isLoading) {
+  // Show a loader while checking the role.
+  // AuthGuard has already checked for a logged-in user.
+  if (isLoading || profile?.role !== 'admin') {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -32,20 +33,8 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // If loading is done and the user is an admin, show the content.
-  if (profile?.role === 'admin') {
-    return <>{children}</>;
-  }
-
-  // For non-admins (or on error), show the loader while redirecting.
-  return (
-      <div className="flex h-[80vh] w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="text-muted-foreground">Verifying admin access...</p>
-        </div>
-      </div>
-  );
+  // If we're here, user is an admin.
+  return <>{children}</>;
 }
 
 

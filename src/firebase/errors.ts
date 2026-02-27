@@ -1,4 +1,3 @@
-
 'use client';
 
 // NOTE: No imports from 'firebase/app' or 'firebase/auth' to ensure server-side compatibility.
