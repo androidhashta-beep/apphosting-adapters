@@ -87,7 +87,7 @@ export function NowServing({
 
       {/* Bottom Row: Split into Also Serving and Waiting */}
       <div className="flex-1 min-h-0 grid grid-cols-2 gap-4">
-          <QueueList title="Also Serving" headers={['Ticket #', 'Window']}>
+          <QueueList title="Also Serving" headers={['Customer #', 'Counter']}>
             {otherServingTickets.map(item => (
                 <div key={`${item.ticketNumber}-${item.stationName}`} className="grid grid-cols-2 items-start py-2 border-b border-white/10 last:border-none">
                     <p className="text-left text-2xl font-semibold">{item.ticketNumber}</p>
@@ -96,7 +96,7 @@ export function NowServing({
             ))}
           </QueueList>
 
-          <QueueList title="Waiting" headers={['Ticket #', 'Service']}>
+          <QueueList title="Waiting" headers={['Customer #', 'Service']}>
             {waitingTickets.slice(0, 50).map(item => (
                  <div key={item.id} className="grid grid-cols-2 items-start py-2 border-b border-white/10 last:border-none">
                     <p className="text-left text-2xl font-semibold">{item.ticketNumber}</p>
