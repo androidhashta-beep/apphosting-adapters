@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import type { Ticket, Settings, Station, Service } from '@/lib/types';
@@ -14,19 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Home, PlayCircle } from 'lucide-react';
 import { Clock } from './Clock';
 import { InfoPanel } from './InfoPanel';
-import { textToSpeech } from '@/ai/flows/text-to-speech';
 import { useToast } from '@/hooks/use-toast';
-
-// Voice names for alternating male/female
-const MALE_VOICE = 'Algenib';
-const FEMALE_VOICE = 'Aoede';
-
-interface AnnouncementItem {
-  text: string;
-  voice: string;
-  ticketId: string;
-  callTime: number;
-}
+import { useTtsQueue } from '@/hooks/useTtsQueue';
 
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
@@ -43,10 +32,18 @@ export function DisplayClient() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
+  const [isAnnouncing, setIsAnnouncing] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // TTS Queue with browser TTS primary, Gemini API fallback
+  const { announce, hasBrowserTts } = useTtsQueue({
+    isStarted,
+    onPlayStart: () => setIsAnnouncing(true),
+    onPlayEnd: () => setIsAnnouncing(false),
+  });
 
   const settingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'app') : null),
@@ -116,117 +113,16 @@ export function DisplayClient() {
     return data;
   }, [stations, servingTickets, settings?.services]);
 
-  const mostRecentTicket = useMemo(() => (servingData.length > 0 ? servingData[0] : null), [servingData]);
-
-  // ===== TTS QUEUE SYSTEM =====
-  const [isAnnouncing, setIsAnnouncing] = useState(false);
-  const announcementAudioRef = useRef<HTMLAudioElement>(null);
-  const announcementQueueRef = useRef<AnnouncementItem[]>([]);
-  const isPlayingRef = useRef(false);
-  const announcedTicketsRef = useRef<Set<string>>(new Set());
-  const voiceToggleRef = useRef<boolean>(false); // false = male, true = female
-  const [currentAudioSrc, setCurrentAudioSrc] = useState<string | null>(null);
-
-  // Process the next item in the queue
-  const processQueue = useCallback(async () => {
-    if (isPlayingRef.current || announcementQueueRef.current.length === 0) {
-      return;
-    }
-
-    isPlayingRef.current = true;
-    const item = announcementQueueRef.current.shift()!;
-
-    try {
-      const result = await textToSpeech(item.text, item.voice);
-      if (result.media) {
-        setCurrentAudioSrc(result.media);
-      } else {
-        console.error("TTS Error:", result.error);
-        toast({ variant: 'destructive', title: 'TTS Error', description: result.error || 'Unknown error' });
-        isPlayingRef.current = false;
-        // Try next item in queue
-        processQueue();
-      }
-    } catch (error) {
-      console.error("TTS Flow Error:", error);
-      toast({ variant: 'destructive', title: 'TTS Flow Error', description: 'Could not generate announcement audio.' });
-      isPlayingRef.current = false;
-      // Try next item in queue
-      processQueue();
-    }
-  }, [toast]);
-
-  // Handle audio ended - play next in queue
-  const handleAudioEnded = useCallback(() => {
-    setIsAnnouncing(false);
-    setCurrentAudioSrc(null);
-    isPlayingRef.current = false;
-    // Process next item after a short delay
-    setTimeout(() => processQueue(), 500);
-  }, [processQueue]);
-
-  const handleAudioError = useCallback(() => {
-    setIsAnnouncing(false);
-    setCurrentAudioSrc(null);
-    isPlayingRef.current = false;
-    setTimeout(() => processQueue(), 500);
-  }, [processQueue]);
-
-  // Play audio when src changes
-  useEffect(() => {
-    const audio = announcementAudioRef.current;
-    if (audio && currentAudioSrc && isStarted) {
-      audio.play().catch(e => {
-        console.warn("Announcement audio playback failed.", e);
-        isPlayingRef.current = false;
-        setTimeout(() => processQueue(), 500);
-      });
-    }
-  }, [currentAudioSrc, isStarted, processQueue]);
-
-  // Watch for new serving tickets and add to queue
+  // Watch for new serving tickets and announce them
   useEffect(() => {
     if (!servingData || !isStarted) return;
 
     servingData.forEach(item => {
       if (!item.calledAt || item.ticketNumber === '...') return;
-
       const callTime = (item.calledAt as Timestamp).toMillis();
-      const uniqueKey = `${item.ticketNumber}-${callTime}`;
-
-      // Skip if already announced
-      if (announcedTicketsRef.current.has(uniqueKey)) return;
-      announcedTicketsRef.current.add(uniqueKey);
-
-      // Alternate voice
-      const voice = voiceToggleRef.current ? FEMALE_VOICE : MALE_VOICE;
-      voiceToggleRef.current = !voiceToggleRef.current;
-
-      const text = `Customer number ${parseInt(item.ticketNumber, 10) || item.ticketNumber}, please proceed to ${item.stationName}.`;
-
-      // Add to queue
-      announcementQueueRef.current.push({
-        text,
-        voice,
-        ticketId: item.ticketNumber,
-        callTime,
-      });
-
-      // Try to process queue
-      processQueue();
+      announce(item.ticketNumber, item.stationName, callTime);
     });
-  }, [servingData, isStarted, processQueue]);
-
-  // Clean up old announced tickets (prevent memory leak)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (announcedTicketsRef.current.size > 100) {
-        announcedTicketsRef.current.clear();
-      }
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-  // ===== END TTS QUEUE SYSTEM =====
+  }, [servingData, isStarted, announce]);
 
   const shuffledMedia = useMemo(() => {
     if (!isClient || !settings?.placeholderImages || settings.placeholderImages.length === 0) {
@@ -267,6 +163,9 @@ export function DisplayClient() {
             </Button>
             <p className="text-sm text-slate-400 mt-8">
                 This one-time interaction is required by modern browsers to enable automatic audio playback for announcements.
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+                TTS Mode: {hasBrowserTts ? '🟢 Browser (Free)' : '🟡 Cloud API'}
             </p>
         </div>
       </div>
@@ -331,14 +230,6 @@ export function DisplayClient() {
         <Home className="h-6 w-6" />
         <span className="sr-only">Go Home</span>
       </Button>
-      <audio 
-          ref={announcementAudioRef} 
-          src={currentAudioSrc || undefined}
-          onPlay={() => setIsAnnouncing(true)}
-          onEnded={handleAudioEnded}
-          onError={handleAudioError}
-          hidden
-      />
     </div>
   );
 }
