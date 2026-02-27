@@ -29,14 +29,14 @@ const MostRecentCard = ({ ticket }: { ticket: ServingInfo | null }) => {
             
             <p
                 className="font-extrabold tracking-tighter leading-none z-10"
-                style={{ fontSize: 'clamp(8rem, 25vh, 16rem)' }}
+                style={{ fontSize: 'clamp(5rem, 15vh, 10rem)' }}
             >
                 {ticket.ticketNumber}
             </p>
             
             <div className="text-center z-10">
-                 <p className="text-3xl font-semibold opacity-70 -mb-1">Please proceed to</p>
-                 <p className="text-5xl font-bold">{ticket.stationName}</p>
+                 <p className="text-2xl font-semibold opacity-70 -mb-1">Please proceed to</p>
+                 <p className="text-4xl font-bold">{ticket.stationName}</p>
             </div>
         </div>
     );
