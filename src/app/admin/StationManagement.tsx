@@ -95,7 +95,7 @@ export function StationManagement() {
       }
 
       const newStationName = `Window ${nextStationNumber}`;
-      const newStationId = `window-${nextStationNumber}`;
+      const newStationId = `station-${Date.now()}`;
 
       const stationRef = doc(firestore, 'stations', newStationId);
       await setDoc(stationRef, {
