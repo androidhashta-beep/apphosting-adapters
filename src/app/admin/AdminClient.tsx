@@ -26,6 +26,7 @@ import { UserManagement } from './UserManagement';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Slider } from '@/components/ui/slider';
 import { OperationalSuggestions } from './OperationalSuggestions';
+import { QueueOverview } from './QueueOverview';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 export function AdminClient() {
@@ -106,7 +107,6 @@ export function AdminClient() {
   }, [companyLogoUrl, verifyUrl, settings?.companyLogoUrl]);
 
   const handleCompanySettingsSave = () => {
-    // Logo URL validation skipped
     if (settingsRef) {
       const settingsToSave = {
         companyName,
@@ -122,94 +122,119 @@ export function AdminClient() {
   };
   
   return (
-      <ScrollArea className="h-[calc(100vh-10rem)]">
-        {isLoadingSettings ? (
-            <div className="space-y-8 p-6">
-              <Skeleton className="w-full h-96" />
-              <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-                <Skeleton className="w-full h-64" />
-                <Skeleton className="w-full h-96" />
-              </div>
-            </div>
-        ) : (
-          <div className="space-y-8 p-6">
-              <OperationalSuggestions />
-              <UserManagement />
-              <StationManagement />
-              <CarouselSettings />
-              <div className="grid grid-cols-1 items-start gap-8">
-                  <div className="space-y-8">
-                  <Card>
-                      <CardHeader>
-                      <CardTitle>Company Settings</CardTitle>
-                      <CardDescription>
-                          Set the name, logo, and other global settings for your organization.
-                      </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                      <div>
-                        <Label htmlFor="company-name">Company Name</Label>
-                        <Input
-                            id="company-name"
-                            value={companyName}
-                            onChange={(e) => setCompanyName(e.target.value)}
-                            disabled={isLoadingSettings}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="company-logo">Company Logo URL</Label>
-                        <div className="relative">
-                            <Input
-                                id="company-logo"
-                                placeholder="/logo.png"
-                                value={companyLogoUrl}
-                                onChange={(e) => setCompanyLogoUrl(e.target.value)}
-                                disabled={isLoadingSettings}
-                                className="pr-10"
-                            />
-                             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                                {logoUrlStatus === 'verifying' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                                {logoUrlStatus === 'valid' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                {logoUrlStatus === 'invalid' && <AlertCircle className="h-4 w-4 text-destructive" />}
-                            </div>
-                        </div>
-                        {logoUrlError && <p className="text-xs text-destructive mt-1">{logoUrlError}</p>}
-                         <p className="text-xs text-muted-foreground mt-2">
-                            <strong>Recommended:</strong> In the file explorer, use the <code className="font-mono bg-muted text-foreground rounded px-1">public</code> folder (all lowercase) located at the top level of your project (alongside the `src` folder). Place your logo inside it, then enter its <strong>URL path</strong> here. The path must start with a forward slash (e.g., <code className="font-mono bg-muted text-foreground rounded px-1">/logo.png</code>). Next.js requires the folder to be named `public` in all lowercase.
-                        </p>
-                         <p className="text-xs text-muted-foreground mt-1">
-                            <strong>Advanced (less reliable):</strong> You can use public URLs from services like Google Drive, but they may fail to load due to security restrictions. For Google Drive, you must set file sharing to "Anyone with the link" and convert the share link from <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code> to <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code>.
-                        </p>
-                      </div>
-                       <div>
-                        <Label htmlFor="music-volume">Background Music Volume</Label>
-                        <div className="flex items-center gap-4 pt-2">
-                          <Slider
-                            id="music-volume"
-                            min={0}
-                            max={100}
-                            step={1}
-                            value={[backgroundMusicVolume]}
-                            onValueChange={(value) => setBackgroundMusicVolume(value[0])}
-                            disabled={isLoadingSettings}
-                          />
-                          <span className="text-sm font-medium w-12 text-center">{backgroundMusicVolume}%</span>
-                        </div>
-                         <p className="text-xs text-muted-foreground mt-2">
-                          Controls the master volume for background music on the public display.
-                        </p>
-                      </div>
-                      </CardContent>
-                      <CardFooter>
-                      <Button onClick={handleCompanySettingsSave} disabled={isLoadingSettings}>
-                          Save Settings
-                      </Button>
-                      </CardFooter>
-                  </Card>
-                  </div>
-              </div>
+    <ScrollArea className="h-[calc(100vh-10rem)]">
+      {isLoadingSettings ? (
+        <div className="space-y-8 p-6">
+          <Skeleton className="w-full h-80" />
+          <Skeleton className="w-full h-96" />
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+            <Skeleton className="w-full h-64" />
+            <Skeleton className="w-full h-96" />
           </div>
-        )}
-      </ScrollArea>
+        </div>
+      ) : (
+        <div className="space-y-8 p-6">
+
+          {/* ── Live Queue Overview ──────────────────────────────────── */}
+          <Card className="border-2 border-primary/20 shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold">Queue Dashboard</CardTitle>
+              <CardDescription>
+                Live queue status per service — updates in real time
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <QueueOverview />
+            </CardContent>
+          </Card>
+
+          {/* ── Rest of admin sections ───────────────────────────────── */}
+          <OperationalSuggestions />
+          <UserManagement />
+          <StationManagement />
+          <CarouselSettings />
+
+          <div className="grid grid-cols-1 items-start gap-8">
+            <div className="space-y-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Company Settings</CardTitle>
+                  <CardDescription>
+                    Set the name, logo, and other global settings for your organization.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label htmlFor="company-name">Company Name</Label>
+                    <Input
+                      id="company-name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      disabled={isLoadingSettings}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="company-logo">Company Logo URL</Label>
+                    <div className="relative">
+                      <Input
+                        id="company-logo"
+                        placeholder="/logo.png"
+                        value={companyLogoUrl}
+                        onChange={(e) => setCompanyLogoUrl(e.target.value)}
+                        disabled={isLoadingSettings}
+                        className="pr-10"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        {logoUrlStatus === 'verifying' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                        {logoUrlStatus === 'valid'     && <CheckCircle className="h-4 w-4 text-green-500" />}
+                        {logoUrlStatus === 'invalid'   && <AlertCircle className="h-4 w-4 text-destructive" />}
+                      </div>
+                    </div>
+                    {logoUrlError && <p className="text-xs text-destructive mt-1">{logoUrlError}</p>}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <strong>Recommended:</strong> Place your logo in the{' '}
+                      <code className="font-mono bg-muted text-foreground rounded px-1">public</code>{' '}
+                      folder and enter its URL path (e.g.,{' '}
+                      <code className="font-mono bg-muted text-foreground rounded px-1">/logo.png</code>).
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      <strong>Advanced:</strong> You can use a public URL from services like Google Drive, but convert
+                      the share link from{' '}
+                      <code className="font-mono bg-muted text-foreground rounded px-1">.../file/d/FILE_ID/view...</code>{' '}
+                      to{' '}
+                      <code className="font-mono bg-muted text-foreground rounded px-1">https://drive.google.com/uc?id=FILE_ID</code>.
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="music-volume">Background Music Volume</Label>
+                    <div className="flex items-center gap-4 pt-2">
+                      <Slider
+                        id="music-volume"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[backgroundMusicVolume]}
+                        onValueChange={(value) => setBackgroundMusicVolume(value[0])}
+                        disabled={isLoadingSettings}
+                      />
+                      <span className="text-sm font-medium w-12 text-center">{backgroundMusicVolume}%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Controls the master volume for background music on the public display.
+                    </p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button onClick={handleCompanySettingsSave} disabled={isLoadingSettings}>
+                    Save Settings
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+
+        </div>
+      )}
+    </ScrollArea>
   );
 }

@@ -3,18 +3,18 @@
 
 import { useMemo } from 'react';
 import { StationControlCard } from './StationControlCard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import type { Ticket, Settings, Station } from '@/lib/types';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useDoc } from '@/firebase/firestore/use-doc';
 import { useFirebase, useMemoFirebase } from '@/firebase/provider';
-import { collection, doc, Timestamp } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrainCircuit } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { QueueOverview } from '../admin/QueueOverview';
 
 export function StaffClient() {
   const { firestore } = useFirebase();
@@ -61,8 +61,7 @@ export function StaffClient() {
     );
   }, [tickets, settings?.services]);
 
-  const isLoading =
-    isLoadingSettings || isLoadingStations || isLoadingTickets;
+  const isLoading = isLoadingSettings || isLoadingStations || isLoadingTickets;
 
   if (isLoading) {
     return (
@@ -72,8 +71,10 @@ export function StaffClient() {
             <Skeleton className="h-6 w-1/4" />
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-32" />)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Skeleton key={i} className="h-44 rounded-2xl" />
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -102,13 +103,12 @@ export function StaffClient() {
             </p>
             {profile?.role === 'admin' && (
               <>
-              <p className="mt-2 text-muted-foreground">
-                Please use the admin panel to add services and stations to get
-                started.
-              </p>
-              <Button asChild className="mt-6">
+                <p className="mt-2 text-muted-foreground">
+                  Please use the admin panel to add services and stations to get started.
+                </p>
+                <Button asChild className="mt-6">
                   <Link href="/admin">Go to Admin Panel</Link>
-              </Button>
+                </Button>
               </>
             )}
           </CardContent>
@@ -119,30 +119,19 @@ export function StaffClient() {
 
   return (
     <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Queue Overview</CardTitle>
+
+      {/* ── Live Queue Overview (read-only for staff) ───────────────────── */}
+      <Card className="border-2 border-primary/20 shadow-md">
+        <CardHeader className="pb-2">
+          <CardTitle>Queue Dashboard</CardTitle>
+          <CardDescription>Live queue status per service — updates in real time</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            {isLoadingSettings ? (
-              [...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-32" />)
-            ) : settings?.services?.length ? (
-              settings.services.map((service) => (
-                <div key={service.id} className="flex items-center gap-2 rounded-lg border bg-card p-3 shadow-sm">
-                  <span className="font-semibold">{service.label}</span>
-                  <Badge variant="secondary">{waitingCounts[service.id] || 0}</Badge>
-                </div>
-              ))
-            ) : (
-               <p className="text-center text-muted-foreground p-4">
-                No services configured. Please go to the admin panel to add services.
-              </p>
-            )}
-          </div>
+          <QueueOverview showReset={false} />
         </CardContent>
       </Card>
-      
+
+      {/* ── Station Control Cards ───────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-6">
         {sortedStations?.map((station) => {
           const ticket = tickets?.find((t) => t.id === station.currentTicketId);
@@ -157,6 +146,7 @@ export function StaffClient() {
           );
         })}
       </div>
+
     </div>
   );
 }
